@@ -1,0 +1,812 @@
+openapi: 3.0.3
+info:
+  title: نواژه - Novazheh Speech Therapy API
+  description: |
+    سرور گفتار درمانی برای کودکان
+    
+    ## ویژگی‌ها
+    - 🔐 احراز هویت با JWT
+    - 👨‍👩‍👧 مدیریت فرزندان (حداکثر ۲ فرزند)
+    - 📚 دسته‌بندی‌ها و کلمات با صوت
+    - 📝 آزمون و پیگیری پیشرفت
+    - 🎤 کلمات سفارشی مادر
+  version: 1.0.0
+  contact:
+    name: Novazheh Support
+
+servers:
+  - url: http://localhost:8080
+    description: Development Server
+
+tags:
+  - name: Auth
+    description: احراز هویت - ثبت نام و ورود
+  - name: Children
+    description: مدیریت فرزندان
+  - name: Categories
+    description: دسته‌بندی‌ها
+  - name: Words
+    description: کلمات
+  - name: Custom Words
+    description: کلمات سفارشی مادر
+  - name: Quiz
+    description: آزمون
+  - name: Progress
+    description: پیشرفت فرزند
+
+paths:
+  # ==================== Auth ====================
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: ثبت نام مادر
+      description: ثبت نام حساب کاربری جدید برای مادر
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: ثبت نام موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: خطا در اعتبارسنجی
+
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: ورود مادر
+      description: ورود به حساب کاربری با ایمیل و رمز عبور
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: ورود موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: ایمیل یا رمز عبور اشتباه
+
+  /api/auth/me:
+    get:
+      tags: [Auth]
+      summary: اطلاعات مادر فعلی
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ParentResponse'
+
+  # ==================== Children ====================
+  /api/children:
+    get:
+      tags: [Children]
+      summary: لیست فرزندان
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChildrenListResponse'
+    post:
+      tags: [Children]
+      summary: افزودن فرزند
+      description: افزودن فرزند جدید (حداکثر ۲ فرزند)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChildRequest'
+      responses:
+        '201':
+          description: فرزند اضافه شد
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChildResponse'
+        '400':
+          description: حداکثر تعداد فرزندان رسیده است
+
+  /api/children/{id}:
+    get:
+      tags: [Children]
+      summary: جزئیات فرزند
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChildResponse'
+    put:
+      tags: [Children]
+      summary: ویرایش فرزند
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateChildRequest'
+      responses:
+        '200':
+          description: ویرایش شد
+    delete:
+      tags: [Children]
+      summary: حذف فرزند
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: حذف شد
+
+  # ==================== Categories ====================
+  /api/categories:
+    get:
+      tags: [Categories]
+      summary: لیست دسته‌بندی‌ها
+      responses:
+        '200':
+          description: موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoriesListResponse'
+
+  /api/categories/{id}:
+    get:
+      tags: [Categories]
+      summary: جزئیات دسته‌بندی
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+
+  /api/categories/{id}/words:
+    get:
+      tags: [Words]
+      summary: کلمات دسته‌بندی
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WordsListResponse'
+
+  # ==================== Words ====================
+  /api/words/{id}:
+    get:
+      tags: [Words]
+      summary: جزئیات کلمه
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WordResponse'
+
+  # ==================== Custom Words ====================
+  /api/custom-words:
+    get:
+      tags: [Custom Words]
+      summary: لیست کلمات سفارشی
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomWordsListResponse'
+    post:
+      tags: [Custom Words]
+      summary: افزودن کلمه سفارشی
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomWordRequest'
+      responses:
+        '201':
+          description: اضافه شد
+
+  /api/custom-words/{id}:
+    delete:
+      tags: [Custom Words]
+      summary: حذف کلمه سفارشی
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: حذف شد
+
+  # ==================== Quiz ====================
+  /api/quiz/question:
+    get:
+      tags: [Quiz]
+      summary: تولید یک سوال آزمون
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: categoryId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: childId
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizQuestionResponse'
+
+  /api/quiz/questions:
+    get:
+      tags: [Quiz]
+      summary: تولید چند سوال آزمون
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: categoryId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: childId
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: count
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 5
+      responses:
+        '200':
+          description: موفق
+
+  /api/quiz/submit:
+    post:
+      tags: [Quiz]
+      summary: ثبت پاسخ آزمون
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitQuizRequest'
+      responses:
+        '200':
+          description: موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizResultResponse'
+
+  # ==================== Progress ====================
+  /api/progress/child/{childId}:
+    get:
+      tags: [Progress]
+      summary: آمار پیشرفت فرزند
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: childId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: موفق
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProgressStatsResponse'
+
+  /api/progress/child/{childId}/recent:
+    get:
+      tags: [Progress]
+      summary: آزمون‌های اخیر فرزند
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: childId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: موفق
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    # Auth
+    RegisterRequest:
+      type: object
+      required: [email, password, displayName]
+      properties:
+        email:
+          type: string
+          format: email
+          example: mother@example.com
+        password:
+          type: string
+          minLength: 6
+          example: "123456"
+        displayName:
+          type: string
+          example: مریم
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        token:
+          type: string
+        parent:
+          $ref: '#/components/schemas/Parent'
+
+    Parent:
+      type: object
+      properties:
+        id:
+          type: integer
+        email:
+          type: string
+        displayName:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+
+    ParentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Parent'
+
+    # Children
+    CreateChildRequest:
+      type: object
+      required: [name, age]
+      properties:
+        name:
+          type: string
+          example: علی
+        age:
+          type: integer
+          minimum: 1
+          maximum: 18
+          example: 5
+        avatarUrl:
+          type: string
+
+    UpdateChildRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        age:
+          type: integer
+        avatarUrl:
+          type: string
+
+    Child:
+      type: object
+      properties:
+        id:
+          type: integer
+        parentId:
+          type: integer
+        name:
+          type: string
+        age:
+          type: integer
+        avatarUrl:
+          type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+
+    ChildResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Child'
+
+    ChildrenListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Child'
+        total:
+          type: integer
+
+    # Categories
+    Category:
+      type: object
+      properties:
+        id:
+          type: integer
+        nameFa:
+          type: string
+        nameEn:
+          type: string
+        iconUrl:
+          type: string
+        displayOrder:
+          type: integer
+        wordCount:
+          type: integer
+
+    CategoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Category'
+
+    CategoriesListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        total:
+          type: integer
+
+    # Words
+    Word:
+      type: object
+      properties:
+        id:
+          type: integer
+        categoryId:
+          type: integer
+        wordFa:
+          type: string
+        wordEn:
+          type: string
+        imageUrl:
+          type: string
+        audioUrl:
+          type: string
+        displayOrder:
+          type: integer
+
+    WordResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Word'
+
+    WordsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Word'
+        total:
+          type: integer
+
+    # Custom Words
+    CreateCustomWordRequest:
+      type: object
+      required: [wordFa, audioUrl]
+      properties:
+        wordFa:
+          type: string
+          example: توپ
+        wordEn:
+          type: string
+          example: Ball
+        imageUrl:
+          type: string
+        audioUrl:
+          type: string
+        categoryId:
+          type: integer
+
+    CustomWord:
+      type: object
+      properties:
+        id:
+          type: integer
+        parentId:
+          type: integer
+        wordFa:
+          type: string
+        wordEn:
+          type: string
+        imageUrl:
+          type: string
+        audioUrl:
+          type: string
+        categoryId:
+          type: integer
+        createdAt:
+          type: string
+
+    CustomWordsListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CustomWord'
+        total:
+          type: integer
+
+    # Quiz
+    QuizOption:
+      type: object
+      properties:
+        wordId:
+          type: integer
+        wordFa:
+          type: string
+        wordEn:
+          type: string
+        imageUrl:
+          type: string
+
+    QuizQuestion:
+      type: object
+      properties:
+        wordId:
+          type: integer
+        audioUrl:
+          type: string
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuizOption'
+
+    QuizQuestionResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/QuizQuestion'
+
+    SubmitQuizRequest:
+      type: object
+      required: [childId, wordId, selectedWordId]
+      properties:
+        childId:
+          type: integer
+        wordId:
+          type: integer
+          description: کلمه اصلی (صوتی که پخش شد)
+        selectedWordId:
+          type: integer
+          description: کلمه‌ای که فرزند انتخاب کرد
+        responseTimeMs:
+          type: integer
+
+    QuizResult:
+      type: object
+      properties:
+        isCorrect:
+          type: boolean
+        correctWordId:
+          type: integer
+        correctWordFa:
+          type: string
+        message:
+          type: string
+
+    QuizResultResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/QuizResult'
+
+    # Progress
+    CategoryProgress:
+      type: object
+      properties:
+        categoryId:
+          type: integer
+        categoryNameFa:
+          type: string
+        categoryNameEn:
+          type: string
+        totalWords:
+          type: integer
+        learnedWords:
+          type: integer
+        progressPercent:
+          type: number
+
+    ProgressStats:
+      type: object
+      properties:
+        childId:
+          type: integer
+        childName:
+          type: string
+        totalWords:
+          type: integer
+        learnedWords:
+          type: integer
+        inProgressWords:
+          type: integer
+        totalAttempts:
+          type: integer
+        correctAttempts:
+          type: integer
+        overallAccuracyPercent:
+          type: number
+        progressByCategory:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryProgress'
+
+    ProgressStatsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/ProgressStats'
+
+    # Generic
+    MessageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+

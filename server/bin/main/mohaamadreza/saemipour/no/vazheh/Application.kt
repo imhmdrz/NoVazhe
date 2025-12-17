@@ -10,7 +10,9 @@ import io.ktor.server.netty.*
 import io.ktor.server.plugins.calllogging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.cors.routing.*
+import io.ktor.server.plugins.openapi.*
 import io.ktor.server.plugins.statuspages.*
+import io.ktor.server.plugins.swagger.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -41,9 +43,6 @@ fun Application.module() {
     configureRouting()
 }
 
-/**
- * Configure JSON serialization
- */
 fun Application.configureSerialization() {
     install(ContentNegotiation) {
         json(Json {
@@ -55,9 +54,6 @@ fun Application.configureSerialization() {
     }
 }
 
-/**
- * Configure CORS for cross-origin requests
- */
 fun Application.configureCORS() {
     install(CORS) {
         allowMethod(HttpMethod.Options)
@@ -78,9 +74,6 @@ fun Application.configureCORS() {
     }
 }
 
-/**
- * Configure JWT Authentication
- */
 fun Application.configureAuthentication() {
     val (issuer, audience, verifier) = JwtConfig.getConfigForKtor()
     
@@ -107,9 +100,6 @@ fun Application.configureAuthentication() {
     }
 }
 
-/**
- * Configure error handling
- */
 fun Application.configureStatusPages() {
     install(StatusPages) {
         exception<Throwable> { call, cause ->
@@ -136,9 +126,6 @@ fun Application.configureStatusPages() {
     }
 }
 
-/**
- * Configure request logging
- */
 fun Application.configureCallLogging() {
     install(CallLogging) {
         level = Level.INFO
@@ -152,14 +139,11 @@ fun Application.configureCallLogging() {
     }
 }
 
-/**
- * Configure all routes
- */
 fun Application.configureRouting() {
     routing {
         // Health check endpoint
         get("/") {
-            call.respondText("🚀 نواژه - سرور گفتار درمانی در حال اجراست!")
+            call.respondText("🚀 نواژه - سرور گفتار درمانی در حال اجراست! مستندات API: /swagger")
         }
         
         get("/health") {
@@ -168,6 +152,12 @@ fun Application.configureRouting() {
                 MessageResponse(true, "سرور در حال اجراست")
             )
         }
+
+        swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml") {
+            version = "5.17.14"
+        }
+
+        openAPI(path = "openapi", swaggerFile = "openapi/documentation.yaml")
         
         // API routes
         authRoutes()        // /api/auth/*

@@ -3,57 +3,56 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
+    alias(libs.plugins.kotlinx.serialization)
 }
 
 kotlin {
-    androidTarget {
-        compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
-        }
-    }
-    
+    androidTarget { compilerOptions { jvmTarget.set(JvmTarget.JVM_11) } }
+
     iosArm64()
     iosSimulatorArm64()
-    
+
     jvm()
-    
-    sourceSets {
-        commonTest.dependencies {
-            implementation(libs.kotlin.test)
+
+    // Suppress expect/actual classes Beta warning
+    targets.configureEach {
+        compilations.configureEach {
+            compileTaskProvider.get().compilerOptions {
+                freeCompilerArgs.add("-Xexpect-actual-classes")
+            }
         }
+    }
+
+    sourceSets {
+        commonTest.dependencies { implementation(libs.kotlin.test) }
         commonMain.dependencies {
-            //Network
+            // Network
             implementation(libs.ktor.core)
             implementation(libs.ktor.logging)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.xml)
-            //Coroutines
+            implementation(libs.ktor.serialization.kotlinx.json)
+            // Coroutines
             implementation(libs.kotlinx.coroutines.core)
-            //Logger
+            // Logger
             implementation(libs.napier)
-            //JSON
+            // JSON
             implementation(libs.kotlinx.serialization.json)
-            //Key-Value storage
+            // Key-Value storage
             implementation(libs.multiplatform.settings)
             // DI
             api(libs.koin.core)
 
-            //Date formatting
+            // Date formatting
             implementation(libs.kotlinx.datetime)
 
-            //XML
+            // XML
             implementation(libs.xml.serialization)
             implementation(libs.xml.serialization.core)
         }
-        androidMain.dependencies {
-            implementation(libs.ktor.client.okhttp)
-        }
-        iosMain.dependencies {
-            implementation(libs.ktor.client.ios)
-        }
-        jvmMain.dependencies {
-            implementation(libs.ktor.client.okhttp)
-        }
+        androidMain.dependencies { implementation(libs.ktor.client.okhttp) }
+        iosMain.dependencies { implementation(libs.ktor.client.ios) }
+        jvmMain.dependencies { implementation(libs.ktor.client.okhttp) }
     }
 }
 
@@ -64,7 +63,5 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    defaultConfig {
-        minSdk = libs.versions.android.minSdk.get().toInt()
-    }
+    defaultConfig { minSdk = libs.versions.android.minSdk.get().toInt() }
 }

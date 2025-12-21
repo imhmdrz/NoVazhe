@@ -10,25 +10,45 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import mohaamadreza.saemipour.no.vazheh.ui.screens.AuthScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.ChildScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.GameScreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.AppTheme
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.AuthViewModel
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 @Preview
 fun App() {
     AppTheme {
         val navController = rememberNavController()
-        NavHost(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding(), navController = navController, startDestination = "child") {
-            composable("child") {
+
+        NavHost(
+                modifier =
+                        Modifier.fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background)
+                                .safeDrawingPadding(),
+                navController = navController,
+                startDestination = "auth"
+        ) {
+            composable("auth") {
+                val authViewModel: AuthViewModel = koinViewModel()
                 OrientationWrapper(Orientation.Vertical) {
-                    ChildScreen(navController = navController)
+                    AuthScreen(navController = navController, viewModel = authViewModel)
+                }
+            }
+            composable("child") {
+                val childViewModel: ChildViewModel = koinViewModel()
+                OrientationWrapper(Orientation.Vertical) {
+                    ChildScreen(navController = navController, viewModel = childViewModel)
                 }
             }
             composable("game") {
+                val childViewModel: ChildViewModel = koinViewModel()
                 OrientationWrapper(Orientation.Horizontal) {
-                    GameScreen(navController = navController)
+                    GameScreen(navController = navController, viewModel = childViewModel)
                 }
             }
         }

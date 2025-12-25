@@ -113,6 +113,11 @@ class AuthRepository(
         return tokenStorage.getDisplayName()
     }
 
+    /** Get stored username */
+    fun getUsername(): String? {
+        return tokenStorage.getUsername()
+    }
+
     /** Logout - clear all stored data */
     fun logout() {
         tokenStorage.clearAll()

@@ -2,6 +2,7 @@ package mohaamadreza.saemipour.no.vazheh.database
 
 import mohaamadreza.saemipour.no.vazheh.database.tables.Categories
 import mohaamadreza.saemipour.no.vazheh.database.tables.Words
+import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -15,28 +16,30 @@ object DatabaseSeeder {
     
     /**
      * Seed the database with sample categories and words
+     * Clears existing data and reseeds every time
      */
     fun seed() {
         transaction {
-            // Only seed if categories table is empty
-            if (Categories.selectAll().count() > 0) {
-                println("📦 Database already has data, skipping seed.")
-                return@transaction
-            }
+            // Clear existing data first (Words must be deleted before Categories due to foreign key)
+            println("🗑️ Clearing existing data...")
+            Words.deleteAll()
+            Categories.deleteAll()
             
-            println("🌱 Seeding database with sample data...")
+            println("🌱 Seeding database with fresh data...")
             
             // Seed categories
-            val fruitsId = seedCategory("میوه‌ها", "Fruits", 1)
-            val animalsId = seedCategory("حیوانات", "Animals", 2)
-            val colorsId = seedCategory("رنگ‌ها", "Colors", 3)
-            val numbersId = seedCategory("اعداد", "Numbers", 4)
-            val bodyPartsId = seedCategory("اعضای بدن", "Body Parts", 5)
-            val vehiclesId = seedCategory("وسایل نقلیه", "Vehicles", 6)
-            val familyId = seedCategory("خانواده", "Family", 7)
-            val clothesId = seedCategory("لباس‌ها", "Clothes", 8)
-            val foodId = seedCategory("غذاها", "Food", 9)
-            val shapesId = seedCategory("اشکال", "Shapes", 10)
+            val fruitsId = seedCategory("میوه‌ها", "Fruits", 1, "https://ik.imagekit.io/mhmdrzsaemi/Fruits.png")
+            val vegetablesId = seedCategory("سبزیجات", "Vegetables", 2, "https://ik.imagekit.io/mhmdrzsaemi/Vegetables.png")
+            val foodId = seedCategory("غذاها", "Food", 3, "https://ik.imagekit.io/mhmdrzsaemi/Foods.png")
+            val animalsId = seedCategory("حیوانات", "Animals", 4, "https://ik.imagekit.io/mhmdrzsaemi/Animals.png")
+            val carsId = seedCategory("ماشیــــن ها", "Cars", 5, "https://ik.imagekit.io/mhmdrzsaemi/Cars.png")
+            val vehiclesId = seedCategory("وسایل نقلیه", "Transportations", 6, "https://ik.imagekit.io/mhmdrzsaemi/Transportations.png")
+            val colorsId = seedCategory("رنگ‌ها", "Colors", 7, "https://ik.imagekit.io/mhmdrzsaemi/Colors.png")
+
+            val numbersId = seedCategory("اعداد", "Numbers", 7)
+            val familyId = seedCategory("خانواده", "Family", 9)
+            val clothesId = seedCategory("لباس‌ ها", "Clothes", 10)
+            val shapesId = seedCategory("اشکال", "Shapes", 11)
             
             // Seed fruits - میوه‌ها
             seedWord(fruitsId, "سیب", "Apple", 1)
@@ -89,19 +92,7 @@ object DatabaseSeeder {
             seedWord(numbersId, "هشت", "Eight", 8)
             seedWord(numbersId, "نه", "Nine", 9)
             seedWord(numbersId, "ده", "Ten", 10)
-            
-            // Seed body parts - اعضای بدن
-            seedWord(bodyPartsId, "سر", "Head", 1)
-            seedWord(bodyPartsId, "چشم", "Eye", 2)
-            seedWord(bodyPartsId, "گوش", "Ear", 3)
-            seedWord(bodyPartsId, "بینی", "Nose", 4)
-            seedWord(bodyPartsId, "دهان", "Mouth", 5)
-            seedWord(bodyPartsId, "دست", "Hand", 6)
-            seedWord(bodyPartsId, "پا", "Foot", 7)
-            seedWord(bodyPartsId, "انگشت", "Finger", 8)
-            seedWord(bodyPartsId, "مو", "Hair", 9)
-            seedWord(bodyPartsId, "دندان", "Tooth", 10)
-            
+
             // Seed vehicles - وسایل نقلیه
             seedWord(vehiclesId, "ماشین", "Car", 1)
             seedWord(vehiclesId, "اتوبوس", "Bus", 2)
@@ -153,16 +144,42 @@ object DatabaseSeeder {
             seedWord(shapesId, "ستاره", "Star", 5)
             seedWord(shapesId, "قلب", "Heart", 6)
             
+            // Seed vegetables - سبزیجات
+            seedWord(vegetablesId, "هویج", "Carrot", 1)
+            seedWord(vegetablesId, "سیب زمینی", "Potato", 2)
+            seedWord(vegetablesId, "گوجه فرنگی", "Tomato", 3)
+            seedWord(vegetablesId, "پیاز", "Onion", 4)
+            seedWord(vegetablesId, "خیار", "Cucumber", 5)
+            seedWord(vegetablesId, "کاهو", "Lettuce", 6)
+            seedWord(vegetablesId, "فلفل", "Pepper", 7)
+            seedWord(vegetablesId, "بادمجان", "Eggplant", 8)
+            seedWord(vegetablesId, "کدو", "Zucchini", 9)
+            seedWord(vegetablesId, "اسفناج", "Spinach", 10)
+            
+            // Seed Iranian cars - ماشین‌های ایرانی
+            seedWord(carsId, "پراید", "Pride", 1)
+            seedWord(carsId, "پژو ۴۰۵", "Peugeot 405", 2)
+            seedWord(carsId, "پژو ۲۰۶", "Peugeot 206", 3)
+            seedWord(carsId, "سمند", "Samand", 4)
+            seedWord(carsId, "تیبا", "Tiba", 5)
+            seedWord(carsId, "پیکان", "Paykan", 6)
+            seedWord(carsId, "دنا", "Dena", 7)
+            seedWord(carsId, "رانا", "Runna", 8)
+            seedWord(carsId, "کوییک", "Quick", 9)
+            seedWord(carsId, "شاهین", "Shahin", 10)
+            seedWord(carsId, "ساینا", "Saina", 11)
+            
             println("✅ Database seeded successfully with ${Words.selectAll().count()} words in ${Categories.selectAll().count()} categories!")
         }
     }
     
-    private fun seedCategory(nameFa: String, nameEn: String, order: Int): Int {
+    private fun seedCategory(nameFa: String, nameEn: String, order: Int, imageUrl: String? = null): Int {
         return Categories.insert {
             it[Categories.nameFa] = nameFa
             it[Categories.nameEn] = nameEn
             it[displayOrder] = order
             it[createdAt] = LocalDateTime.now()
+            it[Categories.iconUrl] = imageUrl
         }[Categories.id].value
     }
     

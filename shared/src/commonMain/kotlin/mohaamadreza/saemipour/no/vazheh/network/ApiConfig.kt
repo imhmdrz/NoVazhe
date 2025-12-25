@@ -7,7 +7,16 @@ object ApiConfig {
     // For physical device use your server's IP address
     const val BASE_URL = "http://10.0.2.2:8080"
 
+    // Auth endpoints
     const val AUTH_LOGIN = "/api/auth/login"
     const val AUTH_REGISTER = "/api/auth/register"
     const val AUTH_ME = "/api/auth/me"
+
+    // Content endpoints
+    const val CATEGORIES = "/api/categories"
+    const val WORDS = "/api/words"
+    const val CUSTOM_WORDS = "/api/custom-words"
+
+    // Children endpoints
+    const val CHILDREN = "/api/children"
 }

@@ -46,6 +46,7 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.compose.svg)
             implementation(libs.coil.network.ktor3)
+            implementation(libs.coil.network.https)
             implementation(libs.navigation.compose)
             implementation(libs.material.icons.core)
             implementation(libs.multiplatform.settings)

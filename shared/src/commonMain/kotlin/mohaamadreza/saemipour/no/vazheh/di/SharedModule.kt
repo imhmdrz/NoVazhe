@@ -1,6 +1,8 @@
 package mohaamadreza.saemipour.no.vazheh.di
 
 import mohaamadreza.saemipour.no.vazheh.data.AuthRepository
+import mohaamadreza.saemipour.no.vazheh.data.ChildRepository
+import mohaamadreza.saemipour.no.vazheh.data.ContentRepository
 import mohaamadreza.saemipour.no.vazheh.data.TokenStorage
 import mohaamadreza.saemipour.no.vazheh.data.createSettings
 import mohaamadreza.saemipour.no.vazheh.network.createHttpClient
@@ -17,4 +19,6 @@ val sharedModule = module {
 
     // Repositories
     single { AuthRepository(get(), get()) }
+    single { ContentRepository(get(), get()) }
+    single { ChildRepository(get(), get()) }
 }

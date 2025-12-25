@@ -73,6 +73,7 @@ h2 = { module = "com.h2database:h2", version.ref = "h2" }
 
 
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
+coil-network-https = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 xml-serialization-core = { module = "io.github.pdvrieze.xmlutil:core", version.ref = "xmlSerialization" }
 ktor-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }

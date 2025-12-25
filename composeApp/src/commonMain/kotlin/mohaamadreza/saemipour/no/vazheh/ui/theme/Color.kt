@@ -12,3 +12,17 @@ val Pink40 = Color(0xFF7D5260)
 
 val BlackAlpha = Color(0x80000000)
 
+// Teal colors
+val TealPurple = Color(0xFFBE6AFF)
+val TealLight = Color(0xFF14B8A6)
+val TealDark = Color(0xFF0F766E)
+
+// Coral/Red colors
+val CoralRed = Color(0xFFEF4444)
+val CoralDark = Color(0xFFDC2626)
+
+// Neutral colors
+val SoftGray = Color(0xFFF8FAFC)
+val DarkText = Color(0xFF1E293B)
+val MutedText = Color(0xFF64748B)
+

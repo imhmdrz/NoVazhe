@@ -14,15 +14,6 @@ kotlin {
 
     jvm()
 
-    // Suppress expect/actual classes Beta warning
-    targets.configureEach {
-        compilations.configureEach {
-            compileTaskProvider.get().compilerOptions {
-                freeCompilerArgs.add("-Xexpect-actual-classes")
-            }
-        }
-    }
-
     sourceSets {
         commonTest.dependencies { implementation(libs.kotlin.test) }
         commonMain.dependencies {

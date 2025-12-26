@@ -28,6 +28,8 @@ kotlin {
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.koin.android)
+
+            implementation(libs.coil.network.https)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -46,7 +48,6 @@ kotlin {
             implementation(libs.coil.compose)
             implementation(libs.coil.compose.svg)
             implementation(libs.coil.network.ktor3)
-            implementation(libs.coil.network.https)
             implementation(libs.navigation.compose)
             implementation(libs.material.icons.core)
             implementation(libs.multiplatform.settings)

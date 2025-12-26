@@ -1,11 +1,16 @@
 package mohaamadreza.saemipour.no.vazheh.network
 
-/** API Configuration Change the BASE_URL to your server address */
+/**
+ * Platform-specific base URL
+ * - Android Emulator: http://10.0.2.2:8080
+ * - iOS Simulator: http://localhost:8080
+ * - JVM/Desktop: http://localhost:8080
+ */
+expect fun getBaseUrl(): String
+
+/** API Configuration */
 object ApiConfig {
-    // For Android Emulator use: http://10.0.2.2:8080
-    // For iOS Simulator use: http://localhost:8080
-    // For physical device use your server's IP address
-    const val BASE_URL = "http://10.0.2.2:8080"
+    val BASE_URL: String get() = getBaseUrl()
 
     // Auth endpoints
     const val AUTH_LOGIN = "/api/auth/login"

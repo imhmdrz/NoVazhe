@@ -24,5 +24,9 @@ val CoralDark = Color(0xFFDC2626)
 // Neutral colors
 val SoftGray = Color(0xFFF8FAFC)
 val DarkText = Color(0xFF1E293B)
-val MutedText = Color(0xFF64748B)
+
+val cardBackground = Color(0xFFF9F9F9)
+
+val iconTint = Color(0xFFCCCCCC)
+val MutedText = Color(0xFF828282)
 

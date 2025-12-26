@@ -20,6 +20,7 @@ object Children : IntIdTable("children") {
     val parentId = reference("parent_id", Parents, onDelete = ReferenceOption.CASCADE)
     val name = varchar("name", 100) // اسم فرزند
     val age = integer("age") // سن فرزند
+    val gender = varchar("gender", 10).default("BOY") // جنسیت فرزند - BOY یا GIRL
     val avatarUrl = varchar("avatar_url", 255).nullable() // آواتار فرزند
     val isActive = bool("is_active").default(true)
     val createdAt = datetime("created_at").default(LocalDateTime.now())

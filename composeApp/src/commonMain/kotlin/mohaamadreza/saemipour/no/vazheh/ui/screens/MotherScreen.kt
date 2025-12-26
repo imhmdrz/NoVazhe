@@ -1,18 +1,23 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Home
@@ -39,18 +44,27 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
+import mohaamadreza.saemipour.no.vazheh.data.Gender
+import mohaamadreza.saemipour.no.vazheh.ui.components.AddChildDialog
+import mohaamadreza.saemipour.no.vazheh.ui.components.ChildContent
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SoftGray
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealLight
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
+import mohaamadreza.saemipour.no.vazheh.ui.theme.cardBackground
+import mohaamadreza.saemipour.no.vazheh.ui.theme.iconTint
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherTab
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherViewModel
+import novazheh.composeapp.generated.resources.Res
+import novazheh.composeapp.generated.resources.face_man_profile
+import novazheh.composeapp.generated.resources.face_woman_profile
+import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun MotherScreen(
@@ -75,7 +89,16 @@ fun MotherScreen(
                     .background(SoftGray)
             ) {
                 when (uiState.selectedTab) {
-                    MotherTab.DASHBOARD -> DashboardContent()
+                    MotherTab.DASHBOARD -> DashboardContent(
+                        children = uiState.children,
+                        onChildClick = { child ->
+                            viewModel.selectChild(child)
+                            // TODO: Navigate to child detail screen
+                        },
+                        onAddChildClick = {
+                            viewModel.showAddChildDialog()
+                        }
+                    )
                     MotherTab.PROFILE -> ProfileContent(
                         username = uiState.username,
                         displayName = uiState.displayName,
@@ -88,6 +111,16 @@ fun MotherScreen(
                     )
                 }
             }
+        }
+
+        if (uiState.showAddChildDialog) {
+            AddChildDialog(
+                isLoading = uiState.isCreatingChild,
+                onDismiss = { viewModel.hideAddChildDialog() },
+                onAddChild = { name, gender ->
+                    viewModel.createChild(name = name, age = 5, gender = gender)
+                }
+            )
         }
     }
 }
@@ -308,37 +341,48 @@ private fun UserInfoRow(
 }
 
 @Composable
-private fun DashboardContent() {
+private fun DashboardContent(
+    children: List<ChildDTO>,
+    onChildClick: (ChildDTO) -> Unit,
+    onAddChildClick: () -> Unit
+) {
     Box(
         modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
+            .fillMaxSize(),
+        contentAlignment = Alignment.TopCenter
     ) {
-        Column(
+        LazyColumn (
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Person,
-                contentDescription = null,
-                modifier = Modifier.size(80.dp),
-                tint = MutedText
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "صفحه پروفایل",
-                style = MaterialTheme.typography.headlineSmall,
-                color = DarkText,
-                fontWeight = FontWeight.Bold
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "این صفحه در حال توسعه است",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MutedText,
-                textAlign = TextAlign.Center
-            )
+            item {
+                Spacer(Modifier.size(32.dp))
+                Row {
+                    Text(
+                        "فرزندان شما",
+                        Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = DarkText
+                    )
+
+                    Text(
+                        "+  افزودن فرزند",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = TealPurple,
+                        modifier = Modifier.clickable(onClick = onAddChildClick)
+                    )
+                }
+                Spacer(Modifier.size(24.dp))
+            }
+
+            items(children.size) { index ->
+                ChildContent(
+                    child = children[index],
+                    onClick = { onChildClick(children[index]) }
+                )
+            }
         }
     }
 }

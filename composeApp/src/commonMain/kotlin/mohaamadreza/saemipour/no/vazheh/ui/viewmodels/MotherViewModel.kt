@@ -11,6 +11,7 @@ import mohaamadreza.saemipour.no.vazheh.data.AuthRepository
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.data.ChildRepository
 import mohaamadreza.saemipour.no.vazheh.data.CreateChildRequest
+import mohaamadreza.saemipour.no.vazheh.data.Gender
 import mohaamadreza.saemipour.no.vazheh.data.UpdateChildRequest
 
 data class MotherUiState(
@@ -25,7 +26,9 @@ data class MotherUiState(
     val isUpdatingChild: Boolean = false,
     val isDeletingChild: Boolean = false,
     val errorMessage: String? = null,
-    val successMessage: String? = null
+    val successMessage: String? = null,
+    // Add child dialog state
+    val showAddChildDialog: Boolean = false
 )
 
 enum class MotherTab {
@@ -122,13 +125,13 @@ class MotherViewModel(
      * Create a new child
      * ایجاد فرزند جدید (حداکثر ۲ فرزند)
      */
-    fun createChild(name: String, age: Int, avatarUrl: String? = null) {
+    fun createChild(name: String, age: Int, gender: Gender, avatarUrl: String? = null) {
         // Validation
         if (name.isBlank()) {
             _uiState.update { it.copy(errorMessage = "نام فرزند الزامی است") }
             return
         }
-        if (age < 1 || age > 18) {
+        if (age !in 1..18) {
             _uiState.update { it.copy(errorMessage = "سن باید بین ۱ تا ۱۸ سال باشد") }
             return
         }
@@ -137,10 +140,11 @@ class MotherViewModel(
             return
         }
 
+        AppLogger.d("mhmdrz" , "here")
         _uiState.update { it.copy(isCreatingChild = true, errorMessage = null) }
 
         viewModelScope.launch {
-            val request = CreateChildRequest(name = name, age = age, avatarUrl = avatarUrl)
+            val request = CreateChildRequest(name = name, age = age, gender = gender, avatarUrl = avatarUrl)
             childRepository.createChild(request).fold(
                 onSuccess = { response ->
                     if (response.success && response.data != null) {
@@ -148,6 +152,7 @@ class MotherViewModel(
                             it.copy(
                                 children = (it.children + response.data).filterNotNull(),
                                 isCreatingChild = false,
+                                showAddChildDialog = false,
                                 successMessage = "فرزند با موفقیت اضافه شد"
                             )
                         }
@@ -177,7 +182,7 @@ class MotherViewModel(
      * Update child
      * ویرایش فرزند
      */
-    fun updateChild(childId: Int, name: String? = null, age: Int? = null, avatarUrl: String? = null) {
+    fun updateChild(childId: Int, name: String? = null, age: Int? = null, gender: Gender? = null, avatarUrl: String? = null) {
         // Validation
         if (name != null && name.isBlank()) {
             _uiState.update { it.copy(errorMessage = "نام فرزند نمی‌تواند خالی باشد") }
@@ -191,7 +196,7 @@ class MotherViewModel(
         _uiState.update { it.copy(isUpdatingChild = true, errorMessage = null) }
 
         viewModelScope.launch {
-            val request = UpdateChildRequest(name = name, age = age, avatarUrl = avatarUrl)
+            val request = UpdateChildRequest(name = name, age = age, gender = gender, avatarUrl = avatarUrl)
             childRepository.updateChild(childId, request).fold(
                 onSuccess = { response ->
                     if (response.success && response.data != null) {
@@ -306,5 +311,21 @@ class MotherViewModel(
      */
     fun canAddChild(): Boolean {
         return _uiState.value.children.size < 2
+    }
+
+    /**
+     * Show add child dialog
+     * نمایش دیالوگ افزودن فرزند
+     */
+    fun showAddChildDialog() {
+        _uiState.update { it.copy(showAddChildDialog = true) }
+    }
+
+    /**
+     * Hide add child dialog
+     * بستن دیالوگ افزودن فرزند
+     */
+    fun hideAddChildDialog() {
+        _uiState.update { it.copy(showAddChildDialog = false) }
     }
 }

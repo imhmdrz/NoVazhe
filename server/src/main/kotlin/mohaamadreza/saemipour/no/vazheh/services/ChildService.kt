@@ -32,6 +32,7 @@ object ChildService {
                         parentId = row[Children.parentId].value,
                         name = row[Children.name],
                         age = row[Children.age],
+                        gender = Gender.valueOf(row[Children.gender]),
                         avatarUrl = row[Children.avatarUrl],
                         isActive = row[Children.isActive],
                         createdAt = row[Children.createdAt].format(dateFormatter)
@@ -58,6 +59,7 @@ object ChildService {
                 parentId = row[Children.parentId].value,
                 name = row[Children.name],
                 age = row[Children.age],
+                gender = Gender.valueOf(row[Children.gender]),
                 avatarUrl = row[Children.avatarUrl],
                 isActive = row[Children.isActive],
                 createdAt = row[Children.createdAt].format(dateFormatter)
@@ -87,6 +89,7 @@ object ChildService {
                 it[Children.parentId] = parentId
                 it[name] = request.name
                 it[age] = request.age
+                it[gender] = request.gender.name
                 it[avatarUrl] = request.avatarUrl
                 it[createdAt] = now
                 it[updatedAt] = now
@@ -97,6 +100,7 @@ object ChildService {
                 parentId = parentId,
                 name = request.name,
                 age = request.age,
+                gender = request.gender,
                 avatarUrl = request.avatarUrl,
                 isActive = true,
                 createdAt = now.format(dateFormatter)
@@ -122,15 +126,19 @@ object ChildService {
             Children.update({ Children.id eq childId }) {
                 request.name?.let { name -> it[Children.name] = name }
                 request.age?.let { age -> it[Children.age] = age }
+                request.gender?.let { g -> it[gender] = g.name }
                 request.avatarUrl?.let { url -> it[avatarUrl] = url }
                 it[updatedAt] = now
             }
+            
+            val updatedGender = request.gender ?: Gender.valueOf(existingChild[Children.gender])
             
             val child = ChildDTO(
                 id = childId,
                 parentId = parentId,
                 name = request.name ?: existingChild[Children.name],
                 age = request.age ?: existingChild[Children.age],
+                gender = updatedGender,
                 avatarUrl = request.avatarUrl ?: existingChild[Children.avatarUrl],
                 isActive = true,
                 createdAt = existingChild[Children.createdAt].format(dateFormatter)

@@ -1,6 +1,7 @@
 package mohaamadreza.saemipour.no.vazheh.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,6 +20,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,7 +32,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupProperties
 import mohaamadreza.saemipour.no.vazheh.data.Gender
+import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SoftGray
@@ -42,11 +47,21 @@ import novazheh.composeapp.generated.resources.face_woman_profile
 @Composable
 fun AddChildDialog(
     isLoading: Boolean,
+    errorMessage: String? = null,
     onDismiss: () -> Unit,
-    onAddChild: (name: String, gender: Gender) -> Unit
+    onAddChild: (name: String, age: Int, gender: Gender) -> Unit,
+    onClearError: () -> Unit = {}
 ) {
     var childName by remember { mutableStateOf("") }
     var selectedGender by remember { mutableStateOf(Gender.BOY) }
+    var selectedAge by remember { mutableStateOf(5) }
+    var showAgePopup by remember { mutableStateOf(false) }
+
+    LaunchedEffect(childName, selectedGender, selectedAge) {
+        if (errorMessage != null) {
+            onClearError()
+        }
+    }
 
     Dialog(
         onDismissRequest = { if (!isLoading) onDismiss() },
@@ -70,7 +85,6 @@ fun AddChildDialog(
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Title - Gender selection
                 Text(
                     text = "جنسیت فرزند شما",
                     style = MaterialTheme.typography.titleMedium,
@@ -133,11 +147,58 @@ fun AddChildDialog(
                         focusedBorderColor = TealPurple,
                         unfocusedBorderColor = SoftGray,
                         focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White
+                        unfocusedContainerColor = Color.White,
+                        errorBorderColor = CoralRed
                     ),
                     singleLine = true,
-                    enabled = !isLoading
+                    enabled = !isLoading,
                 )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Age selection title
+                Text(
+                    text = "سن فرزند شما",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = DarkText,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Age selection row
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    AgeSelector(
+                        selectedAge = selectedAge,
+                        onClick = { showAgePopup = true },
+                        enabled = !isLoading
+                    )
+
+                    if (showAgePopup) {
+                        Popup(
+                            alignment = Alignment.TopCenter,
+                            onDismissRequest = { showAgePopup = false },
+                            properties = PopupProperties(focusable = true)
+                        ) {
+                            AgeSelectionPopup(
+                                selectedAge = selectedAge,
+                                onAgeSelected = { age ->
+                                    selectedAge = age
+                                    showAgePopup = false
+                                },
+                                onDismiss = { showAgePopup = false }
+                            )
+                        }
+                    }
+                }
+
+                if (errorMessage != null) {
+                    ErrorMessageCard(
+                        message = errorMessage,
+                        onDismiss = onClearError
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -145,7 +206,7 @@ fun AddChildDialog(
                 Button(
                     onClick = {
                         if (childName.isNotBlank()) {
-                            onAddChild(childName, selectedGender)
+                            onAddChild(childName, selectedAge, selectedGender)
                         }
                     },
                     modifier = Modifier

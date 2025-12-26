@@ -33,6 +33,8 @@ fun App() {
 
         // Shared ChildViewModel across child and game screens
         val childViewModel: ChildViewModel = koinViewModel()
+
+
         val motherViewModel: MotherViewModel = koinViewModel()
 
         NavHost(
@@ -59,6 +61,12 @@ fun App() {
                 }
             }
             composable("mother") {
+                OrientationWrapper(Orientation.Vertical) {
+                    MotherScreen(navController = navController, viewModel = motherViewModel)
+                }
+            }
+            composable("add-word") {
+                val motherViewModel: MotherViewModel = koinViewModel()
                 OrientationWrapper(Orientation.Vertical) {
                     MotherScreen(navController = navController, viewModel = motherViewModel)
                 }

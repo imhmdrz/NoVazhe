@@ -1,23 +1,18 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Home
@@ -32,11 +27,16 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,23 +48,19 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
-import mohaamadreza.saemipour.no.vazheh.data.Gender
 import mohaamadreza.saemipour.no.vazheh.ui.components.AddChildDialog
-import mohaamadreza.saemipour.no.vazheh.ui.components.ChildContent
+import mohaamadreza.saemipour.no.vazheh.ui.components.ChildrenListContent
+import mohaamadreza.saemipour.no.vazheh.ui.components.ErrorContent
+import mohaamadreza.saemipour.no.vazheh.ui.components.LoadingContent
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SoftGray
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealLight
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
-import mohaamadreza.saemipour.no.vazheh.ui.theme.cardBackground
-import mohaamadreza.saemipour.no.vazheh.ui.theme.iconTint
-import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherTab
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherViewModel
-import novazheh.composeapp.generated.resources.Res
-import novazheh.composeapp.generated.resources.face_man_profile
-import novazheh.composeapp.generated.resources.face_woman_profile
-import org.jetbrains.compose.resources.painterResource
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.ChildrenState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.MotherTab
 
 @Composable
 fun MotherScreen(
@@ -72,9 +68,27 @@ fun MotherScreen(
     viewModel: MotherViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.successMessage) {
+        uiState.successMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearSuccessMessage()
+        }
+    }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Scaffold(
+            snackbarHost = {
+                SnackbarHost(snackbarHostState) { data ->
+                    Snackbar(
+                        snackbarData = data,
+                        containerColor = TealPurple,
+                        contentColor = Color.White,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+            },
             bottomBar = {
                 MotherBottomNavigation(
                     selectedTab = uiState.selectedTab,
@@ -90,13 +104,18 @@ fun MotherScreen(
             ) {
                 when (uiState.selectedTab) {
                     MotherTab.DASHBOARD -> DashboardContent(
-                        children = uiState.children,
+                        childrenState = uiState.childrenState,
                         onChildClick = { child ->
                             viewModel.selectChild(child)
                             // TODO: Navigate to child detail screen
                         },
                         onAddChildClick = {
                             viewModel.showAddChildDialog()
+                        },
+                        onRetry = { viewModel.retry() },
+                        canAddChild = uiState.canAddChild,
+                        onAddWordClick = {
+                            navController.navigate("add-word")
                         }
                     )
                     MotherTab.PROFILE -> ProfileContent(
@@ -116,10 +135,12 @@ fun MotherScreen(
         if (uiState.showAddChildDialog) {
             AddChildDialog(
                 isLoading = uiState.isCreatingChild,
+                errorMessage = uiState.createChildErrorMessage,
                 onDismiss = { viewModel.hideAddChildDialog() },
-                onAddChild = { name, gender ->
-                    viewModel.createChild(name = name, age = 5, gender = gender)
-                }
+                onAddChild = { name, age, gender ->
+                    viewModel.createChild(name = name, age = age, gender = gender)
+                },
+                onClearError = { viewModel.clearCreateChildError() }
             )
         }
     }
@@ -342,45 +363,43 @@ private fun UserInfoRow(
 
 @Composable
 private fun DashboardContent(
-    children: List<ChildDTO>,
+    childrenState: ChildrenState,
     onChildClick: (ChildDTO) -> Unit,
-    onAddChildClick: () -> Unit
+    onAddChildClick: () -> Unit,
+    onAddWordClick: () -> Unit,
+    onRetry: () -> Unit,
+    canAddChild: Boolean
 ) {
     Box(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.TopCenter
     ) {
-        LazyColumn (
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            item {
-                Spacer(Modifier.size(32.dp))
-                Row {
-                    Text(
-                        "فرزندان شما",
-                        Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = DarkText
-                    )
-
-                    Text(
-                        "+  افزودن فرزند",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = TealPurple,
-                        modifier = Modifier.clickable(onClick = onAddChildClick)
-                    )
-                }
-                Spacer(Modifier.size(24.dp))
+        when (childrenState) {
+            is ChildrenState.Idle -> {
+                // Initial state - show nothing or loading
             }
-
-            items(children.size) { index ->
-                ChildContent(
-                    child = children[index],
-                    onClick = { onChildClick(children[index]) }
+            
+            is ChildrenState.Loading -> {
+                // Loading state
+                LoadingContent()
+            }
+            
+            is ChildrenState.Error -> {
+                // Error state
+                ErrorContent(
+                    message = childrenState.message,
+                    onRetry = onRetry
+                )
+            }
+            
+            is ChildrenState.Success -> {
+                // Success state - show children list
+                ChildrenListContent(
+                    children = childrenState.children,
+                    onChildClick = onChildClick,
+                    onAddChildClick = onAddChildClick,
+                    onAddWordClick = onAddWordClick,
+                    canAddChild = canAddChild
                 )
             }
         }

@@ -13,28 +13,12 @@ import mohaamadreza.saemipour.no.vazheh.data.ChildRepository
 import mohaamadreza.saemipour.no.vazheh.data.CreateChildRequest
 import mohaamadreza.saemipour.no.vazheh.data.Gender
 import mohaamadreza.saemipour.no.vazheh.data.UpdateChildRequest
-
-data class MotherUiState(
-    val username: String = "",
-    val displayName: String = "",
-    val selectedTab: MotherTab = MotherTab.DASHBOARD,
-    // Children state
-    val children: List<ChildDTO> = emptyList(),
-    val selectedChild: ChildDTO? = null,
-    val isLoadingChildren: Boolean = false,
-    val isCreatingChild: Boolean = false,
-    val isUpdatingChild: Boolean = false,
-    val isDeletingChild: Boolean = false,
-    val errorMessage: String? = null,
-    val successMessage: String? = null,
-    // Add child dialog state
-    val showAddChildDialog: Boolean = false
-)
-
-enum class MotherTab {
-    DASHBOARD,
-    PROFILE
-}
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.ChildrenState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateChildState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.DeleteChildState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.MotherTab
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.MotherUiState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.UpdateChildState
 
 class MotherViewModel(
     private val authRepository: AuthRepository,
@@ -49,10 +33,6 @@ class MotherViewModel(
         loadChildren()
     }
 
-    /**
-     * Load user information from storage
-     * بارگذاری اطلاعات کاربر
-     */
     private fun loadUserInfo() {
         val username = authRepository.getUsername() ?: ""
         val displayName = authRepository.getDisplayName() ?: ""
@@ -64,47 +44,29 @@ class MotherViewModel(
         }
     }
 
-    /**
-     * Select a tab
-     * انتخاب تب
-     */
     fun onTabSelected(tab: MotherTab) {
         _uiState.update { it.copy(selectedTab = tab) }
     }
 
-    /**
-     * Logout user
-     * خروج کاربر
-     */
     fun logout() {
         authRepository.logout()
     }
 
     // ==================== Children Operations - عملیات فرزندان ====================
 
-    /**
-     * Load all children
-     * بارگذاری لیست فرزندان
-     */
     fun loadChildren() {
-        _uiState.update { it.copy(isLoadingChildren = true, errorMessage = null) }
+        _uiState.update { it.copy(childrenState = ChildrenState.Loading) }
 
         viewModelScope.launch {
             childRepository.getChildren().fold(
                 onSuccess = { response ->
                     if (response.success) {
                         _uiState.update {
-                            it.copy(
-                                children = response.data,
-                                isLoadingChildren = false
-                            )
+                            it.copy(childrenState = ChildrenState.Success(response.data))
                         }
                     } else {
                         _uiState.update {
-                            it.copy(
-                                isLoadingChildren = false,
-                                errorMessage = "خطا در بارگذاری فرزندان"
-                            )
+                            it.copy(childrenState = ChildrenState.Error("خطا در بارگذاری فرزندان"))
                         }
                     }
                 },
@@ -112,8 +74,9 @@ class MotherViewModel(
                     AppLogger.d("MotherViewModel", "Error loading children: ${exception.message}")
                     _uiState.update {
                         it.copy(
-                            isLoadingChildren = false,
-                            errorMessage = "خطا در اتصال: ${exception.message ?: "خطای نامشخص"}"
+                            childrenState = ChildrenState.Error(
+                                "خطا در اتصال: ${exception.message ?: "خطای نامشخص"}"
+                            )
                         )
                     }
                 }
@@ -121,37 +84,44 @@ class MotherViewModel(
         }
     }
 
-    /**
-     * Create a new child
-     * ایجاد فرزند جدید (حداکثر ۲ فرزند)
-     */
     fun createChild(name: String, age: Int, gender: Gender, avatarUrl: String? = null) {
         // Validation
         if (name.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "نام فرزند الزامی است") }
+            _uiState.update { 
+                it.copy(createChildState = CreateChildState.Error("نام فرزند الزامی است"))
+            }
             return
         }
         if (age !in 1..18) {
-            _uiState.update { it.copy(errorMessage = "سن باید بین ۱ تا ۱۸ سال باشد") }
+            _uiState.update { 
+                it.copy(createChildState = CreateChildState.Error("سن باید بین ۱ تا ۱۸ سال باشد")) 
+            }
             return
         }
-        if (_uiState.value.children.size >= 2) {
-            _uiState.update { it.copy(errorMessage = "حداکثر ۲ فرزند می‌توانید اضافه کنید") }
+        if (!_uiState.value.canAddChild) {
+            _uiState.update { 
+                it.copy(createChildState = CreateChildState.Error("حداکثر ۲ فرزند می‌توانید اضافه کنید")) 
+            }
             return
         }
 
-        AppLogger.d("mhmdrz" , "here")
-        _uiState.update { it.copy(isCreatingChild = true, errorMessage = null) }
+        AppLogger.d("mhmdrz", "Creating child...")
+        _uiState.update { it.copy(createChildState = CreateChildState.Loading) }
 
         viewModelScope.launch {
             val request = CreateChildRequest(name = name, age = age, gender = gender, avatarUrl = avatarUrl)
             childRepository.createChild(request).fold(
                 onSuccess = { response ->
                     if (response.success && response.data != null) {
+                        val newChild = response.data ?: return@fold
                         _uiState.update {
+                            // Update children list
+                            val currentChildren = it.children
+                            val updatedChildren = currentChildren + newChild
+
                             it.copy(
-                                children = (it.children + response.data).filterNotNull(),
-                                isCreatingChild = false,
+                                childrenState = ChildrenState.Success(updatedChildren),
+                                createChildState = CreateChildState.Success(newChild),
                                 showAddChildDialog = false,
                                 successMessage = "فرزند با موفقیت اضافه شد"
                             )
@@ -159,8 +129,9 @@ class MotherViewModel(
                     } else {
                         _uiState.update {
                             it.copy(
-                                isCreatingChild = false,
-                                errorMessage = response.message
+                                createChildState = CreateChildState.Error(
+                                    response.message ?: "خطا در ایجاد فرزند"
+                                )
                             )
                         }
                     }
@@ -169,8 +140,9 @@ class MotherViewModel(
                     AppLogger.d("MotherViewModel", "Error creating child: ${exception.message}")
                     _uiState.update {
                         it.copy(
-                            isCreatingChild = false,
-                            errorMessage = "خطا در ایجاد فرزند: ${exception.message ?: "خطای نامشخص"}"
+                            createChildState = CreateChildState.Error(
+                                "خطا در ایجاد فرزند: ${exception.message ?: "خطای نامشخص"}"
+                            )
                         )
                     }
                 }
@@ -178,43 +150,49 @@ class MotherViewModel(
         }
     }
 
-    /**
-     * Update child
-     * ویرایش فرزند
-     */
     fun updateChild(childId: Int, name: String? = null, age: Int? = null, gender: Gender? = null, avatarUrl: String? = null) {
         // Validation
         if (name != null && name.isBlank()) {
-            _uiState.update { it.copy(errorMessage = "نام فرزند نمی‌تواند خالی باشد") }
+            _uiState.update { 
+                it.copy(updateChildState = UpdateChildState.Error("نام فرزند نمی‌تواند خالی باشد", childId))
+            }
             return
         }
         if (age != null && (age < 1 || age > 18)) {
-            _uiState.update { it.copy(errorMessage = "سن باید بین ۱ تا ۱۸ سال باشد") }
+            _uiState.update { 
+                it.copy(updateChildState = UpdateChildState.Error("سن باید بین ۱ تا ۱۸ سال باشد", childId)) 
+            }
             return
         }
 
-        _uiState.update { it.copy(isUpdatingChild = true, errorMessage = null) }
+        _uiState.update { it.copy(updateChildState = UpdateChildState.Loading(childId)) }
 
         viewModelScope.launch {
             val request = UpdateChildRequest(name = name, age = age, gender = gender, avatarUrl = avatarUrl)
             childRepository.updateChild(childId, request).fold(
                 onSuccess = { response ->
                     if (response.success && response.data != null) {
+                        val updatedChild = response.data ?: return@launch
                         _uiState.update {
+                            // Update children list
+                            val updatedChildren = it.children.map { child ->
+                                if (child.id == childId) updatedChild else child
+                            }
+                            
                             it.copy(
-                                children = it.children.mapNotNull { child ->
-                                    if (child.id == childId) response.data else child
-                                },
-                                selectedChild = if (it.selectedChild?.id == childId) response.data else it.selectedChild,
-                                isUpdatingChild = false,
+                                childrenState = ChildrenState.Success(updatedChildren),
+                                updateChildState = UpdateChildState.Success(updatedChild),
+                                selectedChild = if (it.selectedChild?.id == childId) updatedChild else it.selectedChild,
                                 successMessage = "فرزند با موفقیت ویرایش شد"
                             )
                         }
                     } else {
                         _uiState.update {
                             it.copy(
-                                isUpdatingChild = false,
-                                errorMessage = response.message
+                                updateChildState = UpdateChildState.Error(
+                                    response.message ?: "خطا در ویرایش فرزند",
+                                    childId
+                                )
                             )
                         }
                     }
@@ -223,8 +201,10 @@ class MotherViewModel(
                     AppLogger.d("MotherViewModel", "Error updating child: ${exception.message}")
                     _uiState.update {
                         it.copy(
-                            isUpdatingChild = false,
-                            errorMessage = "خطا در ویرایش فرزند: ${exception.message ?: "خطای نامشخص"}"
+                            updateChildState = UpdateChildState.Error(
+                                "خطا در ویرایش فرزند: ${exception.message ?: "خطای نامشخص"}",
+                                childId
+                            )
                         )
                     }
                 }
@@ -232,30 +212,31 @@ class MotherViewModel(
         }
     }
 
-    /**
-     * Delete child
-     * حذف فرزند
-     */
     fun deleteChild(childId: Int) {
-        _uiState.update { it.copy(isDeletingChild = true, errorMessage = null) }
+        _uiState.update { it.copy(deleteChildState = DeleteChildState.Loading(childId)) }
 
         viewModelScope.launch {
             childRepository.deleteChild(childId).fold(
                 onSuccess = { response ->
                     if (response.success) {
                         _uiState.update {
+                            // Update children list
+                            val updatedChildren = it.children.filter { child -> child.id != childId }
+                            
                             it.copy(
-                                children = it.children.filter { child -> child.id != childId },
+                                childrenState = ChildrenState.Success(updatedChildren),
+                                deleteChildState = DeleteChildState.Success(childId),
                                 selectedChild = if (it.selectedChild?.id == childId) null else it.selectedChild,
-                                isDeletingChild = false,
                                 successMessage = "فرزند با موفقیت حذف شد"
                             )
                         }
                     } else {
                         _uiState.update {
                             it.copy(
-                                isDeletingChild = false,
-                                errorMessage = response.message
+                                deleteChildState = DeleteChildState.Error(
+                                    response.message ?: "خطا در حذف فرزند",
+                                    childId
+                                )
                             )
                         }
                     }
@@ -264,8 +245,10 @@ class MotherViewModel(
                     AppLogger.d("MotherViewModel", "Error deleting child: ${exception.message}")
                     _uiState.update {
                         it.copy(
-                            isDeletingChild = false,
-                            errorMessage = "خطا در حذف فرزند: ${exception.message ?: "خطای نامشخص"}"
+                            deleteChildState = DeleteChildState.Error(
+                                "خطا در حذف فرزند: ${exception.message ?: "خطای نامشخص"}",
+                                childId
+                            )
                         )
                     }
                 }
@@ -273,59 +256,46 @@ class MotherViewModel(
         }
     }
 
-    /**
-     * Select a child
-     * انتخاب فرزند
-     */
     fun selectChild(child: ChildDTO?) {
         _uiState.update { it.copy(selectedChild = child) }
     }
 
-    /**
-     * Clear error message
-     * پاک کردن پیام خطا
-     */
-    fun clearError() {
-        _uiState.update { it.copy(errorMessage = null) }
+    fun clearCreateChildError() {
+        _uiState.update { it.copy(createChildState = CreateChildState.Idle) }
     }
 
-    /**
-     * Clear success message
-     * پاک کردن پیام موفقیت
-     */
+    fun clearUpdateChildError() {
+        _uiState.update { it.copy(updateChildState = UpdateChildState.Idle) }
+    }
+
+    fun clearDeleteChildError() {
+        _uiState.update { it.copy(deleteChildState = DeleteChildState.Idle) }
+    }
+
     fun clearSuccessMessage() {
         _uiState.update { it.copy(successMessage = null) }
     }
 
-    /**
-     * Retry loading children
-     * تلاش مجدد برای بارگذاری فرزندان
-     */
     fun retry() {
         loadChildren()
     }
 
-    /**
-     * Check if can add more children (max 2)
-     * آیا می‌توان فرزند دیگری اضافه کرد
-     */
-    fun canAddChild(): Boolean {
-        return _uiState.value.children.size < 2
-    }
-
-    /**
-     * Show add child dialog
-     * نمایش دیالوگ افزودن فرزند
-     */
     fun showAddChildDialog() {
-        _uiState.update { it.copy(showAddChildDialog = true) }
+        // Reset create child state when opening dialog
+        _uiState.update { 
+            it.copy(
+                showAddChildDialog = true,
+                createChildState = CreateChildState.Idle
+            ) 
+        }
     }
 
-    /**
-     * Hide add child dialog
-     * بستن دیالوگ افزودن فرزند
-     */
     fun hideAddChildDialog() {
-        _uiState.update { it.copy(showAddChildDialog = false) }
+        _uiState.update { 
+            it.copy(
+                showAddChildDialog = false,
+                createChildState = CreateChildState.Idle
+            ) 
+        }
     }
 }

@@ -10,16 +10,7 @@ import mohaamadreza.saemipour.no.vazheh.AppLogger
 import mohaamadreza.saemipour.no.vazheh.data.CategoryDTO
 import mohaamadreza.saemipour.no.vazheh.data.ContentRepository
 import mohaamadreza.saemipour.no.vazheh.data.WordDTO
-
-data class ChildUiState(
-    val categories: List<CategoryDTO> = emptyList(),
-    val words: List<WordDTO> = emptyList(),
-    val selectedCategory: CategoryDTO? = null,
-    val currentWordIndex: Int = 0,
-    val isLoadingCategories: Boolean = false,
-    val isLoadingWords: Boolean = false,
-    val errorMessage: String? = null
-)
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.ChildUiState
 
 class ChildViewModel(
     private val contentRepository: ContentRepository
@@ -32,10 +23,6 @@ class ChildViewModel(
         loadCategories()
     }
 
-    /**
-     * Load all categories
-     * بارگذاری همه دسته‌بندی‌ها
-     */
     fun loadCategories() {
         _uiState.update { it.copy(isLoadingCategories = true, errorMessage = null) }
 
@@ -71,10 +58,6 @@ class ChildViewModel(
         }
     }
 
-    /**
-     * Select a category and load its words
-     * انتخاب دسته‌بندی و بارگذاری کلمات آن
-     */
     fun onCategorySelected(category: CategoryDTO) {
         _uiState.update {
             it.copy(
@@ -117,10 +100,6 @@ class ChildViewModel(
         }
     }
 
-    /**
-     * Navigate to next word
-     * رفتن به کلمه بعدی
-     */
     fun nextWord() {
         val currentState = _uiState.value
         if (currentState.currentWordIndex < currentState.words.size - 1) {
@@ -128,10 +107,6 @@ class ChildViewModel(
         }
     }
 
-    /**
-     * Navigate to previous word
-     * رفتن به کلمه قبلی
-     */
     fun previousWord() {
         val currentState = _uiState.value
         if (currentState.currentWordIndex > 0) {
@@ -139,44 +114,24 @@ class ChildViewModel(
         }
     }
 
-    /**
-     * Get current word
-     * دریافت کلمه فعلی
-     */
     fun getCurrentWord(): WordDTO? {
         val state = _uiState.value
         return state.words.getOrNull(state.currentWordIndex)
     }
 
-    /**
-     * Check if can go to next word
-     * آیا می‌توان به کلمه بعدی رفت
-     */
     fun canGoNext(): Boolean {
         val state = _uiState.value
         return state.currentWordIndex < state.words.size - 1
     }
 
-    /**
-     * Check if can go to previous word
-     * آیا می‌توان به کلمه قبلی رفت
-     */
     fun canGoPrevious(): Boolean {
         return _uiState.value.currentWordIndex > 0
     }
 
-    /**
-     * Clear error message
-     * پاک کردن پیام خطا
-     */
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }
 
-    /**
-     * Retry loading categories
-     * تلاش مجدد برای بارگذاری دسته‌بندی‌ها
-     */
     fun retry() {
         loadCategories()
     }

@@ -30,3 +30,9 @@ val cardBackground = Color(0xFFF9F9F9)
 val iconTint = Color(0xFFCCCCCC)
 val MutedText = Color(0xFF828282)
 
+val headerText = Color(0xFF2D2D2D)
+
+val cardBackground2 = Color(0xFFF9F9F9)
+
+val cardBackground3 = Color(0xFFEFEFEF)
+

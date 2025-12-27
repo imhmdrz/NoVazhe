@@ -36,9 +36,9 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
 
 @Composable
-fun LoadingContent() {
+fun LoadingContent(modifier: Modifier = Modifier.fillMaxSize()) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -62,11 +62,12 @@ fun LoadingContent() {
 
 @Composable
 fun ErrorContent(
+    modifier: Modifier = Modifier.fillMaxSize(),
     message: String,
     onRetry: () -> Unit
 ) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
         Card(

@@ -1,10 +1,6 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -20,10 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -32,8 +25,6 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
@@ -51,14 +42,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import io.github.ismoy.imagepickerkmp.domain.models.GalleryPhotoResult
+import io.github.ismoy.imagepickerkmp.presentation.ui.components.GalleryPickerLauncher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.delay
@@ -68,7 +59,6 @@ import mohaamadreza.saemipour.no.vazheh.permission.PermissionCallback
 import mohaamadreza.saemipour.no.vazheh.permission.PermissionStatus
 import mohaamadreza.saemipour.no.vazheh.permission.PermissionType
 import mohaamadreza.saemipour.no.vazheh.permission.createPermissionsManager
-import mohaamadreza.saemipour.no.vazheh.player.AudioPlayer
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
@@ -76,12 +66,13 @@ import mohaamadreza.saemipour.no.vazheh.recorder.audioFileToDataUrl
 import mohaamadreza.saemipour.no.vazheh.recorder.currentTimeMillis
 import mohaamadreza.saemipour.no.vazheh.recorder.deleteFile
 import mohaamadreza.saemipour.no.vazheh.recorder.getCacheDirectory
+import mohaamadreza.saemipour.no.vazheh.recorder.imageUriToDataUrl
 import mohaamadreza.saemipour.no.vazheh.recorder.rememberRecorderManager
+import mohaamadreza.saemipour.no.vazheh.ui.components.AddWordHeader
+import mohaamadreza.saemipour.no.vazheh.ui.components.AudioRecordingSection
+import mohaamadreza.saemipour.no.vazheh.ui.components.ImageSelectionSection
+import mohaamadreza.saemipour.no.vazheh.ui.components.InputSection
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
-import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
-import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
-import mohaamadreza.saemipour.no.vazheh.ui.theme.SoftGray
-import mohaamadreza.saemipour.no.vazheh.ui.theme.TealLight
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateCustomWordState
@@ -98,6 +89,9 @@ fun AddWordScreen(
     // Form state
     var wordFa by remember { mutableStateOf("") }
     var audioUrl by remember { mutableStateOf("") }
+    var imageUrl by remember { mutableStateOf("") }
+    var selectedImage by remember { mutableStateOf<GalleryPhotoResult?>(null) }
+    var showGallery by remember { mutableStateOf(false) }
 
     // Recording state
     var isRecording by remember { mutableStateOf(false) }
@@ -283,10 +277,11 @@ fun AddWordScreen(
             if (playerState.isPlaying) {
                 audioPlayer.pause()
             }
-            audioPlayer.cleanUp()
+            // Delete the file
             if (recordingFilePath.isNotEmpty()) {
                 deleteFile(recordingFilePath)
             }
+            // Reset state
             recordingFilePath = ""
             hasRecording = false
             audioUrl = ""
@@ -304,39 +299,124 @@ fun AddWordScreen(
                             shape = RoundedCornerShape(12.dp)
                         )
                     }
+                },
+                topBar = {
+                    AddWordHeader { navController.popBackStack() }
+                },
+                bottomBar = {
+                    // Fixed bottom button
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color.White)
+                            .padding(horizontal = 24.dp, vertical = 16.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                viewModel.createCustomWord(
+                                    wordFa = wordFa.trim(),
+                                    wordEn = null,
+                                    audioUrl = audioUrl.trim(),
+                                    imageUrl = imageUrl.ifBlank { null },
+                                    categoryId = null
+                                )
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = TealPurple
+                            ),
+                            enabled = wordFa.isNotBlank() && audioUrl.isNotBlank() && !uiState.isCreatingCustomWord && !isRecording && !isProcessingAudio
+                        ) {
+                            if (uiState.isCreatingCustomWord) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Text(
+                                    text = "+ افزودن کلمه",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color.White
+                                )
+                            }
+                        }
+                    }
                 }
             ) { paddingValues ->
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(SoftGray)
+                        .background(Color.White)
                         .padding(paddingValues)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    // Header
-                    AddWordHeader(
-                        onBackClick = { navController.popBackStack() }
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
                     // Form content
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp),
-                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
                         // Persian word input
                         InputSection(
-                            title = "کلمه فارسی",
-                            subtitle = "(الزامی)",
                             value = wordFa,
                             onValueChange = { wordFa = it },
-                            placeholder = "مثال: سیب",
                             enabled = !uiState.isCreatingCustomWord,
                             isError = uiState.createCustomWordErrorMessage != null && wordFa.isBlank()
                         )
+
+                        // Gallery Picker Launcher
+                        if (showGallery) {
+                            GalleryPickerLauncher(
+                                onPhotosSelected = { photos ->
+                                    if (photos.isNotEmpty()) {
+                                        selectedImage = photos.first()
+                                        val uri = photos.first().uri
+                                        val mime = photos.first().mimeType
+                                        // Convert URI to data URL in background
+                                        scope.launch {
+                                            val (dataUrl, dataByte) = withContext(Dispatchers.IO) {
+                                                imageUriToDataUrl(uri, mime ?: "image/jpeg") ?: (null to null)
+                                            }
+                                            if (dataUrl != null) {
+                                                imageUrl = dataUrl
+                                            } else {
+                                                snackbarHostState.showSnackbar("خطا در پردازش تصویر")
+                                                selectedImage = null
+                                            }
+                                        }
+                                    }
+                                    showGallery = false
+                                },
+                                onError = {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("خطا در انتخاب تصویر")
+                                    }
+                                    showGallery = false
+                                },
+                                onDismiss = { showGallery = false },
+                                allowMultiple = false
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Image Selection Section
+                        ImageSelectionSection(
+                            selectedImage = selectedImage,
+                            onSelectImage = { showGallery = true },
+                            onDeleteImage = {
+                                selectedImage = null
+                                imageUrl = ""
+                            },
+                            enabled = !uiState.isCreatingCustomWord
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
 
                         // Audio Recording Section
                         AudioRecordingSection(
@@ -364,172 +444,11 @@ fun AddWordScreen(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        // Submit button
-                        Button(
-                            onClick = {
-                                viewModel.createCustomWord(
-                                    wordFa = wordFa.trim(),
-                                    wordEn = null,
-                                    audioUrl = audioUrl.trim(),
-                                    imageUrl = null,
-                                    categoryId = null
-                                )
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = TealPurple
-                            ),
-                            enabled = wordFa.isNotBlank() && audioUrl.isNotBlank() && !uiState.isCreatingCustomWord && !isRecording && !isProcessingAudio
-                        ) {
-                            if (uiState.isCreatingCustomWord) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(24.dp),
-                                    color = Color.White,
-                                    strokeWidth = 2.dp
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "افزودن کلمه",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White
-                                )
-                            }
-                        }
-
                         Spacer(modifier = Modifier.height(24.dp))
                     }
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun AddWordHeader(
-    onBackClick: () -> Unit
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(
-                brush = Brush.horizontalGradient(
-                    colors = listOf(TealPurple, TealLight)
-                )
-            )
-            .padding(top = 16.dp, bottom = 24.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        ) {
-            // Back button
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onBackClick)
-                    .padding(vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = "بازگشت",
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = "بازگشت",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Title
-            Text(
-                text = "افزودن کلمه جدید",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "کلمه سفارشی خود را اضافه کنید",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f)
-            )
-        }
-    }
-}
-
-@Composable
-private fun InputSection(
-    title: String,
-    subtitle: String,
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    enabled: Boolean = true,
-    isError: Boolean = false
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = DarkText
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MutedText
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.fillMaxWidth(),
-            placeholder = {
-                Text(
-                    text = placeholder,
-                    color = MutedText
-                )
-            },
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = if (isError) CoralRed else TealPurple,
-                unfocusedBorderColor = if (isError) CoralRed else SoftGray,
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                errorBorderColor = CoralRed
-            ),
-            singleLine = true,
-            enabled = enabled,
-            isError = isError
-        )
     }
 }
 
@@ -585,392 +504,6 @@ private fun ErrorCard(
                     modifier = Modifier.size(18.dp)
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun AudioRecordingSection(
-    isRecording: Boolean,
-    hasRecording: Boolean,
-    isProcessingAudio: Boolean,
-    isPlaying: Boolean,
-    microphonePermissionGranted: Boolean,
-    showPermissionDenied: Boolean,
-    onRequestPermission: () -> Unit,
-    onStartRecording: () -> Unit,
-    onStopRecording: () -> Unit,
-    onDeleteRecording: () -> Unit,
-    onPlayRecording: () -> Unit,
-    onStopPlayback: () -> Unit,
-    onOpenSettings: () -> Unit,
-    enabled: Boolean
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "ضبط صدا",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = DarkText
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = "(الزامی)",
-                style = MaterialTheme.typography.bodySmall,
-                color = MutedText
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                when {
-                    // Permission denied state
-                    showPermissionDenied && !microphonePermissionGranted -> {
-                        PermissionDeniedContent(
-                            onOpenSettings = onOpenSettings
-                        )
-                    }
-                    // Need permission
-                    !microphonePermissionGranted -> {
-                        RequestPermissionContent(
-                            onRequestPermission = onRequestPermission
-                        )
-                    }
-                    // Processing audio
-                    isProcessingAudio -> {
-                        ProcessingAudioContent()
-                    }
-                    // Has recording
-                    hasRecording -> {
-                        RecordingCompleteContent(
-                            isPlaying = isPlaying,
-                            onPlayRecording = onPlayRecording,
-                            onStopPlayback = onStopPlayback,
-                            onDeleteRecording = onDeleteRecording,
-                            enabled = enabled
-                        )
-                    }
-                    // Recording in progress
-                    isRecording -> {
-                        RecordingInProgressContent(
-                            onStopRecording = onStopRecording
-                        )
-                    }
-                    // Ready to record
-                    else -> {
-                        ReadyToRecordContent(
-                            onStartRecording = onStartRecording,
-                            enabled = enabled
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun RequestPermissionContent(
-    onRequestPermission: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .background(TealPurple.copy(alpha = 0.1f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "🎤",
-                style = MaterialTheme.typography.headlineMedium
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "برای ضبط صدا، دسترسی به میکروفون نیاز است",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MutedText
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = onRequestPermission,
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = TealPurple
-            )
-        ) {
-            Text(
-                text = "اجازه دسترسی",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-@Composable
-private fun PermissionDeniedContent(
-    onOpenSettings: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(64.dp)
-                .background(CoralRed.copy(alpha = 0.1f), CircleShape),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "🚫",
-                style = MaterialTheme.typography.headlineMedium
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "دسترسی به میکروفون رد شده است",
-            style = MaterialTheme.typography.bodyMedium,
-            color = CoralRed
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = "لطفاً از تنظیمات، دسترسی را فعال کنید",
-            style = MaterialTheme.typography.bodySmall,
-            color = MutedText
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(
-            onClick = onOpenSettings,
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = TealPurple
-            )
-        ) {
-            Text(
-                text = "باز کردن تنظیمات",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-@Composable
-private fun ReadyToRecordContent(
-    onStartRecording: () -> Unit,
-    enabled: Boolean
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .background(
-                    if (enabled) TealPurple else SoftGray,
-                    CircleShape
-                )
-                .clickable(enabled = enabled, onClick = onStartRecording),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "🎙️",
-                style = MaterialTheme.typography.headlineLarge
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = "برای شروع ضبط، روی دکمه بالا بزنید",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MutedText
-        )
-    }
-}
-
-@Composable
-private fun RecordingInProgressContent(
-    onStopRecording: () -> Unit
-) {
-    // Pulsating animation
-    val scale by animateFloatAsState(
-        targetValue = 1.1f,
-        animationSpec = tween(500),
-        label = "pulse"
-    )
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(80.dp)
-                .scale(scale)
-                .background(CoralRed, CircleShape)
-                .clickable(onClick = onStopRecording),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(28.dp)
-                    .background(Color.White, RoundedCornerShape(4.dp))
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .background(CoralRed, CircleShape)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "در حال ضبط... برای توقف بزنید",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = CoralRed
-            )
-        }
-    }
-}
-
-@Composable
-private fun ProcessingAudioContent() {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(48.dp),
-            color = TealPurple,
-            strokeWidth = 3.dp
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "در حال پردازش صدا...",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MutedText
-        )
-    }
-}
-
-@Composable
-private fun RecordingCompleteContent(
-    isPlaying: Boolean,
-    onPlayRecording: () -> Unit,
-    onStopPlayback: () -> Unit,
-    onDeleteRecording: () -> Unit,
-    enabled: Boolean
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // Play/Stop button
-        Box(
-            modifier = Modifier
-                .size(72.dp)
-                .background(
-                    if (isPlaying) CoralRed else TealPurple,
-                    CircleShape
-                )
-                .clickable(
-                    enabled = enabled,
-                    onClick = { if (isPlaying) onStopPlayback() else onPlayRecording() }
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            if (isPlaying) {
-                // Stop icon (square)
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .background(Color.White, RoundedCornerShape(4.dp))
-                )
-            } else {
-                // Play icon (triangle using text)
-                Text(
-                    text = "▶",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Color.White
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Text(
-            text = if (isPlaying) "در حال پخش..." else "صدا با موفقیت ضبط شد",
-            style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = if (isPlaying) CoralRed else TealPurple
-        )
-
-        if (!isPlaying) {
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "برای گوش دادن، روی دکمه بالا بزنید",
-                style = MaterialTheme.typography.bodySmall,
-                color = MutedText
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Delete button
-        Button(
-            onClick = onDeleteRecording,
-            shape = RoundedCornerShape(12.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = CoralRed.copy(alpha = 0.1f),
-                contentColor = CoralRed
-            ),
-            enabled = enabled && !isPlaying
-        ) {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = null,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = "حذف و ضبط مجدد",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold
-            )
         }
     }
 }

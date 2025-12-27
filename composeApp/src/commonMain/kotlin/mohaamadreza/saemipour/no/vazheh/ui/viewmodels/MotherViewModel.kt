@@ -37,6 +37,7 @@ class MotherViewModel(
     init {
         loadUserInfo()
         loadChildren()
+        loadCustomWords()
     }
 
     private fun loadUserInfo() {
@@ -284,6 +285,7 @@ class MotherViewModel(
 
     fun retry() {
         loadChildren()
+        loadCustomWords()
     }
 
     fun showAddChildDialog() {
@@ -322,6 +324,7 @@ class MotherViewModel(
                             it.copy(customWordsState = CustomWordsState.Success(response.data))
                         }
                     } else {
+                        AppLogger.d("MotherViewModel", "Error creating custom word: ${response.message}")
                         _uiState.update {
                             it.copy(customWordsState = CustomWordsState.Error("خطا در بارگذاری کلمات سفارشی"))
                         }
@@ -381,6 +384,7 @@ class MotherViewModel(
                 onSuccess = { response ->
                     if (response.success && response.data != null) {
                         val newWord = response.data ?: return@launch
+                        AppLogger.d("MotherViewModel", "Custom word created successfully: ${newWord.wordFa}")
                         _uiState.update {
                             // Update custom words list
                             val currentWords = it.customWords
@@ -393,6 +397,7 @@ class MotherViewModel(
                             )
                         }
                     } else {
+                        AppLogger.d("MotherViewModel", "Error creating custom word: ${response.message}")
                         _uiState.update {
                             it.copy(
                                 createCustomWordState = CreateCustomWordState.Error(

@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import mohaamadreza.saemipour.no.vazheh.AppLogger
 import mohaamadreza.saemipour.no.vazheh.data.CategoryDTO
+import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.data.ContentRepository
 import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.ChildUiState
@@ -134,5 +135,13 @@ class ChildViewModel(
 
     fun retry() {
         loadCategories()
+    }
+
+    fun setSelectedChild(child: ChildDTO) {
+        _uiState.update { it.copy(selectedChild = child) }
+    }
+
+    fun clearSelectedChild() {
+        _uiState.update { it.copy(selectedChild = null) }
     }
 }

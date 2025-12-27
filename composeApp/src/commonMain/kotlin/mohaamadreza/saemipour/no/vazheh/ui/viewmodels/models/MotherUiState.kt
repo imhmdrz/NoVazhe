@@ -1,8 +1,10 @@
 package mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models
 
+import androidx.compose.runtime.Stable
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.data.CustomWordDTO
 
+@Stable
 data class MotherUiState(
     val username: String = "",
     val displayName: String = "",
@@ -78,34 +80,35 @@ data class MotherUiState(
         get() = (deleteCustomWordState as? DeleteCustomWordState.Error)?.message
 }
 
+@Stable
 enum class MotherTab {
     DASHBOARD,
     PROFILE
 }
 
 // ==================== Children States ====================
-
+@Stable
 sealed class ChildrenState {
     data object Idle : ChildrenState()
     data object Loading : ChildrenState()
     data class Success(val children: List<ChildDTO>) : ChildrenState()
     data class Error(val message: String) : ChildrenState()
 }
-
+@Stable
 sealed class CreateChildState {
     data object Idle : CreateChildState()
     data object Loading : CreateChildState()
     data class Success(val child: ChildDTO) : CreateChildState()
     data class Error(val message: String) : CreateChildState()
 }
-
+@Stable
 sealed class UpdateChildState {
     data object Idle : UpdateChildState()
     data class Loading(val childId: Int) : UpdateChildState()
     data class Success(val child: ChildDTO) : UpdateChildState()
     data class Error(val message: String, val childId: Int) : UpdateChildState()
 }
-
+@Stable
 sealed class DeleteChildState {
     data object Idle : DeleteChildState()
     data class Loading(val childId: Int) : DeleteChildState()
@@ -114,21 +117,21 @@ sealed class DeleteChildState {
 }
 
 // ==================== Custom Words States ====================
-
+@Stable
 sealed class CustomWordsState {
     data object Idle : CustomWordsState()
     data object Loading : CustomWordsState()
     data class Success(val words: List<CustomWordDTO>) : CustomWordsState()
     data class Error(val message: String) : CustomWordsState()
 }
-
+@Stable
 sealed class CreateCustomWordState {
     data object Idle : CreateCustomWordState()
     data object Loading : CreateCustomWordState()
     data class Success(val word: CustomWordDTO) : CreateCustomWordState()
     data class Error(val message: String) : CreateCustomWordState()
 }
-
+@Stable
 sealed class DeleteCustomWordState {
     data object Idle : DeleteCustomWordState()
     data class Loading(val wordId: Int) : DeleteCustomWordState()

@@ -36,7 +36,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +50,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
+import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
+import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
+import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.AddChildDialog
 import mohaamadreza.saemipour.no.vazheh.ui.components.ChildrenListContent
 import mohaamadreza.saemipour.no.vazheh.ui.components.ErrorContent
@@ -58,17 +63,24 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SoftGray
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealLight
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.ChildrenState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CustomWordsState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.MotherTab
 
 @Composable
 fun MotherScreen(
     navController: NavController,
-    viewModel: MotherViewModel
+    viewModel: MotherViewModel,
+    childViewModel: ChildViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    var currentPlayingAudioUrl by remember { mutableStateOf<String?>(null) }
+    var isAudioPlaying by remember { mutableStateOf(false) }
+    var wasPlaying by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.successMessage) {
         uiState.successMessage?.let { message ->
@@ -77,71 +89,115 @@ fun MotherScreen(
         }
     }
 
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Scaffold(
-            snackbarHost = {
-                SnackbarHost(snackbarHostState) { data ->
-                    Snackbar(
-                        snackbarData = data,
-                        containerColor = TealPurple,
-                        contentColor = Color.White,
-                        shape = RoundedCornerShape(12.dp)
-                    )
+    // Audio updates callback
+    val audioUpdates = remember {
+        object : AudioUpdates {
+            override fun onProgressUpdate(playerState: PlayerState) {
+                isAudioPlaying = playerState.isPlaying
+                // Only reset when audio was playing and now stopped (playback finished)
+                if (wasPlaying && !playerState.isPlaying) {
+                    currentPlayingAudioUrl = null
                 }
-            },
-            bottomBar = {
-                MotherBottomNavigation(
-                    selectedTab = uiState.selectedTab,
-                    onTabSelected = viewModel::onTabSelected
-                )
+                wasPlaying = playerState.isPlaying
             }
-        ) { paddingValues ->
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .background(SoftGray)
-            ) {
-                when (uiState.selectedTab) {
-                    MotherTab.DASHBOARD -> DashboardContent(
-                        childrenState = uiState.childrenState,
-                        onChildClick = { child ->
-                            viewModel.selectChild(child)
-                            // TODO: Navigate to child detail screen
-                        },
-                        onAddChildClick = {
-                            viewModel.showAddChildDialog()
-                        },
-                        onRetry = { viewModel.retry() },
-                        canAddChild = uiState.canAddChild,
-                        onAddWordClick = {
-                            navController.navigate("add-word")
-                        }
-                    )
-                    MotherTab.PROFILE -> ProfileContent(
-                        username = uiState.username,
-                        displayName = uiState.displayName,
-                        onLogout = {
-                            viewModel.logout()
-                            navController.navigate("auth") {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        }
-                    )
-                }
+
+            override fun onReady() {
+                // Audio is ready to play
+            }
+
+            override fun onError(exception: Exception) {
+                currentPlayingAudioUrl = null
+                isAudioPlaying = false
+                wasPlaying = false
             }
         }
+    }
 
-        if (uiState.showAddChildDialog) {
-            AddChildDialog(
-                isLoading = uiState.isCreatingChild,
-                errorMessage = uiState.createChildErrorMessage,
-                onDismiss = { viewModel.hideAddChildDialog() },
-                onAddChild = { name, age, gender ->
-                    viewModel.createChild(name = name, age = age, gender = gender)
+    AudioProvider(audioUpdates = audioUpdates) { audioPlayer ->
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            Scaffold(
+                snackbarHost = {
+                    SnackbarHost(snackbarHostState) { data ->
+                        Snackbar(
+                            snackbarData = data,
+                            containerColor = TealPurple,
+                            contentColor = Color.White,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                    }
                 },
-                onClearError = { viewModel.clearCreateChildError() }
-            )
+                bottomBar = {
+                    MotherBottomNavigation(
+                        selectedTab = uiState.selectedTab,
+                        onTabSelected = viewModel::onTabSelected
+                    )
+                }
+            ) { paddingValues ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .background(SoftGray)
+                ) {
+                    when (uiState.selectedTab) {
+                        MotherTab.DASHBOARD -> DashboardContent(
+                            childrenState = uiState.childrenState,
+                            customWordsState = uiState.customWordsState,
+                            onChildClick = { child ->
+                                viewModel.selectChild(child)
+                                childViewModel.setSelectedChild(child)
+                                navController.navigate("child")
+                            },
+                            onAddChildClick = {
+                                viewModel.showAddChildDialog()
+                            },
+                            onRetry = { viewModel.retry() },
+                            canAddChild = uiState.canAddChild,
+                            onAddWordClick = {
+                                navController.navigate("add-word")
+                            },
+                            currentPlayingAudioUrl = if (isAudioPlaying) currentPlayingAudioUrl else null,
+                            onPlayAudio = { audioUrl ->
+                                // Stop previous playback if any
+                                if (currentPlayingAudioUrl != null && currentPlayingAudioUrl != audioUrl) {
+                                    audioPlayer.pause()
+                                }
+                                currentPlayingAudioUrl = audioUrl
+                                wasPlaying = false
+                                audioPlayer.play(audioUrl)
+                            },
+                            onStopAudio = {
+                                audioPlayer.pause()
+                                currentPlayingAudioUrl = null
+                                isAudioPlaying = false
+                                wasPlaying = false
+                            }
+                        )
+                        MotherTab.PROFILE -> ProfileContent(
+                            username = uiState.username,
+                            displayName = uiState.displayName,
+                            onLogout = {
+                                viewModel.logout()
+                                navController.navigate("auth") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+                }
+            }
+
+            if (uiState.showAddChildDialog) {
+                AddChildDialog(
+                    isLoading = uiState.isCreatingChild,
+                    errorMessage = uiState.createChildErrorMessage,
+                    onDismiss = { viewModel.hideAddChildDialog() },
+                    onAddChild = { name, age, gender ->
+                        viewModel.createChild(name = name, age = age, gender = gender)
+                    },
+                    onClearError = { viewModel.clearCreateChildError() }
+                )
+            }
         }
     }
 }
@@ -364,11 +420,15 @@ private fun UserInfoRow(
 @Composable
 private fun DashboardContent(
     childrenState: ChildrenState,
+    customWordsState: CustomWordsState,
     onChildClick: (ChildDTO) -> Unit,
     onAddChildClick: () -> Unit,
     onAddWordClick: () -> Unit,
     onRetry: () -> Unit,
-    canAddChild: Boolean
+    canAddChild: Boolean,
+    currentPlayingAudioUrl: String? = null,
+    onPlayAudio: (audioUrl: String) -> Unit = {},
+    onStopAudio: () -> Unit = {}
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -396,10 +456,15 @@ private fun DashboardContent(
                 // Success state - show children list
                 ChildrenListContent(
                     children = childrenState.children,
+                    customWordsState = customWordsState,
                     onChildClick = onChildClick,
                     onAddChildClick = onAddChildClick,
                     onAddWordClick = onAddWordClick,
-                    canAddChild = canAddChild
+                    canAddChild = canAddChild,
+                    onRetry = onRetry,
+                    currentPlayingAudioUrl = currentPlayingAudioUrl,
+                    onPlayAudio = onPlayAudio,
+                    onStopAudio = onStopAudio
                 )
             }
         }

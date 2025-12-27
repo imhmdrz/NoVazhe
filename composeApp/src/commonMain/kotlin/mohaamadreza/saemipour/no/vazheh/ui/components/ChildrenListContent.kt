@@ -17,6 +17,7 @@ import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SoftGray
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CustomWordsState
 
 @Composable
 fun ChildrenListContent(
@@ -24,7 +25,12 @@ fun ChildrenListContent(
     onChildClick: (ChildDTO) -> Unit,
     onAddChildClick: () -> Unit,
     onAddWordClick: () -> Unit,
-    canAddChild: Boolean
+    canAddChild: Boolean,
+    customWordsState: CustomWordsState,
+    onRetry: () -> Unit,
+    currentPlayingAudioUrl: String? = null,
+    onPlayAudio: (audioUrl: String) -> Unit = {},
+    onStopAudio: () -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
@@ -92,6 +98,32 @@ fun ChildrenListContent(
                     )
                 }
             }
+        }
+
+        when (customWordsState) {
+            is CustomWordsState.Error -> {
+                item {
+                    ErrorContent(
+                        message = customWordsState.message,
+                        onRetry = onRetry
+                    )
+                }
+            }
+
+            is CustomWordsState.Success -> {
+                items(customWordsState.words.size) { index ->
+                    val word = customWordsState.words[index]
+                    CustomWordContent(
+                        word = word,
+                        isPlaying = currentPlayingAudioUrl == word.audioUrl,
+                        onPlayClick = { audioUrl -> onPlayAudio(audioUrl) },
+                        onStopClick = onStopAudio,
+                        onClick = {}
+                    )
+                }
+            }
+
+            else -> {}
         }
     }
 }

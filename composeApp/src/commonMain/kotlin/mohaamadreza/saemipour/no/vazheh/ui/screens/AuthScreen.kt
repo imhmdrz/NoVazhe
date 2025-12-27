@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.AuthViewModel
-import org.koin.core.logger.Logger
 
 @Composable
 fun AuthScreen(navController: NavController, viewModel: AuthViewModel) {
@@ -121,7 +120,7 @@ fun AuthScreen(navController: NavController, viewModel: AuthViewModel) {
                                 KeyboardActions(
                                         onDone = {
                                             viewModel.onSubmit {
-                                                navController.navigate("child") {
+                                                navController.navigate("mother") {
                                                     popUpTo("auth") { inclusive = true }
                                                 }
                                             }
@@ -146,7 +145,7 @@ fun AuthScreen(navController: NavController, viewModel: AuthViewModel) {
                 Button(
                         onClick = {
                             viewModel.onSubmit {
-                                navController.navigate("child") {
+                                navController.navigate("mother") {
                                     popUpTo("auth") { inclusive = true }
                                 }
                             }

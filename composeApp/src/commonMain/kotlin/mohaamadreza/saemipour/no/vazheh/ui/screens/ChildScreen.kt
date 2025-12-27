@@ -49,11 +49,12 @@ import org.jetbrains.compose.resources.stringResource
 @Composable
 fun ChildScreen(navController: NavController, viewModel: ChildViewModel) {
     val uiState by viewModel.uiState.collectAsState()
+    val selectedChild = uiState.selectedChild
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(modifier = Modifier.fillMaxSize()) {
             ChildAppBarComponent(
-                name = "سلام ماهان",
+                name = "سلام ${selectedChild?.name ?: "کودک"}",
                 description = "بیا بازی کنیم، یاد بگیریم و خوش بگذرونیم!",
                 onBackClick = navController::popBackStack
             )

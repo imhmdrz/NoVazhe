@@ -44,7 +44,7 @@ fun App() {
                     .background(MaterialTheme.colorScheme.background)
                     .safeDrawingPadding(),
             navController = navController,
-            startDestination = "add-word"
+            startDestination = startDestination
         ) {
             composable("auth") {
                 OrientationWrapper(Orientation.Vertical) {
@@ -63,11 +63,14 @@ fun App() {
             }
             composable("mother") {
                 OrientationWrapper(Orientation.Vertical) {
-                    MotherScreen(navController = navController, viewModel = motherViewModel)
+                    MotherScreen(
+                        navController = navController,
+                        viewModel = motherViewModel,
+                        childViewModel = childViewModel
+                    )
                 }
             }
             composable("add-word") {
-                val motherViewModel: MotherViewModel = koinViewModel()
                 OrientationWrapper(Orientation.Vertical) {
                     AddWordScreen(navController = navController, viewModel = motherViewModel)
                 }

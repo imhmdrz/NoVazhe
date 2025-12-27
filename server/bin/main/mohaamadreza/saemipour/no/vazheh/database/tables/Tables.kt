@@ -56,8 +56,8 @@ object CustomWords : IntIdTable("custom_words") {
     val parentId = reference("parent_id", Parents, onDelete = ReferenceOption.CASCADE)
     val wordFa = varchar("word_fa", 100) // کلمه فارسی
     val wordEn = varchar("word_en", 100).nullable() // کلمه انگلیسی (اختیاری)
-    val imageUrl = varchar("image_url", 255).nullable() // تصویر کلمه
-    val audioUrl = varchar("audio_url", 255) // صوت ضبط شده توسط مادر
+    val imageUrl = text("image_url").nullable() // تصویر کلمه (base64 data URL)
+    val audioUrl = text("audio_url") // صوت ضبط شده توسط مادر (base64 data URL)
     val categoryId =
             reference("category_id", Categories, onDelete = ReferenceOption.SET_NULL)
                     .nullable() // دسته‌بندی (اختیاری)

@@ -1,17 +1,22 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
@@ -50,12 +55,14 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
+import mohaamadreza.saemipour.no.vazheh.isAndroidPlatform
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.AddChildDialog
 import mohaamadreza.saemipour.no.vazheh.ui.components.ChildrenListContent
 import mohaamadreza.saemipour.no.vazheh.ui.components.ErrorContent
+import mohaamadreza.saemipour.no.vazheh.ui.components.KidsModeGuideDialog
 import mohaamadreza.saemipour.no.vazheh.ui.components.LoadingContent
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
@@ -76,6 +83,7 @@ fun MotherScreen(
     childViewModel: ChildViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val childUiState by childViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
     var currentPlayingAudioUrl by remember { mutableStateOf<String?>(null) }
@@ -171,11 +179,18 @@ fun MotherScreen(
                                 currentPlayingAudioUrl = null
                                 isAudioPlaying = false
                                 wasPlaying = false
+                            },
+                            onDeleteCustomWord = { wordId ->
+                                viewModel.deleteCustomWord(wordId)
                             }
                         )
                         MotherTab.PROFILE -> ProfileContent(
                             username = uiState.username,
                             displayName = uiState.displayName,
+                            timerDurationMinutes = childUiState.timerDurationMinutes,
+                            onTimerDurationChange = { minutes ->
+                                childViewModel.setTimerDuration(minutes)
+                            },
                             onLogout = {
                                 viewModel.logout()
                                 navController.navigate("auth") {
@@ -268,12 +283,25 @@ private fun MotherBottomNavigation(
 private fun ProfileContent(
     username: String,
     displayName: String,
+    timerDurationMinutes: Int,
+    onTimerDurationChange: (Int) -> Unit,
     onLogout: () -> Unit
 ) {
+    var showKidsModeGuide by remember { mutableStateOf(false) }
+    
+    // Kids Mode Guide Dialog
+    if (showKidsModeGuide) {
+        KidsModeGuideDialog(
+            onDismiss = { showKidsModeGuide = false },
+            isAndroid = isAndroidPlatform()
+        )
+    }
+    
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(horizontal = 24.dp)
+            .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Header with gradient background
@@ -298,36 +326,11 @@ private fun ProfileContent(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Avatar placeholder
-                    Box(
-                        modifier = Modifier
-                            .size(80.dp)
-                            .background(Color.White.copy(alpha = 0.2f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.Person,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = Color.White
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
                     Text(
                         text = "سلام، ${displayName.ifEmpty { "کاربر" }}!",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
                         color = Color.White
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "خوش آمدید به داشبورد",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = Color.White.copy(alpha = 0.9f)
                     )
                 }
             }
@@ -348,28 +351,137 @@ private fun ProfileContent(
                     .padding(20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
+                UserInfoRow(
+                    label = "نام کاربری",
+                    value = username.ifEmpty { "تنظیم نشده" }
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Timer Settings Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
                 Text(
-                    text = "اطلاعات کاربری",
+                    text = "⏱️ تنظیم زمان بازی",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = DarkText
                 )
 
-                // Username row
-                UserInfoRow(
-                    label = "نام کاربری",
-                    value = username.ifEmpty { "تنظیم نشده" }
+                Text(
+                    text = "مدت زمان مجاز بازی فرزند را تنظیم کنید",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MutedText
                 )
 
-                // Display name row
-                UserInfoRow(
-                    label = "نام نمایشی",
-                    value = displayName.ifEmpty { "تنظیم نشده" }
+                // Timer duration selector
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TimerOptionButton(
+                        minutes = 1,
+                        isSelected = timerDurationMinutes == 1,
+                        onClick = { onTimerDurationChange(1) }
+                    )
+                    TimerOptionButton(
+                        minutes = 10,
+                        isSelected = timerDurationMinutes == 10,
+                        onClick = { onTimerDurationChange(10) }
+                    )
+                    TimerOptionButton(
+                        minutes = 15,
+                        isSelected = timerDurationMinutes == 15,
+                        onClick = { onTimerDurationChange(15) }
+                    )
+                    TimerOptionButton(
+                        minutes = 30,
+                        isSelected = timerDurationMinutes == 30,
+                        onClick = { onTimerDurationChange(30) }
+                    )
+                }
+
+                // Current selection display
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            color = TealPurple.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .padding(12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "زمان انتخاب شده: $timerDurationMinutes دقیقه",
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = TealPurple
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Kids Mode Guide Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { showKidsModeGuide = true },
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "🔒",
+                    style = MaterialTheme.typography.headlineMedium
+                )
+                
+                Spacer(modifier = Modifier.size(16.dp))
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "حالت کودک",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = DarkText
+                    )
+                    Text(
+                        text = "راهنمای قفل صفحه برای جلوگیری از خروج کودک",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MutedText
+                    )
+                }
+                
+                Text(
+                    text = "›",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MutedText
                 )
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Logout Button
         Button(
@@ -395,19 +507,46 @@ private fun ProfileContent(
 }
 
 @Composable
+private fun TimerOptionButton(
+    minutes: Int,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(60.dp)
+            .background(
+                color = if (isSelected) TealPurple else SoftGray,
+                shape = CircleShape
+            )
+            .clip(CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = "$minutes",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = if (isSelected) Color.White else DarkText
+        )
+    }
+}
+
+@Composable
 private fun UserInfoRow(
     label: String,
     value: String
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
             color = MutedText
         )
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.width(4.dp))
         Text(
             text = value,
             style = MaterialTheme.typography.bodyLarge,
@@ -428,7 +567,8 @@ private fun DashboardContent(
     canAddChild: Boolean,
     currentPlayingAudioUrl: String? = null,
     onPlayAudio: (audioUrl: String) -> Unit = {},
-    onStopAudio: () -> Unit = {}
+    onStopAudio: () -> Unit = {},
+    onDeleteCustomWord: (wordId: Int) -> Unit = {}
 ) {
     Box(
         modifier = Modifier.fillMaxSize(),
@@ -464,7 +604,8 @@ private fun DashboardContent(
                     onRetry = onRetry,
                     currentPlayingAudioUrl = currentPlayingAudioUrl,
                     onPlayAudio = onPlayAudio,
-                    onStopAudio = onStopAudio
+                    onStopAudio = onStopAudio,
+                    onDeleteCustomWord = onDeleteCustomWord
                 )
             }
         }

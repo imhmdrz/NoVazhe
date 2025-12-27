@@ -21,6 +21,10 @@ val TealDark = Color(0xFF0F766E)
 val CoralRed = Color(0xFFEF4444)
 val CoralDark = Color(0xFFDC2626)
 
+// Quiz/Game colors
+val MintGreen = Color(0xFF10B981)  // Success/Correct answer
+val SkyBlue = Color(0xFF3B82F6)    // Learning mode
+
 // Neutral colors
 val SoftGray = Color(0xFFF8FAFC)
 val DarkText = Color(0xFF1E293B)

@@ -58,7 +58,7 @@ fun ChildAppBarComponent(
             Text(
                 modifier = Modifier.fillMaxWidth(),
                 text = description,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1
             )

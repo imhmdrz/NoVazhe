@@ -808,9 +808,3 @@ components:
           type: boolean
         message:
           type: string
-
-
-
-
-
-

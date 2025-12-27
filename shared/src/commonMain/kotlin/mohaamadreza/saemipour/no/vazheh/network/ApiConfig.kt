@@ -24,4 +24,9 @@ object ApiConfig {
 
     // Children endpoints
     const val CHILDREN = "/api/children"
+
+    // Quiz endpoints
+    const val QUIZ_QUESTION = "/api/quiz/question"
+    const val QUIZ_QUESTIONS = "/api/quiz/questions"
+    const val QUIZ_SUBMIT = "/api/quiz/submit"
 }

@@ -12,8 +12,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +31,7 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import mohaamadreza.saemipour.no.vazheh.data.CustomWordDTO
+import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.cardBackground
@@ -39,6 +43,7 @@ fun CustomWordContent(
     isPlaying: Boolean = false,
     onPlayClick: (audioUrl: String) -> Unit = {},
     onStopClick: () -> Unit = {},
+    onDeleteClick: (wordId: Int) -> Unit = {},
     onClick: () -> Unit = {}
 ) {
     Card(
@@ -111,6 +116,28 @@ fun CustomWordContent(
                         )
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Delete button
+            Box(
+                modifier = Modifier
+                    .background(
+                        shape = CircleShape,
+                        color = CoralRed.copy(alpha = 0.1f)
+                    )
+                    .clip(CircleShape)
+                    .clickable { onDeleteClick(word.id) }
+                    .size(40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "حذف کلمه",
+                    tint = CoralRed,
+                    modifier = Modifier.size(20.dp)
+                )
             }
         }
     }

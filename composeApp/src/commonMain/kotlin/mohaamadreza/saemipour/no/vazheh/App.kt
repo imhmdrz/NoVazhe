@@ -16,10 +16,12 @@ import mohaamadreza.saemipour.no.vazheh.ui.screens.AuthScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.ChildScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.GameScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.MotherScreen
+import mohaamadreza.saemipour.no.vazheh.ui.screens.QuizScreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.AppTheme
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.AuthViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherViewModel
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.QuizViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -34,7 +36,9 @@ fun App() {
 
         // Shared ChildViewModel across child and game screens
         val childViewModel: ChildViewModel = koinViewModel()
-
+        
+        // QuizViewModel for quiz screens
+        val quizViewModel: QuizViewModel = koinViewModel()
 
         val motherViewModel: MotherViewModel = koinViewModel()
 
@@ -53,7 +57,11 @@ fun App() {
             }
             composable("child") {
                 OrientationWrapper(Orientation.Vertical) {
-                    ChildScreen(navController = navController, viewModel = childViewModel)
+                    ChildScreen(
+                        navController = navController, 
+                        viewModel = childViewModel,
+                        quizViewModel = quizViewModel
+                    )
                 }
             }
             composable("game") {
@@ -62,6 +70,9 @@ fun App() {
                 }
             }
             composable("mother") {
+                motherViewModel.loadUserInfo()
+                motherViewModel.loadChildren()
+                motherViewModel.loadCustomWords()
                 OrientationWrapper(Orientation.Vertical) {
                     MotherScreen(
                         navController = navController,
@@ -73,6 +84,11 @@ fun App() {
             composable("add-word") {
                 OrientationWrapper(Orientation.Vertical) {
                     AddWordScreen(navController = navController, viewModel = motherViewModel)
+                }
+            }
+            composable("quiz") {
+                OrientationWrapper(Orientation.Vertical) {
+                    QuizScreen(navController = navController, viewModel = quizViewModel)
                 }
             }
         }

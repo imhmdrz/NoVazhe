@@ -1,25 +1,37 @@
 package mohaamadreza.saemipour.no.vazheh
 
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.auth.jwt.*
-import io.ktor.server.engine.*
-import io.ktor.server.netty.*
-import io.ktor.server.plugins.calllogging.*
-import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.plugins.cors.routing.*
-import io.ktor.server.plugins.openapi.*
-import io.ktor.server.plugins.statuspages.*
-import io.ktor.server.plugins.swagger.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.application.log
+import io.ktor.server.auth.Authentication
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.jwt.jwt
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
+import io.ktor.server.plugins.calllogging.CallLogging
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.plugins.openapi.openAPI
+import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.plugins.swagger.swaggerUI
+import io.ktor.server.request.httpMethod
+import io.ktor.server.request.path
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.get
+import io.ktor.server.routing.routing
 import kotlinx.serialization.json.Json
 import mohaamadreza.saemipour.no.vazheh.database.DatabaseConfig
 import mohaamadreza.saemipour.no.vazheh.models.MessageResponse
-import mohaamadreza.saemipour.no.vazheh.routes.*
+import mohaamadreza.saemipour.no.vazheh.routes.authRoutes
+import mohaamadreza.saemipour.no.vazheh.routes.childRoutes
+import mohaamadreza.saemipour.no.vazheh.routes.contentRoutes
+import mohaamadreza.saemipour.no.vazheh.routes.progressRoutes
+import mohaamadreza.saemipour.no.vazheh.routes.quizRoutes
 import mohaamadreza.saemipour.no.vazheh.security.JwtConfig
 import org.slf4j.event.Level
 
@@ -153,11 +165,13 @@ fun Application.configureRouting() {
             )
         }
 
-        swaggerUI(path = "swagger", swaggerFile = "openapi/documentation.yaml") {
+            // OpenAPI JSON endpoint
+        openAPI(path = "/openapi", swaggerFile = "openapi/documentation.yaml")
+
+        // Swagger UI
+        swaggerUI(path = "/swagger", swaggerFile = "openapi/documentation.yaml") {
             version = "5.17.14"
         }
-
-        openAPI(path = "openapi", swaggerFile = "openapi/documentation.yaml")
         
         // API routes
         authRoutes()        // /api/auth/*

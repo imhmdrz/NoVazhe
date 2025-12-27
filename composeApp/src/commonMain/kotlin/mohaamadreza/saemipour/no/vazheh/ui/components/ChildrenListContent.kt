@@ -30,7 +30,8 @@ fun ChildrenListContent(
     onRetry: () -> Unit,
     currentPlayingAudioUrl: String? = null,
     onPlayAudio: (audioUrl: String) -> Unit = {},
-    onStopAudio: () -> Unit = {}
+    onStopAudio: () -> Unit = {},
+    onDeleteCustomWord: (wordId: Int) -> Unit = {}
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
@@ -89,14 +90,12 @@ fun ChildrenListContent(
                     color = DarkText
                 )
 
-                if (canAddChild) {
-                    Text(
-                        "+  افزودن کلمه",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = TealPurple,
-                        modifier = Modifier.clickable(onClick = onAddWordClick)
-                    )
-                }
+                Text(
+                    "+  افزودن کلمه",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TealPurple,
+                    modifier = Modifier.clickable(onClick = onAddWordClick)
+                )
             }
         }
 
@@ -118,6 +117,7 @@ fun ChildrenListContent(
                         isPlaying = currentPlayingAudioUrl == word.audioUrl,
                         onPlayClick = { audioUrl -> onPlayAudio(audioUrl) },
                         onStopClick = onStopAudio,
+                        onDeleteClick = { wordId -> onDeleteCustomWord(wordId) },
                         onClick = {}
                     )
                 }

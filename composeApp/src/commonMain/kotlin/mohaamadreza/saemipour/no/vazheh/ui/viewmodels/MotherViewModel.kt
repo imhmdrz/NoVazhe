@@ -35,12 +35,11 @@ class MotherViewModel(
     val uiState = _uiState.asStateFlow()
 
     init {
-        loadUserInfo()
         loadChildren()
         loadCustomWords()
     }
 
-    private fun loadUserInfo() {
+    fun loadUserInfo() {
         val username = authRepository.getUsername() ?: ""
         val displayName = authRepository.getDisplayName() ?: ""
         _uiState.update {

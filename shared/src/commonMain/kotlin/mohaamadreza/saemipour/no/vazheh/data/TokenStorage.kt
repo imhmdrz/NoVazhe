@@ -12,6 +12,8 @@ class TokenStorage(private val settings: Settings) {
         private const val KEY_PARENT_ID = "parent_id"
         private const val KEY_USERNAME = "username"
         private const val KEY_DISPLAY_NAME = "display_name"
+        private const val KEY_TIMER_DURATION_MINUTES = "timer_duration_minutes"
+        private const val DEFAULT_TIMER_DURATION = 10
     }
 
     fun saveToken(token: String) {
@@ -55,5 +57,16 @@ class TokenStorage(private val settings: Settings) {
         settings.remove(KEY_PARENT_ID)
         settings.remove(KEY_USERNAME)
         settings.remove(KEY_DISPLAY_NAME)
+        // Note: Timer duration is not cleared on logout - it's a device preference
+    }
+
+    // ==================== Timer Settings ====================
+
+    fun saveTimerDuration(minutes: Int) {
+        settings.putInt(KEY_TIMER_DURATION_MINUTES, minutes)
+    }
+
+    fun getTimerDuration(): Int {
+        return settings.getInt(KEY_TIMER_DURATION_MINUTES, DEFAULT_TIMER_DURATION)
     }
 }

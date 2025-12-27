@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
@@ -81,7 +82,7 @@ fun ChildContent(
                 imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = "مشاهده جزئیات",
                 tint = MutedText,
-                modifier = Modifier.size(28.dp)
+                modifier = Modifier.size(28.dp).rotate(180f)
             )
         }
     }

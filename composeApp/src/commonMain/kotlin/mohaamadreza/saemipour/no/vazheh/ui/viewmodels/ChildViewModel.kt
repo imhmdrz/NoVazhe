@@ -2,6 +2,8 @@ package mohaamadreza.saemipour.no.vazheh.ui.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -10,18 +12,33 @@ import mohaamadreza.saemipour.no.vazheh.AppLogger
 import mohaamadreza.saemipour.no.vazheh.data.CategoryDTO
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.data.ContentRepository
+import mohaamadreza.saemipour.no.vazheh.data.TokenStorage
 import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.ChildUiState
 
 class ChildViewModel(
-    private val contentRepository: ContentRepository
+    private val contentRepository: ContentRepository,
+    private val tokenStorage: TokenStorage
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ChildUiState())
     val uiState = _uiState.asStateFlow()
 
+    private var timerJob: Job? = null
+
     init {
+        loadSavedTimerDuration()
         loadCategories()
+    }
+
+    private fun loadSavedTimerDuration() {
+        val savedDuration = tokenStorage.getTimerDuration()
+        _uiState.update { 
+            it.copy(
+                timerDurationMinutes = savedDuration,
+                remainingTimeSeconds = savedDuration * 60L
+            ) 
+        }
     }
 
     fun loadCategories() {
@@ -143,5 +160,112 @@ class ChildViewModel(
 
     fun clearSelectedChild() {
         _uiState.update { it.copy(selectedChild = null) }
+    }
+
+    // ==================== Timer Operations ====================
+
+    /**
+     * Set the timer duration in minutes and persist to storage
+     * تنظیم مدت زمان تایمر به دقیقه و ذخیره در حافظه
+     */
+    fun setTimerDuration(minutes: Int) {
+        tokenStorage.saveTimerDuration(minutes)
+        _uiState.update { 
+            it.copy(
+                timerDurationMinutes = minutes,
+                remainingTimeSeconds = minutes * 60L,
+                isTimerFinished = false
+            ) 
+        }
+    }
+
+    /**
+     * Start the countdown timer
+     * شروع تایمر شمارش معکوس
+     */
+    fun startTimer() {
+        val currentState = _uiState.value
+        if (currentState.timerDurationMinutes <= 0) return
+
+        // Initialize remaining time if not set
+        if (currentState.remainingTimeSeconds <= 0) {
+            _uiState.update { 
+                it.copy(remainingTimeSeconds = currentState.timerDurationMinutes * 60L) 
+            }
+        }
+
+        timerJob?.cancel()
+        _uiState.update { it.copy(isTimerRunning = true, isTimerFinished = false) }
+
+        timerJob = viewModelScope.launch {
+            while (_uiState.value.remainingTimeSeconds > 0 && _uiState.value.isTimerRunning) {
+                delay(1000L)
+                _uiState.update { 
+                    it.copy(remainingTimeSeconds = it.remainingTimeSeconds - 1) 
+                }
+            }
+            
+            // Timer finished
+            if (_uiState.value.remainingTimeSeconds <= 0) {
+                _uiState.update { 
+                    it.copy(
+                        isTimerRunning = false, 
+                        isTimerFinished = true
+                    ) 
+                }
+            }
+        }
+    }
+
+    /**
+     * Pause the timer
+     * توقف موقت تایمر
+     */
+    fun pauseTimer() {
+        timerJob?.cancel()
+        _uiState.update { it.copy(isTimerRunning = false) }
+    }
+
+    /**
+     * Stop and reset the timer
+     * توقف و بازنشانی تایمر
+     */
+    fun stopTimer() {
+        timerJob?.cancel()
+        _uiState.update { 
+            it.copy(
+                isTimerRunning = false,
+                remainingTimeSeconds = it.timerDurationMinutes * 60L,
+                isTimerFinished = false
+            ) 
+        }
+    }
+
+    /**
+     * Clear the timer finished flag after navigation
+     * پاک کردن پرچم پایان تایمر پس از ناوبری
+     */
+    fun clearTimerFinished() {
+        _uiState.update { it.copy(isTimerFinished = false) }
+    }
+
+    /**
+     * Reset timer to initial state with duration
+     * بازنشانی تایمر به حالت اولیه
+     */
+    fun resetTimerForNewSession() {
+        timerJob?.cancel()
+        _uiState.update { 
+            it.copy(
+                remainingTimeSeconds = it.timerDurationMinutes * 60L,
+                isTimerRunning = false,
+                isTimerFinished = false
+            ) 
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        timerJob?.cancel()
     }
 }

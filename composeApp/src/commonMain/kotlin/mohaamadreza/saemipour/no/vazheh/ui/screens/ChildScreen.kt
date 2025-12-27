@@ -1,21 +1,31 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -23,14 +33,22 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
@@ -39,7 +57,11 @@ import coil3.request.crossfade
 import mohaamadreza.saemipour.no.vazheh.data.CategoryDTO
 import mohaamadreza.saemipour.no.vazheh.ui.components.ChildAppBarComponent
 import mohaamadreza.saemipour.no.vazheh.ui.theme.BlackAlpha
+import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
+import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
+import mohaamadreza.saemipour.no.vazheh.ui.theme.SkyBlue
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.QuizViewModel
 import novazheh.composeapp.generated.resources.Res
 import novazheh.composeapp.generated.resources.category
 import novazheh.composeapp.generated.resources.icon
@@ -47,9 +69,17 @@ import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun ChildScreen(navController: NavController, viewModel: ChildViewModel) {
+fun ChildScreen(
+    navController: NavController, 
+    viewModel: ChildViewModel,
+    quizViewModel: QuizViewModel
+) {
     val uiState by viewModel.uiState.collectAsState()
     val selectedChild = uiState.selectedChild
+    
+    // Dialog state for mode selection
+    var showModeDialog by remember { mutableStateOf(false) }
+    var selectedCategory by remember { mutableStateOf<CategoryDTO?>(null) }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -109,12 +139,176 @@ fun ChildScreen(navController: NavController, viewModel: ChildViewModel) {
                     Categories(
                         categories = uiState.categories,
                         onCategoryClick = { category ->
-                            viewModel.onCategorySelected(category)
-                            navController.navigate("game")
+                            selectedCategory = category
+                            showModeDialog = true
                         }
                     )
                 }
             }
+        }
+        
+        // Mode selection dialog
+        if (showModeDialog && selectedCategory != null) {
+            ModeSelectionDialog(
+                categoryName = selectedCategory?.nameFa ?: "",
+                onDismiss = { showModeDialog = false },
+                onGameMode = {
+                    showModeDialog = false
+                    selectedCategory?.let { category ->
+                        viewModel.onCategorySelected(category)
+                        navController.navigate("game")
+                    }
+                },
+                onQuizMode = {
+                    showModeDialog = false
+                    selectedCategory?.let { category ->
+                        viewModel.onCategorySelected(category)
+                        val childId = selectedChild?.id ?: 0
+                        quizViewModel.startQuiz(category.id, childId, 5)
+                        navController.navigate("quiz")
+                    }
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Dialog for selecting between Game (learning) and Quiz mode
+ * دیالوگ انتخاب بین حالت یادگیری و آزمون
+ */
+@Composable
+private fun ModeSelectionDialog(
+    categoryName: String,
+    onDismiss: () -> Unit,
+    onGameMode: () -> Unit,
+    onQuizMode: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f)
+                .padding(16.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Title
+                Text(
+                    text = "📚 $categoryName",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(Modifier.height(8.dp))
+                
+                Text(
+                    text = "چی می‌خوای انجام بدی؟",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(Modifier.height(24.dp))
+                
+                // Mode buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // Learning Mode
+                    ModeCard(
+                        modifier = Modifier.weight(1f),
+                        emoji = "🎮",
+                        title = "یادگیری",
+                        description = "کلمه‌ها رو ببین و یاد بگیر",
+                        backgroundColor = SkyBlue,
+                        onClick = onGameMode
+                    )
+                    
+                    // Quiz Mode
+                    ModeCard(
+                        modifier = Modifier.weight(1f),
+                        emoji = "🎯",
+                        title = "آزمون",
+                        description = "صدا رو گوش کن و جواب بده",
+                        backgroundColor = MintGreen,
+                        onClick = onQuizMode
+                    )
+                }
+                
+                Spacer(Modifier.height(16.dp))
+                
+                // Cancel button
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        text = "انصراف",
+                        color = Color.Gray
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ModeCard(
+    modifier: Modifier = Modifier,
+    emoji: String,
+    title: String,
+    description: String,
+    backgroundColor: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(140.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = backgroundColor.copy(alpha = 0.15f)
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = emoji,
+                fontSize = 36.sp
+            )
+            
+            Spacer(Modifier.height(8.dp))
+            
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = backgroundColor
+            )
+            
+            Spacer(Modifier.height(4.dp))
+            
+            Text(
+                text = description,
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray,
+                textAlign = TextAlign.Center,
+                maxLines = 2
+            )
         }
     }
 }

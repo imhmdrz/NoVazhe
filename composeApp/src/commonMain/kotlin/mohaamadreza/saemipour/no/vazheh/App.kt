@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import mohaamadreza.saemipour.no.vazheh.ui.screens.AddWordScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AuthScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.ChildScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.GameScreen
@@ -43,7 +44,7 @@ fun App() {
                     .background(MaterialTheme.colorScheme.background)
                     .safeDrawingPadding(),
             navController = navController,
-            startDestination = startDestination
+            startDestination = "add-word"
         ) {
             composable("auth") {
                 OrientationWrapper(Orientation.Vertical) {
@@ -68,7 +69,7 @@ fun App() {
             composable("add-word") {
                 val motherViewModel: MotherViewModel = koinViewModel()
                 OrientationWrapper(Orientation.Vertical) {
-                    MotherScreen(navController = navController, viewModel = motherViewModel)
+                    AddWordScreen(navController = navController, viewModel = motherViewModel)
                 }
             }
         }

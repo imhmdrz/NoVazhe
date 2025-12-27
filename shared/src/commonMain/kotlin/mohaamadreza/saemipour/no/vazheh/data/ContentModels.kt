@@ -77,7 +77,8 @@ data class CreateCustomWordRequest(
 data class ListResponse<T>(
     val success: Boolean,
     val data: List<T>,
-    val total: Int
+    val total: Int,
+    val message: String? = null
 )
 
 // ==================== Message Response ====================
@@ -87,5 +88,3 @@ data class MessageResponse(
     val success: Boolean,
     val message: String
 )
-
-

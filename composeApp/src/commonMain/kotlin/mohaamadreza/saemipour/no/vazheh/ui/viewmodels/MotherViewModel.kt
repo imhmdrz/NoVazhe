@@ -10,19 +10,25 @@ import mohaamadreza.saemipour.no.vazheh.AppLogger
 import mohaamadreza.saemipour.no.vazheh.data.AuthRepository
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.data.ChildRepository
+import mohaamadreza.saemipour.no.vazheh.data.ContentRepository
 import mohaamadreza.saemipour.no.vazheh.data.CreateChildRequest
+import mohaamadreza.saemipour.no.vazheh.data.CreateCustomWordRequest
 import mohaamadreza.saemipour.no.vazheh.data.Gender
 import mohaamadreza.saemipour.no.vazheh.data.UpdateChildRequest
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.ChildrenState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateChildState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateCustomWordState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CustomWordsState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.DeleteChildState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.DeleteCustomWordState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.MotherTab
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.MotherUiState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.UpdateChildState
 
 class MotherViewModel(
     private val authRepository: AuthRepository,
-    private val childRepository: ChildRepository
+    private val childRepository: ChildRepository,
+    private val contentRepository: ContentRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MotherUiState())
@@ -158,7 +164,7 @@ class MotherViewModel(
             }
             return
         }
-        if (age != null && (age < 1 || age > 18)) {
+        if (age != null && (age !in 1..18)) {
             _uiState.update { 
                 it.copy(updateChildState = UpdateChildState.Error("سن باید بین ۱ تا ۱۸ سال باشد", childId)) 
             }
@@ -297,5 +303,187 @@ class MotherViewModel(
                 createChildState = CreateChildState.Idle
             ) 
         }
+    }
+
+    // ==================== Custom Words Operations - عملیات کلمات سفارشی ====================
+
+    /**
+     * Load all custom words created by parent
+     * بارگذاری کلمات سفارشی مادر
+     */
+    fun loadCustomWords() {
+        _uiState.update { it.copy(customWordsState = CustomWordsState.Loading) }
+
+        viewModelScope.launch {
+            contentRepository.getCustomWords().fold(
+                onSuccess = { response ->
+                    if (response.success) {
+                        _uiState.update {
+                            it.copy(customWordsState = CustomWordsState.Success(response.data))
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(customWordsState = CustomWordsState.Error("خطا در بارگذاری کلمات سفارشی"))
+                        }
+                    }
+                },
+                onFailure = { exception ->
+                    AppLogger.d("MotherViewModel", "Error loading custom words: ${exception.message}")
+                    _uiState.update {
+                        it.copy(
+                            customWordsState = CustomWordsState.Error(
+                                "خطا در اتصال: ${exception.message ?: "خطای نامشخص"}"
+                            )
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * Create a new custom word
+     * ایجاد کلمه سفارشی جدید
+     */
+    fun createCustomWord(
+        wordFa: String,
+        wordEn: String? = null,
+        imageUrl: String? = null,
+        audioUrl: String,
+        categoryId: Int? = null
+    ) {
+        // Validation
+        if (wordFa.isBlank()) {
+            _uiState.update {
+                it.copy(createCustomWordState = CreateCustomWordState.Error("کلمه فارسی الزامی است"))
+            }
+            return
+        }
+        if (audioUrl.isBlank()) {
+            _uiState.update {
+                it.copy(createCustomWordState = CreateCustomWordState.Error("فایل صوتی الزامی است"))
+            }
+            return
+        }
+
+        AppLogger.d("MotherViewModel", "Creating custom word: $wordFa")
+        _uiState.update { it.copy(createCustomWordState = CreateCustomWordState.Loading) }
+
+        viewModelScope.launch {
+            val request = CreateCustomWordRequest(
+                wordFa = wordFa,
+                wordEn = wordEn,
+                imageUrl = imageUrl,
+                audioUrl = audioUrl,
+                categoryId = categoryId
+            )
+            contentRepository.createCustomWord(request).fold(
+                onSuccess = { response ->
+                    if (response.success && response.data != null) {
+                        val newWord = response.data ?: return@launch
+                        _uiState.update {
+                            // Update custom words list
+                            val currentWords = it.customWords
+                            val updatedWords = currentWords + newWord
+
+                            it.copy(
+                                customWordsState = CustomWordsState.Success(updatedWords),
+                                createCustomWordState = CreateCustomWordState.Success(newWord),
+                                successMessage = "کلمه با موفقیت اضافه شد"
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                createCustomWordState = CreateCustomWordState.Error(
+                                    response.message
+                                )
+                            )
+                        }
+                    }
+                },
+                onFailure = { exception ->
+                    AppLogger.d("MotherViewModel", "Error creating custom word: ${exception.message}")
+                    _uiState.update {
+                        it.copy(
+                            createCustomWordState = CreateCustomWordState.Error(
+                                "خطا در ایجاد کلمه: ${exception.message ?: "خطای نامشخص"}"
+                            )
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * Delete a custom word
+     * حذف کلمه سفارشی
+     */
+    fun deleteCustomWord(wordId: Int) {
+        _uiState.update { it.copy(deleteCustomWordState = DeleteCustomWordState.Loading(wordId)) }
+
+        viewModelScope.launch {
+            contentRepository.deleteCustomWord(wordId).fold(
+                onSuccess = { response ->
+                    if (response.success) {
+                        _uiState.update {
+                            // Update custom words list
+                            val updatedWords = it.customWords.filter { word -> word.id != wordId }
+
+                            it.copy(
+                                customWordsState = CustomWordsState.Success(updatedWords),
+                                deleteCustomWordState = DeleteCustomWordState.Success(wordId),
+                                successMessage = "کلمه با موفقیت حذف شد"
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                deleteCustomWordState = DeleteCustomWordState.Error(
+                                    response.message,
+                                    wordId
+                                )
+                            )
+                        }
+                    }
+                },
+                onFailure = { exception ->
+                    AppLogger.d("MotherViewModel", "Error deleting custom word: ${exception.message}")
+                    _uiState.update {
+                        it.copy(
+                            deleteCustomWordState = DeleteCustomWordState.Error(
+                                "خطا در حذف کلمه: ${exception.message ?: "خطای نامشخص"}",
+                                wordId
+                            )
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * Clear create custom word error
+     * پاک کردن خطای ایجاد کلمه سفارشی
+     */
+    fun clearCreateCustomWordError() {
+        _uiState.update { it.copy(createCustomWordState = CreateCustomWordState.Idle) }
+    }
+
+    /**
+     * Clear delete custom word error
+     * پاک کردن خطای حذف کلمه سفارشی
+     */
+    fun clearDeleteCustomWordError() {
+        _uiState.update { it.copy(deleteCustomWordState = DeleteCustomWordState.Idle) }
+    }
+
+    /**
+     * Retry loading custom words
+     * تلاش مجدد برای بارگذاری کلمات سفارشی
+     */
+    fun retryCustomWords() {
+        loadCustomWords()
     }
 }

@@ -5,7 +5,7 @@ android-minSdk = "24"
 android-targetSdk = "36"
 
 coreSplashscreen = "1.2.0"
-androidx-activity = "1.12.1"
+androidx-activity = "1.12.2"
 androidx-appcompat = "1.7.1"
 androidx-core = "1.17.0"
 androidx-espresso = "3.7.0"
@@ -19,6 +19,7 @@ logback = "1.5.21"
 
 # Database
 exposed = "0.61.0"
+media3Exoplayer = "1.9.0"
 postgresql = "42.7.8"
 hikari = "7.0.2"
 h2 = "2.3.232"
@@ -32,12 +33,14 @@ multiplatform-settings = "1.3.0"
 navigationCompose = "2.9.1"
 xmlSerialization = "0.91.1"
 koin = "4.1.1"
-accompanist = "0.36.0"
+accompanist = "0.37.3"
 coil = "3.3.0"
 activity-compose = "1.10.1"
 work-runtime-ktx = "2.11.0"
+imagePickerKmp = "1.0.28"
 
 [libraries]
+androidx-media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3Exoplayer" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -74,12 +77,15 @@ h2 = { module = "com.h2database:h2", version.ref = "h2" }
 
 androidx-core-splashscreen = { module = "androidx.core:core-splashscreen", version.ref = "coreSplashscreen" }
 coil-network-https = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coil" }
+image-picker-kmp = { module = "io.github.ismoy:imagepickerkmp", version.ref = "imagePickerKmp"}
 coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
 xml-serialization-core = { module = "io.github.pdvrieze.xmlutil:core", version.ref = "xmlSerialization" }
 ktor-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
+accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions" , version.ref = "accompanist" }
+
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 material-icons-core = { module = "org.jetbrains.compose.material:material-icons-core", version.ref = "materialIconsCore" }
 napier = { module = "io.github.aakira:napier", version.ref = "napier" }
@@ -96,7 +102,6 @@ koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 coil-compose-svg = { module = "io.coil-kt.coil3:coil-svg", version.ref = "coil" }
-accompanist-swiperefresh = { module = "com.google.accompanist:accompanist-swiperefresh", version.ref = "accompanist" }
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work-runtime-ktx" }
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktor" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }

@@ -21,8 +21,8 @@ kotlin {
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
-
-            implementation(libs.accompanist.swiperefresh)
+            implementation(libs.androidx.media3.exoplayer)
+            implementation(libs.accompanist.permissions)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.koin.compose)
@@ -52,6 +52,7 @@ kotlin {
             implementation(libs.material.icons.core)
             implementation(libs.multiplatform.settings)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.image.picker.kmp)
         }
         commonTest.dependencies { implementation(libs.kotlin.test) }
     }

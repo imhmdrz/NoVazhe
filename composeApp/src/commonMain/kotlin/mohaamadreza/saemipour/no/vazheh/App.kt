@@ -14,6 +14,8 @@ import androidx.navigation.compose.rememberNavController
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AddWordScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AuthScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.ChildScreen
+import mohaamadreza.saemipour.no.vazheh.ui.screens.FaceGameScreen
+import mohaamadreza.saemipour.no.vazheh.ui.screens.FaceGameViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.screens.GameScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.MotherScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.QuizScreen
@@ -48,8 +50,14 @@ fun App() {
                     .background(MaterialTheme.colorScheme.background)
                     .safeDrawingPadding(),
             navController = navController,
-            startDestination = startDestination
+            startDestination = "face-game"
         ) {
+            composable("face-game") {
+                val viewModel: FaceGameViewModel = koinViewModel()
+                OrientationWrapper(Orientation.Vertical) {
+                    FaceGameScreen(navController = navController, viewModel = viewModel)
+                }
+            }
             composable("auth") {
                 OrientationWrapper(Orientation.Vertical) {
                     AuthScreen(navController = navController, viewModel = authViewModel)

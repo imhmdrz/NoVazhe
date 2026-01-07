@@ -8,7 +8,7 @@ plugins {
 
 kotlin {
     androidTarget { compilerOptions { jvmTarget.set(JvmTarget.JVM_11) } }
-
+    compilerOptions.freeCompilerArgs.add("-Xexpect-actual-classes")
     iosArm64()
     iosSimulatorArm64()
 

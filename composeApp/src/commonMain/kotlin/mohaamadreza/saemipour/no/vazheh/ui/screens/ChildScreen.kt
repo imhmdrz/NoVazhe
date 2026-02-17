@@ -1,7 +1,7 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,10 +11,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -39,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -50,16 +49,16 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
-import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
+import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import mohaamadreza.saemipour.no.vazheh.data.CategoryDTO
 import mohaamadreza.saemipour.no.vazheh.ui.components.ChildAppBarComponent
 import mohaamadreza.saemipour.no.vazheh.ui.theme.BlackAlpha
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
-import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SkyBlue
+import mohaamadreza.saemipour.no.vazheh.ui.theme.peachPink
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.QuizViewModel
 import novazheh.composeapp.generated.resources.Res
@@ -89,7 +88,15 @@ fun ChildScreen(
                 onBackClick = navController::popBackStack
             )
 
-            Spacer(Modifier.size(24.dp))
+            Spacer(Modifier.size(16.dp))
+            
+            // Face Game Button
+            FaceGameCard(
+                modifier = Modifier.padding(horizontal = 24.dp),
+                onClick = { navController.navigate("face-game") }
+            )
+            
+            Spacer(Modifier.size(16.dp))
             Text(
                 modifier = Modifier.padding(horizontal = 24.dp),
                 text = stringResource(Res.string.category),
@@ -338,20 +345,26 @@ private fun CategoryItem(
     category: CategoryDTO,
     onClick: () -> Unit
 ) {
+    val imageRequest = ImageRequest.Builder(LocalPlatformContext.current)
+        .data(category.iconUrl)
+        .crossfade(true)
+        .build()
+    
+    val painter = rememberAsyncImagePainter(
+        model = imageRequest
+    )
+    
     Box(
         modifier = Modifier
             .widthIn(min = 160.dp)
-            .heightIn(min = 140.dp)
+            .height(140.dp)
             .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        // Background image from URL
-        AsyncImage(
-            model = ImageRequest.Builder(LocalPlatformContext.current)
-                .data(category.iconUrl)
-                .crossfade(true)
-                .build(),
+        // Background image from URL with logging
+        Image(
+            painter = painter,
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp))
@@ -371,5 +384,64 @@ private fun CategoryItem(
             textAlign = TextAlign.Center,
             modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
         )
+    }
+}
+
+/**
+ * Face Game Card - A special button to navigate to the Face Game
+ * کارت بازی چهره - دکمه‌ای برای رفتن به بازی چهره
+ */
+@Composable
+private fun FaceGameCard(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(80.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        border = BorderStroke(
+            width = 2.dp,
+            color = peachPink
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Column {
+                    Text(
+                        text = "بازی چهره",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = peachPink
+                    )
+                    Text(
+                        text = "اجزای صورت رو یاد بگیر!",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.Gray
+                    )
+                }
+            }
+            
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = "شروع بازی",
+                tint = peachPink,
+                modifier = Modifier.size(32.dp).rotate(180f)
+            )
+        }
     }
 }

@@ -40,3 +40,4 @@ val cardBackground2 = Color(0xFFF9F9F9)
 
 val cardBackground3 = Color(0xFFEFEFEF)
 
+val peachPink = Color(0xFFFF8A80)  // Face game

@@ -33,6 +33,7 @@ import mohaamadreza.saemipour.no.vazheh.routes.contentRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.progressRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.quizRoutes
 import mohaamadreza.saemipour.no.vazheh.security.JwtConfig
+import mohaamadreza.saemipour.no.vazheh.services.AuthService
 import org.slf4j.event.Level
 
 fun main() {
@@ -95,8 +96,18 @@ fun Application.configureAuthentication() {
             verifier(verifier)
             
             validate { credential ->
-                if (credential.payload.getClaim("parentId").asInt() != null) {
-                    JWTPrincipal(credential.payload)
+                val parentId = credential.payload.getClaim("parentId").asInt()
+                if (parentId != null) {
+                    // Check if parent actually exists in database
+                    // بررسی وجود والد در دیتابیس
+                    val parentExists = AuthService.getParentById(parentId) != null
+                    if (parentExists) {
+                        JWTPrincipal(credential.payload)
+                    } else {
+                        // Parent doesn't exist (database was rebuilt)
+                        // والد وجود ندارد (دیتابیس بازسازی شده)
+                        null
+                    }
                 } else {
                     null
                 }

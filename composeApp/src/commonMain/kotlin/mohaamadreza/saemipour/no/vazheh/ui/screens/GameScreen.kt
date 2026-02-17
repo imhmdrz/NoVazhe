@@ -1,5 +1,7 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -10,8 +12,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,12 +25,18 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -35,8 +47,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
+import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
+import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
+import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.theme.BlackAlpha
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
+import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
+import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 import novazheh.composeapp.generated.resources.Res
@@ -48,6 +65,20 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
     val uiState by viewModel.uiState.collectAsState()
+    
+    var isPlaying by remember { mutableStateOf(false) }
+
+    val audioUpdates = remember {
+        object : AudioUpdates {
+            override fun onProgressUpdate(playerState: PlayerState) {
+                isPlaying = playerState.isPlaying
+            }
+            override fun onReady() {}
+            override fun onError(exception: Exception) {
+                isPlaying = false
+            }
+        }
+    }
 
     // Start timer when entering the game screen
     LaunchedEffect(Unit) {
@@ -70,136 +101,211 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
     BackHandler {
     }
 
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            // Background
-            Image(
-                painter = painterResource(Res.drawable.background),
-                contentDescription = null,
-                modifier = Modifier.fillMaxSize().zIndex(-1f),
-                contentScale = ContentScale.Crop,
-            )
-
-            // Timer display at top-right corner
-            if (uiState.isTimerEnabled) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(16.dp)
-                        .background(
-                            color = if (uiState.remainingTimeSeconds <= 60) CoralRed else Color.Black.copy(alpha = 0.7f),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .zIndex(10f)
-                ) {
-                    Text(
-                        text = "⏱️ ${uiState.formattedRemainingTime}",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 18.sp
-                    )
-                }
+    AudioProvider(audioUpdates) { player ->
+        // Auto-play audio when word changes
+        val currentWord = viewModel.getCurrentWord()
+        LaunchedEffect(uiState.currentWordIndex) {
+            player.pause()
+            currentWord?.audioUrl?.let {
+                player.play(it)
             }
+        }
+        
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                // Background
+                Image(
+                    painter = painterResource(Res.drawable.background),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize().zIndex(-1f),
+                    contentScale = ContentScale.Crop,
+                )
 
-            when {
-                uiState.isLoadingWords -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            color = Purple80
-                        )
-                    }
-                }
-                uiState.errorMessage != null -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = uiState.errorMessage ?: "",
-                            color = MaterialTheme.colorScheme.error,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.padding(16.dp)
-                        )
-                    }
-                }
-                uiState.words.isEmpty() -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "کلمه‌ای در این دسته‌بندی یافت نشد",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.Black
-                        )
-                    }
-                }
-                else -> {
-                    val currentWord = viewModel.getCurrentWord()
-
-                    // Main content container with fixed button positions
+                // Timer display at top-right corner
+                if (uiState.isTimerEnabled) {
                     Box(
                         modifier = Modifier
-                            .fillMaxSize()
-                            .padding(100.dp)
+                            .align(Alignment.TopStart)
+                            .padding(16.dp)
+                            .background(
+                                color = if (uiState.remainingTimeSeconds <= 60) CoralRed else Color.Black.copy(alpha = 0.7f),
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .zIndex(10f)
                     ) {
-                        // Previous button - fixed at start (right in RTL)
-                        Image(
-                            painterResource(Res.drawable.button),
-                            contentDescription = "قبلی",
-                            modifier = Modifier
-                                .align(Alignment.CenterStart)
-                                .rotate(180f)
-                                .alpha(if (viewModel.canGoPrevious()) 1f else 0.3f)
-                                .clickable(enabled = viewModel.canGoPrevious()) {
-                                    viewModel.previousWord()
-                                }
+                        Text(
+                            text = "⏱️ ${uiState.formattedRemainingTime}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            fontSize = 18.sp
                         )
+                    }
+                }
 
-                        // Word content - always centered
-                        currentWord?.let { word ->
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
-                                modifier = Modifier.align(Alignment.Center)
-                            ) {
-                                // Word in Persian
-                                Text(
-                                    text = word.wordFa,
-                                    style = MaterialTheme.typography.displayLarge,
-                                    color = Color.Black,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(modifier = Modifier.size(8.dp))
-                                // Word in English
-                                Text(
-                                    text = word.wordEn,
-                                    style = MaterialTheme.typography.headlineMedium,
-                                    color = BlackAlpha,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
+                when {
+                    uiState.isLoadingWords -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = Purple80
+                            )
                         }
-
-                        // Next button - fixed at end (left in RTL)
-                        Image(
-                            painterResource(Res.drawable.button),
-                            contentDescription = "بعدی",
+                    }
+                    uiState.errorMessage != null -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = uiState.errorMessage ?: "",
+                                color = MaterialTheme.colorScheme.error,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(16.dp)
+                            )
+                        }
+                    }
+                    uiState.words.isEmpty() -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "کلمه‌ای در این دسته‌بندی یافت نشد",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.Black
+                            )
+                        }
+                    }
+                    else -> {
+                        // Main content container with fixed button positions
+                        Box(
                             modifier = Modifier
-                                .align(Alignment.CenterEnd)
-                                .alpha(if (viewModel.canGoNext()) 1f else 0.3f)
-                                .clickable(enabled = viewModel.canGoNext()) {
-                                    viewModel.nextWord()
+                                .fillMaxSize()
+                                .padding(100.dp)
+                        ) {
+                            // Previous button - fixed at start (right in RTL)
+                            Image(
+                                painterResource(Res.drawable.button),
+                                contentDescription = "قبلی",
+                                modifier = Modifier
+                                    .align(Alignment.CenterStart)
+                                    .rotate(180f)
+                                    .alpha(if (viewModel.canGoPrevious()) 1f else 0.3f)
+                                    .clickable(enabled = viewModel.canGoPrevious()) {
+                                        player.pause()
+                                        viewModel.previousWord()
+                                    }
+                            )
+
+                            // Word content - always centered
+                            currentWord?.let { word ->
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center,
+                                    modifier = Modifier.align(Alignment.Center)
+                                ) {
+                                    // Word in Persian - clickable to play audio
+                                    Text(
+                                        text = word.wordFa,
+                                        style = MaterialTheme.typography.displayLarge,
+                                        color = Color.Black,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.clickable {
+                                            if (!word.audioUrl.isNullOrEmpty()) {
+                                                if (isPlaying) {
+                                                    player.pause()
+                                                } else {
+                                                    player.play(word.audioUrl!!)
+                                                }
+                                            }
+                                        }
+                                    )
+                                    Spacer(modifier = Modifier.size(8.dp))
+                                    // Word in English
+                                    Text(
+                                        text = word.wordEn,
+                                        style = MaterialTheme.typography.headlineMedium,
+                                        color = BlackAlpha,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    
+                                    Spacer(modifier = Modifier.size(24.dp))
+                                    
+                                    // Audio play/pause button
+                                    if (!word.audioUrl.isNullOrEmpty()) {
+                                        GameAudioButton(
+                                            isPlaying = isPlaying,
+                                            onClick = {
+                                                if (isPlaying) {
+                                                    player.pause()
+                                                } else {
+                                                    player.play(word.audioUrl!!)
+                                                }
+                                            }
+                                        )
+                                    }
                                 }
-                        )
+                            }
+
+                            // Next button - fixed at end (left in RTL)
+                            Image(
+                                painterResource(Res.drawable.button),
+                                contentDescription = "بعدی",
+                                modifier = Modifier
+                                    .align(Alignment.CenterEnd)
+                                    .alpha(if (viewModel.canGoNext()) 1f else 0.3f)
+                                    .clickable(enabled = viewModel.canGoNext()) {
+                                        player.pause()
+                                        viewModel.nextWord()
+                                    }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * Audio play/pause button for GameScreen
+ */
+@Composable
+private fun GameAudioButton(
+    isPlaying: Boolean,
+    onClick: () -> Unit
+) {
+    val scale by animateFloatAsState(
+        targetValue = if (isPlaying) 1.1f else 1f,
+        animationSpec = tween(300),
+        label = "scale"
+    )
+    
+    Box(
+        modifier = Modifier
+            .scale(scale)
+            .background(
+                brush = Brush.radialGradient(
+                    colors = listOf(
+                        if (isPlaying) MintGreen else Purple40,
+                        if (isPlaying) MintGreen.copy(alpha = 0.7f) else Purple80
+                    )
+                ),
+                shape = CircleShape
+            )
+            .clip(CircleShape)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.PlayArrow,
+            contentDescription = if (isPlaying) "توقف صدا" else "پخش صدا",
+            tint = Color.White,
+            modifier = Modifier.size(40.dp)
+        )
     }
 }

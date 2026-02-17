@@ -111,6 +111,14 @@ class AuthViewModel(
         authRepository.logout()
     }
 
+    /**
+     * Force logout without notifying AuthStateManager (used when handling 401)
+     * خروج اجباری بدون اطلاع‌رسانی (برای مدیریت خطای 401)
+     */
+    fun forceLogout() {
+        authRepository.forceLogout()
+    }
+
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }

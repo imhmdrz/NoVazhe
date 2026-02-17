@@ -1,6 +1,11 @@
 package mohaamadreza.saemipour.no.vazheh.database
 
-import mohaamadreza.saemipour.no.vazheh.database.tables.*
+import mohaamadreza.saemipour.no.vazheh.database.tables.Categories
+import mohaamadreza.saemipour.no.vazheh.database.tables.ChildProgress
+import mohaamadreza.saemipour.no.vazheh.database.tables.Children
+import mohaamadreza.saemipour.no.vazheh.database.tables.Parents
+import mohaamadreza.saemipour.no.vazheh.database.tables.QuizAttempts
+import mohaamadreza.saemipour.no.vazheh.database.tables.Words
 import mohaamadreza.saemipour.no.vazheh.security.PasswordUtils
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.insert
@@ -35,351 +40,311 @@ object DatabaseSeeder {
             val carsId = seedCategory("ماشیــــن ها", "Cars", 5, "https://ik.imagekit.io/mhmdrzsaemi/Cars.png")
             val vehiclesId = seedCategory("وسایل نقلیه", "Transportations", 6, "https://ik.imagekit.io/mhmdrzsaemi/Transportations.png")
             val colorsId = seedCategory("رنگ‌ها", "Colors", 7, "https://ik.imagekit.io/mhmdrzsaemi/Colors.png")
-
-            val numbersId = seedCategory("اعداد", "Numbers", 7)
-            val familyId = seedCategory("خانواده", "Family", 9)
-            val clothesId = seedCategory("لباس‌ ها", "Clothes", 10)
-            val shapesId = seedCategory("اشکال", "Shapes", 11)
+            val numbersId = seedCategory("اعداد", "Numbers", 8, "https://ik.imagekit.io/mhmdrzsaemi/Numbers.png")
+            val clothesId = seedCategory("لباس‌ ها", "Clothes", 9, "https://ik.imagekit.io/mhmdrzsaemi/Clothes.png")
+            val shapesId = seedCategory("اشکال", "Shapes", 10, "https://ik.imagekit.io/mhmdrzsaemi/Shapes.png")
             
             // Seed fruits - میوه‌ها (with audio and images for quiz)
             seedWord(fruitsId, "سیب", "Apple", 1, 
                 "https://ik.imagekit.io/mhmdrzsaemi/words/fruits/apple.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/fruits/apple.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/miveee/novazh/apple.mp3")
             seedWord(fruitsId, "موز", "Banana", 2,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/fruits/banana.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/fruits/banana.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/miveee/novazh/Banana.mp3")
             seedWord(fruitsId, "پرتقال", "Orange", 3,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/fruits/orange.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/fruits/orange.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/miveee/novazh/Orange.mp3")
             seedWord(fruitsId, "انگور", "Grape", 4,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/fruits/grape.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/fruits/grape.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/miveee/novazh/grape.mp3")
             seedWord(fruitsId, "توت فرنگی", "Strawberry", 5,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/fruits/strawberry.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/fruits/strawberry.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/miveee/novazh/Strawberries.mp3")
             seedWord(fruitsId, "هندوانه", "Watermelon", 6,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/fruits/watermelon.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/fruits/watermelon.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/miveee/novazh/Watermelon.mp3")
             seedWord(fruitsId, "گیلاس", "Cherry", 7,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/fruits/cherry.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/fruits/cherry.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/miveee/novazh/Cherry.mp3")
             seedWord(fruitsId, "آناناس", "Pineapple", 8,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/fruits/pineapple.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/fruits/pineapple.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/miveee/novazh/Pineapple.mp3")
             seedWord(fruitsId, "گلابی", "Pear", 9,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/fruits/pear.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/fruits/pear.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/miveee/novazh/Pear.mp3")
             seedWord(fruitsId, "هلو", "Peach", 10,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/fruits/peach.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/fruits/peach.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/miveee/novazh/peach.mp3")
             
             // Seed animals - حیوانات (with audio and images for quiz)
             seedWord(animalsId, "سگ", "Dog", 1,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/dog.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/dog.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%D8%B3%DA%AF.mp3")
             seedWord(animalsId, "گربه", "Cat", 2,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/cat.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/cat.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%DA%AF%D8%B1%D8%A8%D9%87.mp3")
             seedWord(animalsId, "پرنده", "Bird", 3,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/bird.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/bird.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%D9%BE%D8%B1%D9%86%D8%AF%D9%87.mp3")
             seedWord(animalsId, "ماهی", "Fish", 4,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/fish.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/fish.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%D9%85%D8%A7%D9%87%DB%8C.mp3")
             seedWord(animalsId, "فیل", "Elephant", 5,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/elephant.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/elephant.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%D9%81%DB%8C%D9%84.mp3")
             seedWord(animalsId, "شیر", "Lion", 6,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/lion.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/lion.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/lion.mp3")
             seedWord(animalsId, "خرگوش", "Rabbit", 7,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/rabbit.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/rabbit.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%D8%AE%D8%B1%DA%AF%D9%88%D8%B4.mp3")
             seedWord(animalsId, "زرافه", "Giraffe", 8,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/giraffe.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/giraffe.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%D8%B2%D8%B1%D8%A7%D9%81%D9%87.mp3")
             seedWord(animalsId, "میمون", "Monkey", 9,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/monkey.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/monkey.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%D9%85%DB%8C%D9%85%D9%88%D9%86.mp3")
             seedWord(animalsId, "پروانه", "Butterfly", 10,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/butterfly.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/butterfly.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%D9%BE%D8%B1%D9%88%D8%A7%D9%86%D9%87.mp3")
             seedWord(animalsId, "اسب", "Horse", 11,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/horse.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/horse.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%D8%A7%D8%B3%D8%A8.mp3")
             seedWord(animalsId, "گاو", "Cow", 12,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/cow.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/cow.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%DA%AF%D8%A7%D9%88.mp3")
             seedWord(animalsId, "مرغ", "Chicken", 13,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/chicken.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/chicken.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%D9%85%D8%B1%D8%BA.mp3")
             seedWord(animalsId, "اردک", "Duck", 14,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/animals/duck.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/animals/duck.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/animal/novazh/%D8%A7%D8%B1%D8%AF%DA%A9.mp3")
             
             // Seed colors - رنگ‌ها (with audio and images for quiz)
             seedWord(colorsId, "قرمز", "Red", 1,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/colors/red.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/colors/red.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D9%82%D8%B1%D9%85%D8%B2.mp3")
             seedWord(colorsId, "آبی", "Blue", 2,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/colors/blue.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/colors/blue.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D8%A7%D9%93%D8%A8%DB%8C.mp3")
             seedWord(colorsId, "سبز", "Green", 3,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/colors/green.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/colors/green.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D8%B3%D8%A8%D8%B2.mp3")
             seedWord(colorsId, "زرد", "Yellow", 4,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/colors/yellow.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/colors/yellow.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D8%B2%D8%B1%D8%AF.mp3")
             seedWord(colorsId, "نارنجی", "Orange", 5,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/colors/orange.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/colors/orange.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D9%86%D8%A7%D8%B1%D9%86%D8%AC%DB%8C.mp3")
             seedWord(colorsId, "بنفش", "Purple", 6,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/colors/purple.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/colors/purple.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D8%A8%D9%86%D9%81%D8%B4.mp3")
             seedWord(colorsId, "صورتی", "Pink", 7,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/colors/pink.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/colors/pink.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D8%B5%D9%88%D8%B1%D8%AA%DB%8C.mp3")
             seedWord(colorsId, "سفید", "White", 8,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/colors/white.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/colors/white.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D8%B3%D9%81%DB%8C%D8%AF.mp3")
             seedWord(colorsId, "سیاه", "Black", 9,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/colors/black.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/colors/black.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D8%B3%DB%8C%D8%A7%D9%87.mp3")
             seedWord(colorsId, "قهوه‌ای", "Brown", 10,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/colors/brown.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/colors/brown.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D9%82%D9%87%D9%88%D9%87%D8%A7%DB%8C.mp3")
             
             // Seed numbers - اعداد (with audio and images for quiz)
             seedWord(numbersId, "یک", "One", 1,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/numbers/one.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/numbers/one.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%DB%8C%DA%A9.mp3")
             seedWord(numbersId, "دو", "Two", 2,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/numbers/two.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/numbers/two.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D8%AF%D9%88.mp3")
             seedWord(numbersId, "سه", "Three", 3,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/numbers/three.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/numbers/three.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D8%B3%D9%87.mp3")
             seedWord(numbersId, "چهار", "Four", 4,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/numbers/four.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/numbers/four.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%DA%86%D9%87%D8%A7%D8%B1.mp3")
             seedWord(numbersId, "پنج", "Five", 5,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/numbers/five.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/numbers/five.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D9%BE%D9%86%D8%AC.mp3")
             seedWord(numbersId, "شش", "Six", 6,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/numbers/six.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/numbers/six.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D8%B4%D8%B4.mp3")
             seedWord(numbersId, "هفت", "Seven", 7,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/numbers/seven.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/numbers/seven.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D9%87%D9%81%D8%AA.mp3")
             seedWord(numbersId, "هشت", "Eight", 8,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/numbers/eight.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/numbers/eight.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D9%87%D8%B4%D8%AA.mp3")
             seedWord(numbersId, "نه", "Nine", 9,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/numbers/nine.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/numbers/nine.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D9%86%D9%87.mp3")
             seedWord(numbersId, "ده", "Ten", 10,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/numbers/ten.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/numbers/ten.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/numbers/novazh/%D8%AF%D9%87.mp3")
 
             // Seed vehicles - وسایل نقلیه (with audio and images for quiz)
             seedWord(vehiclesId, "ماشین", "Car", 1,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vehicles/car.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vehicles/car.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%D9%85%D8%A7%D8%B4%DB%8C%D9%86.mp3")
             seedWord(vehiclesId, "اتوبوس", "Bus", 2,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vehicles/bus.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vehicles/bus.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%D8%A7%D8%AA%D9%88%D8%A8%D9%88%D8%B3.mp3")
             seedWord(vehiclesId, "قطار", "Train", 3,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vehicles/train.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vehicles/train.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/train.mp3")
             seedWord(vehiclesId, "هواپیما", "Airplane", 4,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vehicles/airplane.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vehicles/airplane.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%D9%87%D9%88%D8%A7%D9%BE%DB%8C%D9%85%D8%A7.mp3")
             seedWord(vehiclesId, "دوچرخه", "Bicycle", 5,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vehicles/bicycle.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vehicles/bicycle.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%D8%AF%D9%88%DA%86%D8%B1%D8%AE%D9%87.mp3")
             seedWord(vehiclesId, "کشتی", "Ship", 6,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vehicles/ship.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vehicles/ship.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%DA%A9%D8%B4%D8%AA%DB%8C.mp3")
             seedWord(vehiclesId, "موتور", "Motorcycle", 7,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vehicles/motorcycle.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vehicles/motorcycle.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%D9%85%D9%88%D8%AA%D9%88%D8%B1.mp3")
             seedWord(vehiclesId, "کامیون", "Truck", 8,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vehicles/truck.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vehicles/truck.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%DA%A9%D8%A7%D9%85%DB%8C%D9%88%D9%86.mp3")
             seedWord(vehiclesId, "تاکسی", "Taxi", 9,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vehicles/taxi.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vehicles/taxi.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%D8%AA%D8%A7%DA%A9%D8%B3%DB%8C.mp3")
             seedWord(vehiclesId, "آمبولانس", "Ambulance", 10,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vehicles/ambulance.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vehicles/ambulance.mp3")
-            
-            // Seed family - خانواده (with audio and images for quiz)
-            seedWord(familyId, "مادر", "Mother", 1,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/family/mother.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/family/mother.mp3")
-            seedWord(familyId, "پدر", "Father", 2,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/family/father.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/family/father.mp3")
-            seedWord(familyId, "خواهر", "Sister", 3,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/family/sister.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/family/sister.mp3")
-            seedWord(familyId, "برادر", "Brother", 4,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/family/brother.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/family/brother.mp3")
-            seedWord(familyId, "مادربزرگ", "Grandmother", 5,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/family/grandmother.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/family/grandmother.mp3")
-            seedWord(familyId, "پدربزرگ", "Grandfather", 6,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/family/grandfather.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/family/grandfather.mp3")
-            seedWord(familyId, "عمو", "Uncle", 7,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/family/uncle.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/family/uncle.mp3")
-            seedWord(familyId, "خاله", "Aunt", 8,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/family/aunt.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/family/aunt.mp3")
-            seedWord(familyId, "بچه", "Baby", 9,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/family/baby.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/family/baby.mp3")
-            
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%D8%A7%D9%93%D9%85%D8%A8%D9%88%D9%84%D8%A7%D9%86%D8%B3.mp3")
+
             // Seed clothes - لباس‌ها (with audio and images for quiz)
             seedWord(clothesId, "پیراهن", "Shirt", 1,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/clothes/shirt.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/clothes/shirt.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%D9%BE%DB%8C%D8%B1%D8%A7%D9%87%D9%86.mp3")
             seedWord(clothesId, "شلوار", "Pants", 2,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/clothes/pants.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/clothes/pants.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%D8%B4%D9%84%D9%88%D8%A7%D8%B1.mp3")
             seedWord(clothesId, "کفش", "Shoes", 3,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/clothes/shoes.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/clothes/shoes.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%DA%A9%D9%81%D8%B4.mp3")
             seedWord(clothesId, "کلاه", "Hat", 4,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/clothes/hat.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/clothes/hat.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%DA%A9%D9%84%D8%A7%D9%87.mp3")
             seedWord(clothesId, "جوراب", "Socks", 5,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/clothes/socks.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/clothes/socks.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%D8%AC%D9%88%D8%B1%D8%A7%D8%A8.mp3")
             seedWord(clothesId, "ژاکت", "Jacket", 6,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/clothes/jacket.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/clothes/jacket.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%DA%98%D8%A7%DA%A9%D8%AA.mp3")
             seedWord(clothesId, "دامن", "Skirt", 7,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/clothes/skirt.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/clothes/skirt.mp3")
-            seedWord(clothesId, "لباس", "Dress", 8,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/clothes/dress.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/clothes/dress.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/fooood/novazh/%D8%AF%D8%A7%D9%85%D9%86.mp3")
             
             // Seed food - غذاها (with audio and images for quiz)
             seedWord(foodId, "نان", "Bread", 1,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/food/bread.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/food/bread.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D9%86%D8%A7%D9%86.mp3")
             seedWord(foodId, "آب", "Water", 2,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/food/water.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/food/water.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D8%A7%D9%93%D8%A8.mp3")
             seedWord(foodId, "شیر", "Milk", 3,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/food/milk.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/food/milk.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D8%B4%DB%8C%D8%B1.mp3")
             seedWord(foodId, "تخم مرغ", "Egg", 4,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/food/egg.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/food/egg.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D8%AA%D8%AE%D9%85%20%D9%85%D8%B1%D8%BA.mp3")
             seedWord(foodId, "برنج", "Rice", 5,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/food/rice.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/food/rice.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D8%A8%D8%B1%D9%86%D8%AC.mp3")
             seedWord(foodId, "مرغ", "Chicken", 6,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/food/chicken.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/food/chicken.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D9%85%D8%B1%D8%BA.mp3")
             seedWord(foodId, "ماست", "Yogurt", 7,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/food/yogurt.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/food/yogurt.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D9%85%D8%A7%D8%B3%D8%AA.mp3")
             seedWord(foodId, "پنیر", "Cheese", 8,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/food/cheese.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/food/cheese.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D9%BE%D9%86%DB%8C%D8%B1.mp3?updatedAt=1771347060581")
             
             // Seed shapes - اشکال (with audio and images for quiz)
             seedWord(shapesId, "دایره", "Circle", 1,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/shapes/circle.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/shapes/circle.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D8%AF%D8%A7%DB%8C%D8%B1%D9%87.mp3?updatedAt=1771347060552")
             seedWord(shapesId, "مربع", "Square", 2,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/shapes/square.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/shapes/square.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D9%85%D8%B1%D8%A8%D8%B9.mp3?updatedAt=1771347061224")
             seedWord(shapesId, "مثلث", "Triangle", 3,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/shapes/triangle.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/shapes/triangle.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D9%85%D8%AB%D9%84%D8%AB.mp3?updatedAt=1771347061207")
             seedWord(shapesId, "مستطیل", "Rectangle", 4,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/shapes/rectangle.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/shapes/rectangle.mp3")
-            seedWord(shapesId, "ستاره", "Star", 5,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/shapes/star.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/shapes/star.mp3")
-            seedWord(shapesId, "قلب", "Heart", 6,
-                "https://ik.imagekit.io/mhmdrzsaemi/words/shapes/heart.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/shapes/heart.mp3")
-            
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D9%85%D8%B3%D8%AA%D8%B7%DB%8C%D9%84.mp3?updatedAt=1771347061239")
+
             // Seed vegetables - سبزیجات (with audio and images for quiz)
             seedWord(vegetablesId, "هویج", "Carrot", 1,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vegetables/carrot.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vegetables/carrot.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D9%87%D9%88%DB%8C%D8%AC.mp3?updatedAt=1771347060955")
             seedWord(vegetablesId, "سیب زمینی", "Potato", 2,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vegetables/potato.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vegetables/potato.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D8%B3%DB%8C%D8%A8%20%D8%B2%D9%85%DB%8C%D9%86%DB%8C.mp3?updatedAt=1771347061126")
             seedWord(vegetablesId, "گوجه فرنگی", "Tomato", 3,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vegetables/tomato.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vegetables/tomato.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%DA%AF%D9%88%D8%AC%D9%87%20%D9%81%D8%B1%D9%86%DA%AF%DB%8C.mp3?updatedAt=1771347060571")
             seedWord(vegetablesId, "پیاز", "Onion", 4,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vegetables/onion.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vegetables/onion.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D9%BE%DB%8C%D8%A7%D8%B2.mp3?updatedAt=1771347060964")
             seedWord(vegetablesId, "خیار", "Cucumber", 5,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vegetables/cucumber.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vegetables/cucumber.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D8%AE%DB%8C%D8%A7%D8%B1.mp3?updatedAt=1771347060584")
             seedWord(vegetablesId, "کاهو", "Lettuce", 6,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vegetables/lettuce.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vegetables/lettuce.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%DA%A9%D8%A7%D9%87%D9%88.mp3?updatedAt=1771347061171")
             seedWord(vegetablesId, "فلفل", "Pepper", 7,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vegetables/pepper.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vegetables/pepper.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D9%81%D9%84%D9%81%D9%84.mp3?updatedAt=1771347061182")
             seedWord(vegetablesId, "بادمجان", "Eggplant", 8,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vegetables/eggplant.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vegetables/eggplant.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D8%A8%D8%A7%D8%AF%D9%85%D8%AC%D8%A7%D9%86.mp3?updatedAt=1771347061150")
             seedWord(vegetablesId, "کدو", "Zucchini", 9,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vegetables/zucchini.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vegetables/zucchini.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%DA%A9%D8%AF%D9%88.mp3?updatedAt=1771347060974")
             seedWord(vegetablesId, "اسفناج", "Spinach", 10,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/vegetables/spinach.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/vegetables/spinach.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/some/novazh/%D8%A7%D8%B3%D9%81%D9%86%D8%A7%D8%AC.mp3?updatedAt=1771347061136")
             
             // Seed Iranian cars - ماشین‌های ایرانی (with audio and images for quiz)
             seedWord(carsId, "پراید", "Pride", 1,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/cars/pride.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/cars/pride.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/cars/novazh/%D9%BE%D8%B1%D8%A7%DB%8C%D8%AF.mp3")
             seedWord(carsId, "پژو ۴۰۵", "Peugeot 405", 2,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/cars/peugeot405.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/cars/peugeot405.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/cars/novazh/%D9%BE%DA%98%D9%88%20%DB%B4%DB%B0%DB%B5.mp3")
             seedWord(carsId, "پژو ۲۰۶", "Peugeot 206", 3,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/cars/peugeot206.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/cars/peugeot206.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/cars/novazh/%D9%BE%DA%98%D9%88%20%DB%B2%DB%B0%DB%B6.mp3")
             seedWord(carsId, "سمند", "Samand", 4,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/cars/samand.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/cars/samand.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/cars/novazh/%D8%B3%D9%85%D9%86%D8%AF.mp3")
             seedWord(carsId, "تیبا", "Tiba", 5,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/cars/tiba.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/cars/tiba.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/cars/novazh/%D9%BE%DA%98%D9%88%20%DB%B4%DB%B0%DB%B5.mp3")
             seedWord(carsId, "پیکان", "Paykan", 6,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/cars/paykan.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/cars/paykan.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/cars/novazh/%D9%BE%DB%8C%DA%A9%D8%A7%D9%86.mp3")
             seedWord(carsId, "دنا", "Dena", 7,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/cars/dena.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/cars/dena.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/cars/novazh/%D8%AF%D9%86%D8%A7.mp3")
             seedWord(carsId, "رانا", "Runna", 8,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/cars/runna.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/cars/runna.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/cars/novazh/%D8%B1%D8%A7%D9%86%D8%A7.mp3")
             seedWord(carsId, "کوییک", "Quick", 9,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/cars/quick.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/cars/quick.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/cars/novazh/%DA%A9%D9%88%DB%8C%DB%8C%DA%A9.mp3")
             seedWord(carsId, "شاهین", "Shahin", 10,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/cars/shahin.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/cars/shahin.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/cars/novazh/%D8%B4%D8%A7%D9%87%DB%8C%D9%86.mp3")
             seedWord(carsId, "ساینا", "Saina", 11,
                 "https://ik.imagekit.io/mhmdrzsaemi/words/cars/saina.png",
-                "https://ik.imagekit.io/mhmdrzsaemi/audio/cars/saina.mp3")
+                "https://ik.imagekit.io/mhmdrzsaemi/cars/novazh/%D8%B3%D8%A7%DB%8C%D9%86%D8%A7.mp3")
             
             // ==================== Seed Quiz Data ====================
             println("🎯 Seeding quiz data...")

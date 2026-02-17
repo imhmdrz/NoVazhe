@@ -37,6 +37,8 @@ class AuthRepository(
                 response.parent?.let {
                     tokenStorage.saveParentInfo(it.id, it.username, it.displayName)
                 }
+                // Notify successful login - اطلاع‌رسانی ورود موفق
+                AuthStateManager.notifyLoggedIn()
             }
 
             Result.success(response)
@@ -68,6 +70,8 @@ class AuthRepository(
                 response.parent?.let {
                     tokenStorage.saveParentInfo(it.id, it.username, it.displayName)
                 }
+                // Notify successful login - اطلاع‌رسانی ورود موفق
+                AuthStateManager.notifyLoggedIn()
             }
 
             Result.success(response)
@@ -120,6 +124,16 @@ class AuthRepository(
 
     /** Logout - clear all stored data */
     fun logout() {
+        tokenStorage.clearAll()
+        // Notify logout - اطلاع‌رسانی خروج
+        AuthStateManager.notifyLoggedOut()
+    }
+
+    /**
+     * Force logout without notifying (used when handling 401 to avoid infinite loop)
+     * خروج اجباری بدون اطلاع‌رسانی (برای مدیریت خطای 401)
+     */
+    fun forceLogout() {
         tokenStorage.clearAll()
     }
 }

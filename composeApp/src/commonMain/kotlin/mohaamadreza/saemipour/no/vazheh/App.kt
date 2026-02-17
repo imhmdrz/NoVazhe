@@ -6,11 +6,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import mohaamadreza.saemipour.no.vazheh.data.AuthEvent
+import mohaamadreza.saemipour.no.vazheh.data.AuthStateManager
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AddWordScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AuthScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.ChildScreen
@@ -44,13 +47,39 @@ fun App() {
 
         val motherViewModel: MotherViewModel = koinViewModel()
 
+        // Listen for auth events (401 unauthorized, logout, etc.)
+        LaunchedEffect(Unit) {
+            AuthStateManager.authEvents.collect { event ->
+                when (event) {
+                    is AuthEvent.Unauthorized -> {
+                        // Token is invalid - clear storage and navigate to login
+                        // توکن نامعتبر است - پاک کردن و رفتن به صفحه ورود
+                        AppLogger.d("App", "Unauthorized - navigating to auth screen")
+                        authViewModel.forceLogout()
+                        navController.navigate("auth") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                    is AuthEvent.LoggedOut -> {
+                        // User logged out - navigate to login
+                        navController.navigate("auth") {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                    is AuthEvent.LoggedIn -> {
+                        // User logged in - handled by individual screens
+                    }
+                }
+            }
+        }
+
         NavHost(
             modifier =
                 Modifier.fillMaxSize()
                     .background(MaterialTheme.colorScheme.background)
                     .safeDrawingPadding(),
             navController = navController,
-            startDestination = "face-game"
+            startDestination = startDestination
         ) {
             composable("face-game") {
                 val viewModel: FaceGameViewModel = koinViewModel()
@@ -78,9 +107,9 @@ fun App() {
                 }
             }
             composable("mother") {
-                motherViewModel.loadUserInfo()
-                motherViewModel.loadChildren()
-                motherViewModel.loadCustomWords()
+                LaunchedEffect(Unit) {
+                    motherViewModel.retry()
+                }
                 OrientationWrapper(Orientation.Vertical) {
                     MotherScreen(
                         navController = navController,

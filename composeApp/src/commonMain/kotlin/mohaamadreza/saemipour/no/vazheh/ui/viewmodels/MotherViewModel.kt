@@ -283,6 +283,7 @@ class MotherViewModel(
     }
 
     fun retry() {
+        loadUserInfo()
         loadChildren()
         loadCustomWords()
     }

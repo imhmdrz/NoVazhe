@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -31,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
@@ -47,10 +47,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
+import coil3.compose.LocalPlatformContext
+import coil3.compose.rememberAsyncImagePainter
+import coil3.request.CachePolicy
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
-import mohaamadreza.saemipour.no.vazheh.ui.theme.BlackAlpha
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
@@ -96,9 +100,6 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                 popUpTo("mother") { inclusive = true }
             }
         }
-    }
-
-    BackHandler {
     }
 
     AudioProvider(audioUpdates) { player ->
@@ -185,7 +186,7 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(100.dp)
+                                .padding(horizontal = 100.dp)
                         ) {
                             // Previous button - fixed at start (right in RTL)
                             Image(
@@ -206,34 +207,44 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.Center,
-                                    modifier = Modifier.align(Alignment.Center)
+                                    modifier = Modifier.align(Alignment.Center).clickable {
+                                        if (!word.audioUrl.isNullOrEmpty()) {
+                                            if (isPlaying) {
+                                                player.pause()
+                                            } else {
+                                                player.play(word.audioUrl!!)
+                                            }
+                                        }
+                                    }
                                 ) {
                                     // Word in Persian - clickable to play audio
                                     Text(
                                         text = word.wordFa,
-                                        style = MaterialTheme.typography.displayLarge,
+                                        style = MaterialTheme.typography.titleSmall,
                                         color = Color.Black,
                                         textAlign = TextAlign.Center,
-                                        modifier = Modifier.clickable {
-                                            if (!word.audioUrl.isNullOrEmpty()) {
-                                                if (isPlaying) {
-                                                    player.pause()
-                                                } else {
-                                                    player.play(word.audioUrl!!)
-                                                }
-                                            }
-                                        }
                                     )
                                     Spacer(modifier = Modifier.size(8.dp))
-                                    // Word in English
-                                    Text(
-                                        text = word.wordEn,
-                                        style = MaterialTheme.typography.headlineMedium,
-                                        color = BlackAlpha,
-                                        textAlign = TextAlign.Center
+
+                                    val imageRequest = ImageRequest.Builder(LocalPlatformContext.current)
+                                        .data(word.imageUrl)
+                                        .crossfade(true)
+                                        .memoryCachePolicy(CachePolicy.ENABLED)
+                                        .diskCachePolicy(CachePolicy.ENABLED)
+                                        .diskCacheKey(word.wordFa)
+                                        .build()
+
+                                    val painter = rememberAsyncImagePainter(
+                                        model = imageRequest
                                     )
-                                    
-                                    Spacer(modifier = Modifier.size(24.dp))
+
+                                    Image(
+                                        painter = painter,
+                                        contentDescription = null,
+                                        modifier = Modifier.heightIn(max = 160.dp).clip(RoundedCornerShape(24.dp))
+                                    )
+
+                                    Spacer(modifier = Modifier.size(12.dp))
                                     
                                     // Audio play/pause button
                                     if (!word.audioUrl.isNullOrEmpty()) {

@@ -35,7 +35,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
@@ -57,6 +59,7 @@ import mohaamadreza.saemipour.no.vazheh.data.CategoryDTO
 import mohaamadreza.saemipour.no.vazheh.ui.components.ChildAppBarComponent
 import mohaamadreza.saemipour.no.vazheh.ui.theme.BlackAlpha
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
+import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SkyBlue
 import mohaamadreza.saemipour.no.vazheh.ui.theme.peachPink
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
@@ -67,12 +70,14 @@ import novazheh.composeapp.generated.resources.icon
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ChildScreen(
     navController: NavController, 
     viewModel: ChildViewModel,
     quizViewModel: QuizViewModel
 ) {
+    BackHandler {}
     val uiState by viewModel.uiState.collectAsState()
     val selectedChild = uiState.selectedChild
     
@@ -90,11 +95,25 @@ fun ChildScreen(
 
             Spacer(Modifier.size(16.dp))
             
-            // Face Game Button
-            FaceGameCard(
-                modifier = Modifier.padding(horizontal = 24.dp),
-                onClick = { navController.navigate("face-game") }
-            )
+            // Game cards row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Face Game Button
+                FaceGameCard(
+                    modifier = Modifier.weight(1f),
+                    onClick = { navController.navigate("face-game") }
+                )
+                
+                // Color Sorting Game Button
+                ColorSortingCard(
+                    modifier = Modifier.weight(1f),
+                    onClick = { navController.navigate("color-sorting") }
+                )
+            }
             
             Spacer(Modifier.size(16.dp))
             Text(
@@ -174,6 +193,12 @@ fun ChildScreen(
                         quizViewModel.startQuiz(category.id, childId, 5)
                         navController.navigate("quiz")
                     }
+                },
+                onMemoryMode = {
+                    showModeDialog = false
+                    selectedCategory?.let { category ->
+                        navController.navigate("memory-game/${category.id}")
+                    }
                 }
             )
         }
@@ -181,15 +206,16 @@ fun ChildScreen(
 }
 
 /**
- * Dialog for selecting between Game (learning) and Quiz mode
- * دیالوگ انتخاب بین حالت یادگیری و آزمون
+ * Dialog for selecting between Game (learning), Quiz, and Memory mode
+ * دیالوگ انتخاب بین حالت یادگیری، آزمون و بازی حافظه
  */
 @Composable
 private fun ModeSelectionDialog(
     categoryName: String,
     onDismiss: () -> Unit,
     onGameMode: () -> Unit,
-    onQuizMode: () -> Unit
+    onQuizMode: () -> Unit,
+    onMemoryMode: () -> Unit
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -228,7 +254,7 @@ private fun ModeSelectionDialog(
                 
                 Spacer(Modifier.height(24.dp))
                 
-                // Mode buttons
+                // Mode buttons - first row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -253,6 +279,18 @@ private fun ModeSelectionDialog(
                         onClick = onQuizMode
                     )
                 }
+                
+                Spacer(Modifier.height(12.dp))
+                
+                // Memory Game Mode
+                ModeCard(
+                    modifier = Modifier.fillMaxWidth(),
+                    emoji = "🧠",
+                    title = "بازی حافظه",
+                    description = "جفت‌های مشابه رو پیدا کن!",
+                    backgroundColor = Purple40,
+                    onClick = onMemoryMode
+                )
                 
                 Spacer(Modifier.height(16.dp))
                 
@@ -440,7 +478,58 @@ private fun FaceGameCard(
                 imageVector = Icons.Default.PlayArrow,
                 contentDescription = "شروع بازی",
                 tint = peachPink,
-                modifier = Modifier.size(32.dp).rotate(180f)
+                modifier = Modifier.size(28.dp).rotate(180f)
+            )
+        }
+    }
+}
+
+/**
+ * Color Sorting Game Card - A button to navigate to the Color Sorting Game
+ * کارت بازی رنگ‌ها - دکمه‌ای برای رفتن به بازی مرتب‌سازی رنگ‌ها
+ */
+@Composable
+private fun ColorSortingCard(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(80.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        border = BorderStroke(
+            width = 2.dp,
+            color = SkyBlue
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "بازی رنگ‌ها",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = SkyBlue
+                )
+                Text(
+                    text = "رنگ‌ها رو مرتب کن!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+            
+            Text(
+                text = "🎨",
+                fontSize = 28.sp
             )
         }
     }

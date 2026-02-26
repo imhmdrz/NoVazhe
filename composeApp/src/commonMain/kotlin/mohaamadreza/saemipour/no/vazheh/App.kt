@@ -9,17 +9,24 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import androidx.savedstate.read
 import mohaamadreza.saemipour.no.vazheh.data.AuthEvent
 import mohaamadreza.saemipour.no.vazheh.data.AuthStateManager
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AddWordScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AuthScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.ChildScreen
+import mohaamadreza.saemipour.no.vazheh.ui.screens.ColorSortingScreen
+import mohaamadreza.saemipour.no.vazheh.ui.screens.ColorSortingViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.screens.FaceGameScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.FaceGameViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.screens.GameScreen
+import mohaamadreza.saemipour.no.vazheh.ui.screens.MemoryGameScreen
+import mohaamadreza.saemipour.no.vazheh.ui.screens.MemoryGameViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.screens.MotherScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.QuizScreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.AppTheme
@@ -126,6 +133,29 @@ fun App() {
             composable("quiz") {
                 OrientationWrapper(Orientation.Vertical) {
                     QuizScreen(navController = navController, viewModel = quizViewModel)
+                }
+            }
+            composable(
+                route = "memory-game/{categoryId}",
+                arguments = listOf(navArgument("categoryId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val categoryId = backStackEntry.arguments?.read { getInt("categoryId") } ?: 0
+                val viewModel: MemoryGameViewModel = koinViewModel()
+                OrientationWrapper(Orientation.Vertical) {
+                    MemoryGameScreen(
+                        navController = navController,
+                        viewModel = viewModel,
+                        categoryId = categoryId
+                    )
+                }
+            }
+            composable("color-sorting") {
+                val viewModel: ColorSortingViewModel = koinViewModel()
+                OrientationWrapper(Orientation.Vertical) {
+                    ColorSortingScreen(
+                        navController = navController,
+                        viewModel = viewModel
+                    )
                 }
             }
         }

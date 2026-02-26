@@ -1,6 +1,8 @@
 package mohaamadreza.saemipour.no.vazheh.di
 
 import mohaamadreza.saemipour.no.vazheh.ui.screens.FaceGameViewModel
+import mohaamadreza.saemipour.no.vazheh.ui.screens.MemoryGameViewModel
+import mohaamadreza.saemipour.no.vazheh.ui.screens.ColorSortingViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.AuthViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherViewModel
@@ -16,4 +18,6 @@ val appModule = module {
     viewModelOf(::MotherViewModel)
     viewModelOf(::QuizViewModel)
     viewModelOf(::FaceGameViewModel)
+    viewModelOf(::MemoryGameViewModel)
+    viewModelOf(::ColorSortingViewModel)
 }

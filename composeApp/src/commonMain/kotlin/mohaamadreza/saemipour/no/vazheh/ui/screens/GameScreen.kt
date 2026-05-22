@@ -219,6 +219,15 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
 
                             // Word content - always centered
                             currentWord?.let { word ->
+                                // اگر دسته اعداد بود، پس‌زمینه خاکستری برای تصاویر سفید
+                                val category = uiState.selectedCategory
+                                val isNumbersCategory = category != null && (
+                                    category.nameEn.equals("Numbers", ignoreCase = true) ||
+                                        category.nameEn.equals("Number", ignoreCase = true) ||
+                                        category.nameFa.contains("عدد") ||
+                                        category.nameFa.contains("اعداد")
+                                )
+
                                 Column(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.Center,
@@ -244,11 +253,28 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                                         model = imageRequest
                                     )
 
-                                    Image(
-                                        painter = painter,
-                                        contentDescription = null,
-                                        modifier = Modifier.heightIn(max = 250.dp).clip(RoundedCornerShape(24.dp))
-                                    )
+                                    if (isNumbersCategory) {
+                                        Box(
+                                            modifier = Modifier
+                                                .heightIn(max = 250.dp)
+                                                .clip(RoundedCornerShape(24.dp))
+                                                .background(Color(0xFF9E9E9E))
+                                                .padding(12.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Image(
+                                                painter = painter,
+                                                contentDescription = null,
+                                                modifier = Modifier.heightIn(max = 226.dp)
+                                            )
+                                        }
+                                    } else {
+                                        Image(
+                                            painter = painter,
+                                            contentDescription = null,
+                                            modifier = Modifier.heightIn(max = 250.dp).clip(RoundedCornerShape(24.dp))
+                                        )
+                                    }
 
                                     Spacer(modifier = Modifier.size(12.dp))
 

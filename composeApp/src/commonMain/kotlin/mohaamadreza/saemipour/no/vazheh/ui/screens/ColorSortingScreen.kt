@@ -39,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -62,6 +63,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
+import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
+import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
+import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
@@ -84,6 +88,15 @@ fun ColorSortingScreen(
 ) {
     val dragState = remember { ColorDragInfo() }
 
+    // Audio callbacks
+    val audioUpdates = remember {
+        object : AudioUpdates {
+            override fun onProgressUpdate(state: PlayerState) {}
+            override fun onReady() {}
+            override fun onError(exception: Exception) {}
+        }
+    }
+
     LaunchedEffect(viewModel.showWrongFeedback) {
         if (viewModel.showWrongFeedback) {
             delay(800)
@@ -91,7 +104,24 @@ fun ColorSortingScreen(
         }
     }
 
-    CompositionLocalProvider(LocalColorDragInfo provides dragState) {
+    AudioProvider(audioUpdates = audioUpdates) { audioPlayer ->
+        DisposableEffect(Unit) {
+            onDispose {
+                audioPlayer.cleanUp()
+            }
+        }
+
+        // پخش صدای رنگ هنگامی که آیتم به درستی در باکس قرار می‌گیرد
+        LaunchedEffect(viewModel.currentSoundUrl) {
+            viewModel.currentSoundUrl?.let { url ->
+                if (url.isNotEmpty()) {
+                    audioPlayer.play(url)
+                }
+                viewModel.clearCurrentSound()
+            }
+        }
+
+        CompositionLocalProvider(LocalColorDragInfo provides dragState) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -125,7 +155,7 @@ fun ColorSortingScreen(
                             color = Purple40
                         )
                         Text(
-                            text = "هر شکل رو به سبد هم‌رنگش ببر!",
+                            text = "بادکنک‌ها را به باکس هم‌رنگشان ببر!",
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.Gray
                         )
@@ -152,7 +182,7 @@ fun ColorSortingScreen(
 
                 // Items to sort
                 Text(
-                    text = "نگه دار و بکش به سبدها:",
+                    text = "بادکنک‌ها را نگه دار و بکش به باکس‌ها:",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.DarkGray
@@ -168,9 +198,9 @@ fun ColorSortingScreen(
 
                 Spacer(Modifier.height(32.dp))
 
-                // Baskets
+                // Boxes
                 Text(
-                    text = "سبدهای رنگی:",
+                    text = "باکس‌های رنگی:",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = Color.DarkGray
@@ -246,6 +276,7 @@ fun ColorSortingScreen(
             }
         }
     }
+    }
 }
 
 @Composable
@@ -293,7 +324,7 @@ private fun ItemsArea(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp),
+            .height(160.dp),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
             containerColor = Color.White
@@ -316,8 +347,8 @@ private fun ItemsArea(
             LazyRow(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 items(items, key = { it.id }) { item ->
@@ -340,19 +371,7 @@ private fun ColorDragTarget(
     val dragState = LocalColorDragInfo.current
 
     val content: @Composable () -> Unit = {
-        Box(
-            modifier = Modifier
-                .size(70.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(item.color.color.copy(alpha = 0.2f))
-                .border(3.dp, item.color.color, RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = item.emoji,
-                fontSize = 36.sp
-            )
-        }
+        Balloon(color = item.color.color)
     }
 
     Box(
@@ -387,6 +406,62 @@ private fun ColorDragTarget(
             }
     ) {
         content()
+    }
+}
+
+/**
+ * یک بادکنک رنگی به همراه نخ
+ */
+@Composable
+private fun Balloon(color: Color) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // بدنه بادکنک
+        Box(
+            modifier = Modifier
+                .size(width = 64.dp, height = 78.dp)
+                .clip(RoundedCornerShape(50))
+                .background(
+                    brush = Brush.radialGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.6f),
+                            color,
+                            color.copy(alpha = 0.85f)
+                        ),
+                        center = Offset(20f, 20f),
+                        radius = 120f
+                    )
+                )
+                .border(
+                    width = 2.dp,
+                    color = color.copy(alpha = 0.9f),
+                    shape = RoundedCornerShape(50)
+                ),
+            contentAlignment = Alignment.TopStart
+        ) {
+            // نقطه نور (highlight)
+            Box(
+                modifier = Modifier
+                    .padding(start = 12.dp, top = 10.dp)
+                    .size(14.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.6f))
+            )
+        }
+        // گره کوچک پایین بادکنک
+        Box(
+            modifier = Modifier
+                .size(width = 8.dp, height = 6.dp)
+                .background(color.copy(alpha = 0.9f))
+        )
+        // نخ بادکنک
+        Box(
+            modifier = Modifier
+                .width(2.dp)
+                .height(22.dp)
+                .background(Color.Gray.copy(alpha = 0.7f))
+        )
     }
 }
 
@@ -442,44 +517,59 @@ private fun ColorDropItem(
             }
         }
 
-        // Basket visual
-        Box(
+        // Box visual
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
-                .size(80.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            basket.color.color.copy(alpha = 0.3f),
-                            basket.color.color.copy(alpha = 0.6f)
+                .size(width = 88.dp, height = 90.dp)
+        ) {
+            // lid (درب باکس)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(14.dp)
+                    .clip(RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp))
+                    .background(basket.color.color.copy(alpha = 0.95f))
+                    .border(
+                        width = if (isCurrentDropTarget && dragState.isDragging) 3.dp else 2.dp,
+                        color = if (isCurrentDropTarget && dragState.isDragging)
+                            MintGreen
+                        else
+                            basket.color.color,
+                        shape = RoundedCornerShape(topStart = 8.dp, topEnd = 8.dp)
+                    )
+            )
+            // body (بدنه باکس)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .clip(RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp))
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                basket.color.color.copy(alpha = 0.35f),
+                                basket.color.color.copy(alpha = 0.7f)
+                            )
                         )
                     )
-                )
-                .border(
-                    width = if (isCurrentDropTarget && dragState.isDragging) 4.dp else 3.dp,
-                    color = if (isCurrentDropTarget && dragState.isDragging) MintGreen else basket.color.color,
-                    shape = RoundedCornerShape(16.dp)
-                ),
-            contentAlignment = Alignment.Center
-        ) {
-            if (basket.items.isEmpty()) {
-                Text(
-                    text = "🧺",
-                    fontSize = 32.sp
-                )
-            } else {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
+                    .border(
+                        width = if (isCurrentDropTarget && dragState.isDragging) 4.dp else 3.dp,
+                        color = if (isCurrentDropTarget && dragState.isDragging)
+                            MintGreen
+                        else
+                            basket.color.color,
+                        shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (basket.items.isNotEmpty()) {
+                    // نمایش تعداد بادکنک‌های جمع شده
                     Text(
-                        text = basket.items.lastOrNull()?.emoji ?: "🧺",
-                        fontSize = 24.sp
-                    )
-                    Text(
-                        text = "${basket.items.size}",
-                        fontSize = 14.sp,
+                        text = "🎈 ${basket.items.size}",
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = basket.color.color
+                        color = Color.White
                     )
                 }
             }

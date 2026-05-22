@@ -1,13 +1,17 @@
 package mohaamadreza.saemipour.no.vazheh.services
 
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import mohaamadreza.saemipour.no.vazheh.database.tables.Parents
-import mohaamadreza.saemipour.no.vazheh.models.*
+import mohaamadreza.saemipour.no.vazheh.models.AuthResponse
+import mohaamadreza.saemipour.no.vazheh.models.LoginRequest
+import mohaamadreza.saemipour.no.vazheh.models.ParentDTO
+import mohaamadreza.saemipour.no.vazheh.models.RegisterRequest
 import mohaamadreza.saemipour.no.vazheh.security.JwtConfig
 import mohaamadreza.saemipour.no.vazheh.security.PasswordUtils
-import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.insertAndGetId
+import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 /** Authentication Service - سرویس احراز هویت ثبت نام و ورود والدین */
 object AuthService {
@@ -68,6 +72,34 @@ object AuthService {
             val parent = getParentById(parentId)
 
             AuthResponse(true, "ورود با موفقیت انجام شد", token, parent)
+        }
+    }
+
+    /** Test mode without login - allows app testing without authentication تست بدون ورود */
+    fun testWithoutLogin(): AuthResponse {
+        return transaction {
+            // Create or get test user
+            val testUsername = "test_user"
+            val existingTestUser = Parents.selectAll()
+                    .where { Parents.username eq testUsername }
+                    .singleOrNull()
+
+            val parentId = existingTestUser?.let { it[Parents.id].value }
+                    ?: run {
+                        // Create test user if it doesn't exist
+                        Parents.insertAndGetId {
+                            it[username] = testUsername
+                            it[passwordHash] = PasswordUtils.hashPassword("test123")
+                            it[displayName] = "Test User"
+                            it[createdAt] = LocalDateTime.now()
+                            it[updatedAt] = LocalDateTime.now()
+                        }.value
+                    }
+
+            val token = JwtConfig.makeToken(parentId)
+            val parent = getParentById(parentId)
+
+            AuthResponse(true, "تست بدون ورود فعال شد", token, parent)
         }
     }
 

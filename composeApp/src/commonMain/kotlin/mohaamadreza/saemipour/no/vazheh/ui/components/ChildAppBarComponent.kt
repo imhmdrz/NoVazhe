@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,7 +24,6 @@ import org.jetbrains.compose.resources.painterResource
 fun ChildAppBarComponent(
     name: String,
     description: String,
-    onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -61,15 +56,6 @@ fun ChildAppBarComponent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1
-            )
-        }
-
-        Spacer(modifier = Modifier.width(12.dp))
-
-        // Back Button
-        IconButton(onClick = onBackClick, Modifier.size(24.dp)) {
-            Icon(imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                contentDescription = "Back"
             )
         }
     }

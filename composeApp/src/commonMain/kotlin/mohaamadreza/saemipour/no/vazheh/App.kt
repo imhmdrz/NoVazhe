@@ -19,7 +19,6 @@ import mohaamadreza.saemipour.no.vazheh.data.AuthEvent
 import mohaamadreza.saemipour.no.vazheh.data.AuthStateManager
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AddWordScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AuthScreen
-import mohaamadreza.saemipour.no.vazheh.ui.screens.ChildScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.ColorSortingScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.ColorSortingViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.screens.FaceGameScreen
@@ -99,17 +98,8 @@ fun App() {
                     AuthScreen(navController = navController, viewModel = authViewModel)
                 }
             }
-            composable("child") {
-                OrientationWrapper(Orientation.Vertical) {
-                    ChildScreen(
-                        navController = navController, 
-                        viewModel = childViewModel,
-                        quizViewModel = quizViewModel
-                    )
-                }
-            }
             composable("game") {
-                OrientationWrapper(Orientation.Horizontal) {
+                OrientationWrapper(Orientation.Vertical) {
                     GameScreen(navController = navController, viewModel = childViewModel)
                 }
             }
@@ -121,7 +111,8 @@ fun App() {
                     MotherScreen(
                         navController = navController,
                         viewModel = motherViewModel,
-                        childViewModel = childViewModel
+                        childViewModel = childViewModel,
+                        quizViewModel = quizViewModel
                     )
                 }
             }

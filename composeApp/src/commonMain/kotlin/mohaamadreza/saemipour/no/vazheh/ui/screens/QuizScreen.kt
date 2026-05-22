@@ -1,7 +1,12 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -54,6 +59,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -74,11 +80,24 @@ import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
+import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SkyBlue
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.QuizViewModel
+
+/**
+ * تبدیل اعداد انگلیسی به اعداد فارسی
+ */
+private fun String.toPersianDigits(): String {
+    val persianDigits = charArrayOf('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹')
+    return this.map { ch ->
+        if (ch in '0'..'9') persianDigits[ch - '0'] else ch
+    }.joinToString("")
+}
+
+private fun Int.toPersianDigits(): String = this.toString().toPersianDigits()
 
 /**
  * Quiz Screen - صفحه آزمون
@@ -281,60 +300,181 @@ private fun QuizCompletedContent(
         else -> "💪"
     }
     
-    val message = when {
-        scorePercent == 100 -> "عالی! همه پاسخ‌ها درست بود!"
-        scorePercent >= 80 -> "آفرین! خیلی خوب بود!"
-        scorePercent >= 50 -> "خوب بود! ادامه بده!"
-        else -> "تلاش کن! دفعه بعد بهتر می‌شه!"
+    val title = when {
+        scorePercent == 100 -> "آفرین قهرمان!"
+        scorePercent >= 80 -> "عالی بود!"
+        scorePercent >= 50 -> "خوب بود!"
+        else -> "ادامه بده!"
     }
     
+    val message = when {
+        scorePercent == 100 -> "همه پاسخ‌ها درست بود!"
+        scorePercent >= 80 -> "نتیجه خیلی خوبی گرفتی!"
+        scorePercent >= 50 -> "می‌تونی بهتر هم بشی!"
+        else -> "دفعه بعد بهتر می‌شه!"
+    }
+    
+    val stars = when {
+        scorePercent >= 80 -> 3
+        scorePercent >= 50 -> 2
+        scorePercent >= 25 -> 1
+        else -> 0
+    }
+    
+    // Animated score counter
+    val animatedScore by animateFloatAsState(
+        targetValue = scorePercent.toFloat(),
+        animationSpec = tween(durationMillis = 1500),
+        label = "score"
+    )
+    
+    // Pulse animation for emoji
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulseScale"
+    )
+    
+    // Rotation for decorative element
+    val rotation by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 360f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(20000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "rotation"
+    )
+    
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        scoreColor.copy(alpha = 0.25f),
+                        Purple80.copy(alpha = 0.2f),
+                        SkyBlue.copy(alpha = 0.15f)
+                    )
+                )
+            ),
         contentAlignment = Alignment.Center
     ) {
+        // Decorative rotating background circle
+        Box(
+            modifier = Modifier
+                .size(360.dp)
+                .rotate(rotation)
+                .background(
+                    brush = Brush.sweepGradient(
+                        colors = listOf(
+                            scoreColor.copy(alpha = 0.08f),
+                            Color.Transparent,
+                            scoreColor.copy(alpha = 0.12f),
+                            Color.Transparent,
+                            scoreColor.copy(alpha = 0.08f)
+                        )
+                    ),
+                    shape = CircleShape
+                )
+        )
+        
         Card(
             modifier = Modifier
-                .padding(32.dp)
-                .fillMaxWidth(0.9f),
-            shape = RoundedCornerShape(32.dp),
+                .padding(24.dp)
+                .fillMaxWidth(0.92f),
+            shape = RoundedCornerShape(36.dp),
             colors = CardDefaults.cardColors(
                 containerColor = Color.White
             ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(32.dp),
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.White,
+                                scoreColor.copy(alpha = 0.05f)
+                            )
+                        )
+                    )
+                    .padding(28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Emoji
+                // Animated emoji
                 Text(
                     text = emoji,
-                    fontSize = 80.sp
+                    fontSize = 90.sp,
+                    modifier = Modifier.scale(pulseScale)
                 )
                 
-                // Message
+                // Title
                 Text(
-                    text = message,
-                    style = MaterialTheme.typography.headlineSmall,
+                    text = title,
+                    style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
                     color = scoreColor
                 )
                 
-                // Score circle
+                // Stars row
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    repeat(3) { index ->
+                        val isFilled = index < stars
+                        val starScale by animateFloatAsState(
+                            targetValue = if (isFilled) 1f else 0.7f,
+                            animationSpec = tween(durationMillis = 500, delayMillis = 200 + index * 200),
+                            label = "starScale$index"
+                        )
+                        Text(
+                            text = if (isFilled) "⭐" else "☆",
+                            fontSize = 44.sp,
+                            modifier = Modifier.scale(starScale),
+                            color = if (isFilled) scoreColor else Color.Gray.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+                
+                // Message
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.titleMedium,
+                    textAlign = TextAlign.Center,
+                    color = DarkText.copy(alpha = 0.8f)
+                )
+                
+                // Score circle with gradient
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
+                        .size(150.dp)
                         .background(
-                            color = scoreColor.copy(alpha = 0.1f),
+                            brush = Brush.radialGradient(
+                                colors = listOf(
+                                    scoreColor.copy(alpha = 0.2f),
+                                    scoreColor.copy(alpha = 0.05f)
+                                )
+                            ),
                             shape = CircleShape
                         )
                         .border(
-                            width = 4.dp,
-                            color = scoreColor,
+                            width = 5.dp,
+                            brush = Brush.sweepGradient(
+                                colors = listOf(
+                                    scoreColor,
+                                    scoreColor.copy(alpha = 0.6f),
+                                    scoreColor
+                                )
+                            ),
                             shape = CircleShape
                         ),
                     contentAlignment = Alignment.Center
@@ -343,50 +483,137 @@ private fun QuizCompletedContent(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "$scorePercent%",
-                            style = MaterialTheme.typography.headlineLarge,
+                            text = "${animatedScore.toInt().toPersianDigits()}٪",
+                            style = MaterialTheme.typography.displaySmall,
                             fontWeight = FontWeight.Bold,
                             color = scoreColor
                         )
                         Text(
-                            text = "$totalCorrect از $totalAnswered",
-                            style = MaterialTheme.typography.bodySmall,
+                            text = "امتیاز",
+                            style = MaterialTheme.typography.bodyMedium,
                             color = Color.Gray
                         )
                     }
                 }
                 
+                // Stats row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    StatChip(
+                        modifier = Modifier.weight(1f),
+                        label = "درست",
+                        value = totalCorrect.toPersianDigits(),
+                        color = MintGreen,
+                        icon = "✅"
+                    )
+                    StatChip(
+                        modifier = Modifier.weight(1f),
+                        label = "اشتباه",
+                        value = (totalAnswered - totalCorrect).toPersianDigits(),
+                        color = CoralRed,
+                        icon = "❌"
+                    )
+                    StatChip(
+                        modifier = Modifier.weight(1f),
+                        label = "کل",
+                        value = totalAnswered.toPersianDigits(),
+                        color = SkyBlue,
+                        icon = "📊"
+                    )
+                }
+                
+                Spacer(Modifier.height(4.dp))
+                
                 // Buttons
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    TextButton(
+                    Button(
+                        onClick = onPlayAgain,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Purple40
+                        ),
+                        shape = RoundedCornerShape(18.dp)
+                    ) {
+                        Icon(Icons.Default.Refresh, contentDescription = null)
+                        Spacer(Modifier.width(8.dp))
+                        Text(
+                            text = "بازی مجدد",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Button(
                         onClick = onBack,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color.White,
+                            contentColor = Purple40
+                        ),
+                        shape = RoundedCornerShape(18.dp),
+                        border = androidx.compose.foundation.BorderStroke(2.dp, Purple40)
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowForward,
                             contentDescription = null
                         )
                         Spacer(Modifier.width(8.dp))
-                        Text("بازگشت")
-                    }
-                    
-                    Button(
-                        onClick = onPlayAgain,
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Purple40
+                        Text(
+                            text = "بازگشت",
+                            fontWeight = FontWeight.Bold
                         )
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("بازی مجدد")
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun StatChip(
+    modifier: Modifier = Modifier,
+    label: String,
+    value: String,
+    color: Color,
+    icon: String
+) {
+    Column(
+        modifier = modifier
+            .background(
+                color = color.copy(alpha = 0.1f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .border(
+                width = 1.5.dp,
+                color = color.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(16.dp)
+            )
+            .padding(vertical = 10.dp, horizontal = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = icon,
+            fontSize = 20.sp
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.Gray
+        )
     }
 }
 
@@ -428,7 +655,7 @@ private fun QuizContent(
             // Progress
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "سوال $progressText",
+                    text = "سوال ${progressText.toPersianDigits()}",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
@@ -450,6 +677,7 @@ private fun QuizContent(
             IconButton(onClick = onBack) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
+                    modifier = Modifier.rotate(180f),
                     contentDescription = "بازگشت",
                     tint = Purple40
                 )
@@ -562,6 +790,7 @@ private fun QuizContent(
                         Spacer(Modifier.width(8.dp))
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
+                            modifier = Modifier.rotate(180f),
                             contentDescription = null
                         )
                     }
@@ -633,7 +862,7 @@ private fun OptionCard(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(180.dp)
+            .height(240.dp)
             .border(
                 width = 3.dp,
                 color = borderColor,
@@ -667,23 +896,23 @@ private fun OptionCard(
                         contentDescription = option.wordFa,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier
-                            .size(80.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .size(140.dp)
+                            .clip(RoundedCornerShape(16.dp))
                     )
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(10.dp))
                 }
                 
                 // Word text
                 Text(
                     text = option.wordFa,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
                 
                 Text(
                     text = option.wordEn,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = Color.Gray,
                     textAlign = TextAlign.Center
                 )

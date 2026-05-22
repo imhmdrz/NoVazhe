@@ -265,23 +265,11 @@ private fun MemoryGameContent(
 
         Spacer(Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            StatCard(
-                emoji = "🎯",
-                label = "حرکت‌ها",
-                value = moves.toString(),
-                color = SkyBlue
-            )
-            StatCard(
-                emoji = "✅",
-                label = "جفت‌ها",
-                value = "$matchedPairs / $totalPairs",
-                color = MintGreen
-            )
-        }
+        // ستاره طلایی برای هر جفت صحیح
+        StarsRow(
+            matchedPairs = matchedPairs,
+            totalPairs = totalPairs
+        )
 
         Spacer(Modifier.height(16.dp))
 
@@ -323,38 +311,52 @@ private fun MemoryGameContent(
 }
 
 @Composable
-private fun StatCard(
-    emoji: String,
-    label: String,
-    value: String,
-    color: Color
+private fun StarsRow(
+    matchedPairs: Int,
+    totalPairs: Int
 ) {
+    val goldColor = Color(0xFFFFC107)
     Card(
-        modifier = Modifier.width(140.dp),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.15f)
+            containerColor = goldColor.copy(alpha = 0.02f)
         )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(vertical = 12.dp, horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = emoji, fontSize = 24.sp)
-            Spacer(Modifier.height(4.dp))
             Text(
-                text = value,
-                style = MaterialTheme.typography.titleLarge,
+                text = "ستاره‌های تو",
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Bold,
-                color = color
+                color = Color(0xFF8B6F00)
             )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray
-            )
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                repeat(totalPairs) { index ->
+                    val isEarned = index < matchedPairs
+                    val starScale by animateFloatAsState(
+                        targetValue = if (isEarned) 1f else 0.75f,
+                        animationSpec = tween(durationMillis = 350),
+                        label = "starScale$index"
+                    )
+                    Text(
+                        text = if (isEarned) "⭐" else "☆",
+                        fontSize = 28.sp,
+                        color = if (isEarned) goldColor else Color.Gray.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .padding(horizontal = 2.dp)
+                            .scale(starScale)
+                    )
+                }
+            }
         }
     }
 }
@@ -483,7 +485,7 @@ private fun WinDialog(
         },
         text = {
             Text(
-                text = "تو با $moves حرکت همه جفت‌ها رو پیدا کردی!",
+                text = "همه جفت‌ها رو پیدا کردی!",
                 fontSize = 18.sp,
                 color = Color.White,
                 modifier = Modifier.fillMaxWidth(),

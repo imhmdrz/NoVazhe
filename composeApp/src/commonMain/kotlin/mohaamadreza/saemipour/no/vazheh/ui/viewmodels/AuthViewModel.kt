@@ -103,6 +103,35 @@ class AuthViewModel(
         }
     }
 
+    fun testWithoutLogin(onSuccess: () -> Unit) {
+        _uiState.update { it.copy(isLoading = true, errorMessage = null) }
+
+        viewModelScope.launch {
+            val result = authRepository.testWithoutLogin()
+
+            result.fold(
+                    onSuccess = { response ->
+                        _uiState.update { it.copy(isLoading = false) }
+                        if (response.success) {
+                            onSuccess()
+                        } else {
+                            _uiState.update { it.copy(errorMessage = response.message) }
+                        }
+                    },
+                    onFailure = { exception ->
+                        AppLogger.d("mhmdrz" , "exception: ${exception.message}")
+                        _uiState.update {
+                            it.copy(
+                                    isLoading = false,
+                                    errorMessage =
+                                            "خطا در فعال‌سازی تست: ${exception.message ?: "خطای نامشخص"}"
+                            )
+                        }
+                    }
+            )
+        }
+    }
+
     fun isLoggedIn(): Boolean {
         return authRepository.isLoggedIn()
     }

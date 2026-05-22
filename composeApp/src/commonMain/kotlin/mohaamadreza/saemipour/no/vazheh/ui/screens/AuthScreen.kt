@@ -187,6 +187,26 @@ fun AuthScreen(navController: NavController, viewModel: AuthViewModel) {
                             style = MaterialTheme.typography.bodyMedium
                     )
                 }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Test Without Login Button
+                TextButton(
+                        onClick = {
+                            viewModel.testWithoutLogin {
+                                navController.navigate("mother") {
+                                    popUpTo("auth") { inclusive = true }
+                                }
+                            }
+                        },
+                        enabled = !uiState.isLoading
+                ) {
+                    Text(
+                            text = "تست بدون ورود",
+                            color = MaterialTheme.colorScheme.secondary,
+                            style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
         }
     }

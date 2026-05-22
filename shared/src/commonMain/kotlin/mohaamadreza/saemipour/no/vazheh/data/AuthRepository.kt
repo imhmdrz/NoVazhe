@@ -48,6 +48,32 @@ class AuthRepository(
     }
 
     /**
+     * Test without login - create/get test user for demo purposes
+     * @return AuthResponse with success status and token if successful
+     */
+    suspend fun testWithoutLogin(): Result<AuthResponse> {
+        return try {
+            val response: AuthResponse =
+                    httpClient
+                            .post("${ApiConfig.BASE_URL}${ApiConfig.AUTH_TEST}") {}
+                            .body()
+
+            if (response.success && response.token != null) {
+                tokenStorage.saveToken(response.token)
+                response.parent?.let {
+                    tokenStorage.saveParentInfo(it.id, it.username, it.displayName)
+                }
+                // Notify successful login - اطلاع‌رسانی ورود موفق
+                AuthStateManager.notifyLoggedIn()
+            }
+
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Register a new user
      * @return AuthResponse with success status and token if successful
      */

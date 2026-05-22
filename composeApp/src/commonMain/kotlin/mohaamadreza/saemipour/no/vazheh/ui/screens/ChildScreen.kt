@@ -90,7 +90,6 @@ fun ChildScreen(
             ChildAppBarComponent(
                 name = "سلام ${selectedChild?.name ?: "کودک"}",
                 description = "بیا بازی کنیم، یاد بگیریم و خوش بگذرونیم!",
-                onBackClick = navController::popBackStack
             )
 
             Spacer(Modifier.size(16.dp))

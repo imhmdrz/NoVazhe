@@ -186,19 +186,34 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                         Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .padding(horizontal = 100.dp)
                         ) {
                             // Previous button - fixed at start (right in RTL)
                             Image(
                                 painterResource(Res.drawable.button),
                                 contentDescription = "قبلی",
                                 modifier = Modifier
-                                    .align(Alignment.CenterStart)
+                                    .align(Alignment.BottomStart)
+                                    .padding(bottom = 155.dp, start = 20.dp)
                                     .rotate(180f)
                                     .alpha(if (viewModel.canGoPrevious()) 1f else 0.3f)
                                     .clickable(enabled = viewModel.canGoPrevious()) {
                                         player.pause()
                                         viewModel.previousWord()
+                                    }
+                            )
+
+
+                            // Next button - fixed at end (left in RTL)
+                            Image(
+                                painterResource(Res.drawable.button),
+                                contentDescription = "بعدی",
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(bottom = 155.dp, end = 20.dp)
+                                    .alpha(if (viewModel.canGoNext()) 1f else 0.3f)
+                                    .clickable(enabled = viewModel.canGoNext()) {
+                                        player.pause()
+                                        viewModel.nextWord()
                                     }
                             )
 
@@ -217,15 +232,6 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                                         }
                                     }
                                 ) {
-                                    // Word in Persian - clickable to play audio
-                                    Text(
-                                        text = word.wordFa,
-                                        style = MaterialTheme.typography.titleSmall,
-                                        color = Color.Black,
-                                        textAlign = TextAlign.Center,
-                                    )
-                                    Spacer(modifier = Modifier.size(8.dp))
-
                                     val imageRequest = ImageRequest.Builder(LocalPlatformContext.current)
                                         .data(word.imageUrl)
                                         .crossfade(true)
@@ -241,11 +247,22 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                                     Image(
                                         painter = painter,
                                         contentDescription = null,
-                                        modifier = Modifier.heightIn(max = 160.dp).clip(RoundedCornerShape(24.dp))
+                                        modifier = Modifier.heightIn(max = 250.dp).clip(RoundedCornerShape(24.dp))
                                     )
 
                                     Spacer(modifier = Modifier.size(12.dp))
-                                    
+
+
+                                    // Word in Persian - clickable to play audio
+                                    Text(
+                                        text = word.wordFa,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = Color.Black,
+                                        textAlign = TextAlign.Center,
+                                    )
+
+                                    Spacer(modifier = Modifier.size(12.dp))
+
                                     // Audio play/pause button
                                     if (!word.audioUrl.isNullOrEmpty()) {
                                         GameAudioButton(
@@ -261,19 +278,6 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                                     }
                                 }
                             }
-
-                            // Next button - fixed at end (left in RTL)
-                            Image(
-                                painterResource(Res.drawable.button),
-                                contentDescription = "بعدی",
-                                modifier = Modifier
-                                    .align(Alignment.CenterEnd)
-                                    .alpha(if (viewModel.canGoNext()) 1f else 0.3f)
-                                    .clickable(enabled = viewModel.canGoNext()) {
-                                        player.pause()
-                                        viewModel.nextWord()
-                                    }
-                            )
                         }
                     }
                 }

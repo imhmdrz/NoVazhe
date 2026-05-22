@@ -85,6 +85,21 @@ fun Route.authRoutes() {
             }
         }
 
+        /** POST /api/auth/test-without-login Test mode without authentication تست بدون احراز هویت */
+        post("/test-without-login") {
+            try {
+                val response = AuthService.testWithoutLogin()
+                val status =
+                        if (response.success) HttpStatusCode.OK else HttpStatusCode.BadRequest
+                call.respond(status, response)
+            } catch (e: Exception) {
+                call.respond(
+                        HttpStatusCode.InternalServerError,
+                        AuthResponse(false, "خطا در فعال‌سازی تست: ${e.message}")
+                )
+            }
+        }
+
         /** GET /api/auth/me Get current parent info دریافت اطلاعات مادر فعلی */
         authenticate("auth-jwt") {
             get("/me") {

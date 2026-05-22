@@ -68,7 +68,14 @@ class MotherViewModel(
                 onSuccess = { response ->
                     if (response.success) {
                         _uiState.update {
-                            it.copy(childrenState = ChildrenState.Success(response.data))
+                            // Auto-select the first child if none is selected
+                            val newSelected = it.selectedChild
+                                ?.let { current -> response.data.firstOrNull { c -> c.id == current.id } }
+                                ?: response.data.firstOrNull()
+                            it.copy(
+                                childrenState = ChildrenState.Success(response.data),
+                                selectedChild = newSelected
+                            )
                         }
                     } else {
                         _uiState.update {
@@ -129,6 +136,8 @@ class MotherViewModel(
                                 childrenState = ChildrenState.Success(updatedChildren),
                                 createChildState = CreateChildState.Success(newChild),
                                 showAddChildDialog = false,
+                                // Auto-select first added child
+                                selectedChild = it.selectedChild ?: newChild,
                                 successMessage = "فرزند با موفقیت اضافه شد"
                             )
                         }

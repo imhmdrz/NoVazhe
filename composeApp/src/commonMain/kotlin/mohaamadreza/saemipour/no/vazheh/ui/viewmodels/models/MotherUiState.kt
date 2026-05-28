@@ -1,6 +1,7 @@
 package mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models
 
 import androidx.compose.runtime.Stable
+import mohaamadreza.saemipour.no.vazheh.data.CategoryDTO
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.data.CustomWordDTO
 
@@ -20,7 +21,11 @@ data class MotherUiState(
     val customWordsState: CustomWordsState = CustomWordsState.Idle,
     val createCustomWordState: CreateCustomWordState = CreateCustomWordState.Idle,
     val deleteCustomWordState: DeleteCustomWordState = DeleteCustomWordState.Idle,
-    
+
+    // Categories (used by the add-word flow to pick or create a category)
+    val categoriesState: CategoriesState = CategoriesState.Idle,
+    val createCategoryState: CreateCategoryState = CreateCategoryState.Idle,
+
     // Selected child
     val selectedChild: ChildDTO? = null,
     
@@ -78,6 +83,23 @@ data class MotherUiState(
     
     val deleteCustomWordErrorMessage: String?
         get() = (deleteCustomWordState as? DeleteCustomWordState.Error)?.message
+
+    // ==================== Categories Helpers ====================
+
+    val categories: List<CategoryDTO>
+        get() = when (categoriesState) {
+            is CategoriesState.Success -> categoriesState.categories
+            else -> emptyList()
+        }
+
+    val isLoadingCategories: Boolean
+        get() = categoriesState is CategoriesState.Loading
+
+    val isCreatingCategory: Boolean
+        get() = createCategoryState is CreateCategoryState.Loading
+
+    val createCategoryErrorMessage: String?
+        get() = (createCategoryState as? CreateCategoryState.Error)?.message
 }
 
 @Stable
@@ -137,4 +159,21 @@ sealed class DeleteCustomWordState {
     data class Loading(val wordId: Int) : DeleteCustomWordState()
     data class Success(val deletedWordId: Int) : DeleteCustomWordState()
     data class Error(val message: String, val wordId: Int) : DeleteCustomWordState()
+}
+
+// ==================== Categories States ====================
+@Stable
+sealed class CategoriesState {
+    data object Idle : CategoriesState()
+    data object Loading : CategoriesState()
+    data class Success(val categories: List<CategoryDTO>) : CategoriesState()
+    data class Error(val message: String) : CategoriesState()
+}
+
+@Stable
+sealed class CreateCategoryState {
+    data object Idle : CreateCategoryState()
+    data object Loading : CreateCategoryState()
+    data class Success(val category: CategoryDTO) : CreateCategoryState()
+    data class Error(val message: String) : CreateCategoryState()
 }

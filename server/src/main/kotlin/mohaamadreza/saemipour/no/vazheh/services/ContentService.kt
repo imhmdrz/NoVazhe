@@ -47,6 +47,61 @@ object ContentService {
     }
     
     /**
+     * Create a new category
+     * ایجاد دسته‌بندی جدید توسط مادر
+     *
+     * Category names are stored shared (no per-parent ownership);
+     * once added, the category is visible to everyone.
+     */
+    fun createCategory(request: CreateCategoryRequest): ApiResponse<CategoryDTO> {
+        return transaction {
+            val trimmedFa = request.nameFa.trim()
+            val trimmedEn = request.nameEn.trim().ifBlank { trimmedFa }
+
+            if (trimmedFa.isBlank()) {
+                return@transaction ApiResponse(false, "نام فارسی دسته‌بندی الزامی است", null)
+            }
+
+            // Reject duplicates (case-insensitive on Persian name) to avoid clutter
+            val existing = Categories.selectAll()
+                .where { (Categories.nameFa eq trimmedFa) and (Categories.isActive eq true) }
+                .singleOrNull()
+            if (existing != null) {
+                val cat = CategoryDTO(
+                    id = existing[Categories.id].value,
+                    nameFa = existing[Categories.nameFa],
+                    nameEn = existing[Categories.nameEn],
+                    iconUrl = existing[Categories.iconUrl],
+                    displayOrder = existing[Categories.displayOrder],
+                    wordCount = 0
+                )
+                return@transaction ApiResponse(true, "دسته‌بندی از قبل وجود دارد", cat)
+            }
+
+            val nextOrder = (Categories.selectAll().maxByOrNull { it[Categories.displayOrder] }
+                ?.get(Categories.displayOrder) ?: 0) + 1
+
+            val newId = Categories.insertAndGetId {
+                it[nameFa] = trimmedFa
+                it[nameEn] = trimmedEn
+                it[iconUrl] = request.iconUrl
+                it[displayOrder] = if (request.displayOrder > 0) request.displayOrder else nextOrder
+            }
+
+            val created = CategoryDTO(
+                id = newId.value,
+                nameFa = trimmedFa,
+                nameEn = trimmedEn,
+                iconUrl = request.iconUrl,
+                displayOrder = if (request.displayOrder > 0) request.displayOrder else nextOrder,
+                wordCount = 0
+            )
+
+            ApiResponse(true, "دسته‌بندی با موفقیت اضافه شد", created)
+        }
+    }
+
+    /**
      * Get category by ID
      */
     fun getCategoryById(categoryId: Int): ApiResponse<CategoryDTO> {

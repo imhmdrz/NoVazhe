@@ -40,6 +40,29 @@ class ContentRepository(
     }
 
     /**
+     * Create a new category (authenticated parent)
+     * ایجاد دسته‌بندی جدید توسط مادر
+     */
+    suspend fun createCategory(request: CreateCategoryRequest): Result<ApiResponse<CategoryDTO>> {
+        return try {
+            val token = tokenStorage.getToken()
+                ?: return Result.failure(Exception("No token found"))
+
+            val response: ApiResponse<CategoryDTO> =
+                httpClient
+                    .post("${ApiConfig.BASE_URL}${ApiConfig.CATEGORIES}") {
+                        header(HttpHeaders.Authorization, "Bearer $token")
+                        contentType(ContentType.Application.Json)
+                        setBody(request)
+                    }
+                    .body()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Get category by ID
      * دریافت دسته‌بندی با شناسه
      */

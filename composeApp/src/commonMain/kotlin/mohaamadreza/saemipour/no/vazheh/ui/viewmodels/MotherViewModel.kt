@@ -11,11 +11,14 @@ import mohaamadreza.saemipour.no.vazheh.data.AuthRepository
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.data.ChildRepository
 import mohaamadreza.saemipour.no.vazheh.data.ContentRepository
+import mohaamadreza.saemipour.no.vazheh.data.CreateCategoryRequest
 import mohaamadreza.saemipour.no.vazheh.data.CreateChildRequest
 import mohaamadreza.saemipour.no.vazheh.data.CreateCustomWordRequest
 import mohaamadreza.saemipour.no.vazheh.data.Gender
 import mohaamadreza.saemipour.no.vazheh.data.UpdateChildRequest
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CategoriesState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.ChildrenState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateCategoryState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateChildState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateCustomWordState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CustomWordsState
@@ -37,6 +40,7 @@ class MotherViewModel(
     init {
         loadChildren()
         loadCustomWords()
+        loadCategories()
     }
 
     fun loadUserInfo() {
@@ -295,6 +299,7 @@ class MotherViewModel(
         loadUserInfo()
         loadChildren()
         loadCustomWords()
+        loadCategories()
     }
 
     fun showAddChildDialog() {
@@ -499,5 +504,111 @@ class MotherViewModel(
      */
     fun retryCustomWords() {
         loadCustomWords()
+    }
+
+    // ==================== Categories Operations - عملیات دسته‌بندی‌ها ====================
+
+    /**
+     * Load all available categories (used by the add-word picker).
+     * بارگذاری همه دسته‌بندی‌های موجود برای انتخاب در افزودن کلمه
+     */
+    fun loadCategories() {
+        _uiState.update { it.copy(categoriesState = CategoriesState.Loading) }
+
+        viewModelScope.launch {
+            contentRepository.getAllCategories().fold(
+                onSuccess = { response ->
+                    if (response.success) {
+                        _uiState.update {
+                            it.copy(categoriesState = CategoriesState.Success(response.data))
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                categoriesState = CategoriesState.Error("خطا در بارگذاری دسته‌بندی‌ها")
+                            )
+                        }
+                    }
+                },
+                onFailure = { exception ->
+                    AppLogger.d("MotherViewModel", "Error loading categories: ${exception.message}")
+                    _uiState.update {
+                        it.copy(
+                            categoriesState = CategoriesState.Error(
+                                "خطا در اتصال: ${exception.message ?: "خطای نامشخص"}"
+                            )
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * Create a new category. On success the new category is appended to the
+     * cached list so the add-word screen can immediately pick it.
+     * ایجاد دسته‌بندی جدید توسط مادر
+     */
+    fun createCategory(nameFa: String, nameEn: String? = null, iconUrl: String? = null) {
+        val trimmedFa = nameFa.trim()
+        if (trimmedFa.isBlank()) {
+            _uiState.update {
+                it.copy(createCategoryState = CreateCategoryState.Error("نام دسته‌بندی الزامی است"))
+            }
+            return
+        }
+
+        _uiState.update { it.copy(createCategoryState = CreateCategoryState.Loading) }
+
+        viewModelScope.launch {
+            val request = CreateCategoryRequest(
+                nameFa = trimmedFa,
+                nameEn = nameEn?.trim().orEmpty(),
+                iconUrl = iconUrl
+            )
+            contentRepository.createCategory(request).fold(
+                onSuccess = { response ->
+                    val data = response.data
+                    if (response.success && data != null) {
+                        _uiState.update {
+                            // Merge the new category if it isn't already cached
+                            val existing = it.categories
+                            val merged = if (existing.any { c -> c.id == data.id }) {
+                                existing
+                            } else {
+                                existing + data
+                            }
+                            it.copy(
+                                categoriesState = CategoriesState.Success(merged),
+                                createCategoryState = CreateCategoryState.Success(data),
+                                successMessage = "دسته‌بندی با موفقیت اضافه شد"
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                createCategoryState = CreateCategoryState.Error(
+                                    response.message.ifBlank { "خطا در ایجاد دسته‌بندی" }
+                                )
+                            )
+                        }
+                    }
+                },
+                onFailure = { exception ->
+                    AppLogger.d("MotherViewModel", "Error creating category: ${exception.message}")
+                    _uiState.update {
+                        it.copy(
+                            createCategoryState = CreateCategoryState.Error(
+                                "خطا در ایجاد دسته‌بندی: ${exception.message ?: "خطای نامشخص"}"
+                            )
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    fun clearCreateCategoryError() {
+        _uiState.update { it.copy(createCategoryState = CreateCategoryState.Idle) }
     }
 }

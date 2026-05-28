@@ -34,6 +34,39 @@ fun Route.contentRoutes() {
         }
         
         /**
+         * POST /api/categories
+         * Create a new category (authenticated parents only)
+         * ایجاد دسته‌بندی جدید توسط مادر
+         *
+         * Categories are shared globally (no per-parent ownership) but creation
+         * requires authentication so anonymous traffic can't pollute the catalog.
+         */
+        authenticate("auth-jwt") {
+            post("/categories") {
+                try {
+                    val request = call.receive<CreateCategoryRequest>()
+
+                    if (request.nameFa.isBlank()) {
+                        call.respond(
+                            HttpStatusCode.BadRequest,
+                            ApiResponse<CategoryDTO>(false, "نام فارسی دسته‌بندی الزامی است", null)
+                        )
+                        return@post
+                    }
+
+                    val response = ContentService.createCategory(request)
+                    val status = if (response.success) HttpStatusCode.Created else HttpStatusCode.BadRequest
+                    call.respond(status, response)
+                } catch (e: Exception) {
+                    call.respond(
+                        HttpStatusCode.InternalServerError,
+                        ApiResponse<CategoryDTO>(false, "خطا: ${e.message}", null)
+                    )
+                }
+            }
+        }
+
+        /**
          * GET /api/categories/{id}
          * Get category by ID
          * دریافت دسته‌بندی با شناسه

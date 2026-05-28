@@ -80,6 +80,17 @@ data class CategoryDTO(
         val wordCount: Int = 0
 )
 
+/**
+ * Create category request - درخواست ساخت دسته‌بندی جدید توسط مادر
+ */
+@Serializable
+data class CreateCategoryRequest(
+        val nameFa: String,
+        val nameEn: String = "",
+        val iconUrl: String? = null,
+        val displayOrder: Int = 0
+)
+
 // ==================== Word DTOs - کلمات ====================
 
 @Serializable

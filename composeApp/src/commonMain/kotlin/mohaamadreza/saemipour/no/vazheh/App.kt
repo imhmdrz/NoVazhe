@@ -15,8 +15,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.savedstate.read
+import coil3.SingletonImageLoader
+import coil3.compose.LocalPlatformContext
 import mohaamadreza.saemipour.no.vazheh.data.AuthEvent
 import mohaamadreza.saemipour.no.vazheh.data.AuthStateManager
+import mohaamadreza.saemipour.no.vazheh.image.newImageLoader
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AddWordScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AuthScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.ColorSortingScreen
@@ -27,7 +30,11 @@ import mohaamadreza.saemipour.no.vazheh.ui.screens.GameScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.MemoryGameScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.MemoryGameViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.screens.MotherScreen
+import mohaamadreza.saemipour.no.vazheh.ui.screens.OddOneOutScreen
+import mohaamadreza.saemipour.no.vazheh.ui.screens.OddOneOutViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.screens.QuizScreen
+import mohaamadreza.saemipour.no.vazheh.ui.screens.ShadowMatchScreen
+import mohaamadreza.saemipour.no.vazheh.ui.screens.ShadowMatchViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.theme.AppTheme
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.AuthViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
@@ -40,6 +47,13 @@ import org.koin.compose.viewmodel.koinViewModel
 @Preview
 fun App() {
     AppTheme {
+        // Configure the global Coil ImageLoader once so every AsyncImage in the
+        // app benefits from a persistent disk cache + in-memory cache.
+        val platformContext = LocalPlatformContext.current
+        remember(platformContext) {
+            SingletonImageLoader.setSafe { newImageLoader(platformContext) }
+        }
+
         val navController = rememberNavController()
 
         val authViewModel: AuthViewModel = koinViewModel()
@@ -144,6 +158,29 @@ fun App() {
                 val viewModel: ColorSortingViewModel = koinViewModel()
                 OrientationWrapper(Orientation.Vertical) {
                     ColorSortingScreen(
+                        navController = navController,
+                        viewModel = viewModel
+                    )
+                }
+            }
+            composable(
+                route = "shadow-match/{categoryId}",
+                arguments = listOf(navArgument("categoryId") { type = NavType.IntType })
+            ) { backStackEntry ->
+                val categoryId = backStackEntry.arguments?.read { getInt("categoryId") } ?: 0
+                val viewModel: ShadowMatchViewModel = koinViewModel()
+                OrientationWrapper(Orientation.Vertical) {
+                    ShadowMatchScreen(
+                        navController = navController,
+                        viewModel = viewModel,
+                        categoryId = categoryId
+                    )
+                }
+            }
+            composable("odd-one-out") {
+                val viewModel: OddOneOutViewModel = koinViewModel()
+                OrientationWrapper(Orientation.Vertical) {
+                    OddOneOutScreen(
                         navController = navController,
                         viewModel = viewModel
                     )

@@ -130,6 +130,25 @@ fun ChildScreen(
                 )
             }
 
+            Spacer(Modifier.size(12.dp))
+
+            // Game cards - row 3 (Shadow Match + Odd One Out)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                ShadowMatchCard(
+                    modifier = Modifier.weight(1f),
+                    onClick = { pickerGameType = GameType.Shadow }
+                )
+                OddOneOutCard(
+                    modifier = Modifier.weight(1f),
+                    onClick = { navController.navigate("odd-one-out") }
+                )
+            }
+
             Spacer(Modifier.size(16.dp))
             Text(
                 modifier = Modifier.padding(horizontal = 24.dp),
@@ -204,6 +223,7 @@ fun ChildScreen(
                             quizViewModel.startQuiz(category.id, selectedChild?.id ?: 0, 5)
                             navController.navigate("quiz")
                         }
+                        GameType.Shadow -> navController.navigate("shadow-match/${category.id}")
                     }
                 },
                 onCombinedPicked = {
@@ -214,6 +234,7 @@ fun ChildScreen(
                             quizViewModel.startCombinedQuiz(selectedChild?.id ?: 0, 5)
                             navController.navigate("quiz")
                         }
+                        GameType.Shadow -> navController.navigate("shadow-match/$COMBINED_CATEGORY_ID")
                     }
                 }
             )
@@ -221,7 +242,7 @@ fun ChildScreen(
     }
 }
 
-private enum class GameType { Memory, Quiz }
+private enum class GameType { Memory, Quiz, Shadow }
 
 @Composable
 private fun Categories(
@@ -486,7 +507,7 @@ private fun QuizGameCard(
                     color = MintGreen
                 )
                 Text(
-                    text = "گوش کن و جواب بده!",
+                    text = "گوش کن!",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.Gray
                 )
@@ -494,6 +515,107 @@ private fun QuizGameCard(
 
             Text(
                 text = "🎯",
+                fontSize = 28.sp
+            )
+        }
+    }
+}
+
+/**
+ * Shadow Match Game Card - دکمه‌ای برای رفتن به بازی سایه‌ها
+ */
+@Composable
+private fun ShadowMatchCard(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(80.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        border = BorderStroke(
+            width = 2.dp,
+            color = ShadowGameAccent
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "بازی سایه‌ها",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = ShadowGameAccent
+                )
+                Text(
+                    text = "سایه رو تطبیق بده!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+
+            Text(
+                text = "🌑",
+                fontSize = 28.sp
+            )
+        }
+    }
+}
+
+/**
+ * Odd One Out Game Card - دکمه‌ای برای رفتن به بازی «کدام متفاوت است؟»
+ * این بازی همیشه از همه دسته‌بندی‌ها استفاده می‌کند، پس بدون picker مستقیم باز می‌شود.
+ */
+@Composable
+private fun OddOneOutCard(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(80.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        border = BorderStroke(
+            width = 2.dp,
+            color = OddOneOutGameAccent
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "متفاوت کدومه؟",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = OddOneOutGameAccent
+                )
+                Text(
+                    text = "با بقیه فرق داره!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+
+            Text(
+                text = "🔍",
                 fontSize = 28.sp
             )
         }
@@ -517,14 +639,17 @@ private fun CategoryPickerDialog(
     val accent = when (gameType) {
         GameType.Memory -> Purple40
         GameType.Quiz -> MintGreen
+        GameType.Shadow -> ShadowGameAccent
     }
     val emoji = when (gameType) {
         GameType.Memory -> "🧠"
         GameType.Quiz -> "🎯"
+        GameType.Shadow -> "🌑"
     }
     val title = when (gameType) {
         GameType.Memory -> "بازی حافظه"
         GameType.Quiz -> "آزمون"
+        GameType.Shadow -> "بازی سایه‌ها"
     }
 
     Dialog(

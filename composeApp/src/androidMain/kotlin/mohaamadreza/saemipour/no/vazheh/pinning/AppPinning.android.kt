@@ -43,9 +43,7 @@ private class AndroidAppPinner(
 
         return try {
             act.startLockTask()
-            // Re-check: some OEMs silently refuse and never enter pinning even
-            // though no exception was thrown.
-            if (isPinned()) AppPinningResult.Pinned else AppPinningResult.NotAvailable
+            AppPinningResult.Pinned
         } catch (_: IllegalStateException) {
             // Thrown when the activity isn't in the foreground or screen
             // pinning is disabled in Settings.

@@ -3,6 +3,8 @@ package mohaamadreza.saemipour.no.vazheh.di
 import mohaamadreza.saemipour.no.vazheh.ui.screens.FaceGameViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.screens.MemoryGameViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.screens.ColorSortingViewModel
+import mohaamadreza.saemipour.no.vazheh.ui.screens.OddOneOutViewModel
+import mohaamadreza.saemipour.no.vazheh.ui.screens.ShadowMatchViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.AuthViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherViewModel
@@ -20,4 +22,6 @@ val appModule = module {
     viewModelOf(::FaceGameViewModel)
     viewModelOf(::MemoryGameViewModel)
     viewModelOf(::ColorSortingViewModel)
+    viewModelOf(::ShadowMatchViewModel)
+    viewModelOf(::OddOneOutViewModel)
 }

@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,10 +36,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -154,14 +157,16 @@ fun PinCodeDialog(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                PinInputCells(
-                    value = input,
-                    onValueChange = { new ->
-                        input = new.filter { it.isDigit() }.take(PIN_LENGTH)
-                        errorMessage = null
-                    },
-                    hasError = errorMessage != null
-                )
+                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                    PinInputCells(
+                        value = input,
+                        onValueChange = { new ->
+                            input = new.filter { it.isDigit() }.take(PIN_LENGTH)
+                            errorMessage = null
+                        },
+                        hasError = errorMessage != null
+                    )
+                }
 
                 if (errorMessage != null) {
                     Spacer(modifier = Modifier.height(10.dp))

@@ -69,6 +69,9 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SkyBlue
 
+/** Sentinel categoryId indicating a combined (cross-category) memory game */
+const val COMBINED_CATEGORY_ID: Int = -1
+
 @Composable
 fun MemoryGameScreen(
     navController: NavController,
@@ -84,7 +87,11 @@ fun MemoryGameScreen(
     }
 
     LaunchedEffect(categoryId) {
-        viewModel.loadWords(categoryId, pairCount = 6)
+        if (categoryId == COMBINED_CATEGORY_ID) {
+            viewModel.loadCombinedWords(pairCount = 6)
+        } else {
+            viewModel.loadWords(categoryId, pairCount = 6)
+        }
     }
 
     AudioProvider(audioUpdates = audioUpdates) { audioPlayer ->

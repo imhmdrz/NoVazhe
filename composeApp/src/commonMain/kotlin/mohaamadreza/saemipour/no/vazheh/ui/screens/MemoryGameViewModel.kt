@@ -50,7 +50,10 @@ class MemoryGameViewModel(
     var currentMatchedWord by mutableStateOf<WordDTO?>(null)
         private set
 
+    private var lastMode: LoadMode = LoadMode.None
+
     fun loadWords(categoryId: Int, pairCount: Int = 6) {
+        lastMode = LoadMode.Single(categoryId, pairCount)
         isLoading = true
         errorMessage = null
 
@@ -71,6 +74,54 @@ class MemoryGameViewModel(
                 }
             )
         }
+    }
+
+    /**
+     * Load words from all categories combined for a mixed memory game
+     * بارگذاری کلمات از همه دسته‌بندی‌ها برای بازی حافظه ترکیبی
+     */
+    fun loadCombinedWords(pairCount: Int = 6) {
+        lastMode = LoadMode.Combined(pairCount)
+        isLoading = true
+        errorMessage = null
+
+        viewModelScope.launch {
+            contentRepository.getAllCategories().fold(
+                onSuccess = { categoriesResponse ->
+                    val categories = categoriesResponse.data
+                    if (!categoriesResponse.success || categories.isEmpty()) {
+                        errorMessage = "دسته‌بندی‌ای برای بازی ترکیبی یافت نشد"
+                        isLoading = false
+                        return@fold
+                    }
+
+                    val allWords = mutableListOf<WordDTO>()
+                    for (category in categories) {
+                        contentRepository.getWordsByCategory(category.id).onSuccess { resp ->
+                            if (resp.success) allWords.addAll(resp.data)
+                        }
+                    }
+
+                    if (allWords.isEmpty()) {
+                        errorMessage = "کلمه‌ای برای بازی ترکیبی یافت نشد"
+                    } else {
+                        val words = allWords.distinctBy { it.id }.shuffled().take(pairCount)
+                        setupGame(words)
+                    }
+                    isLoading = false
+                },
+                onFailure = { exception ->
+                    errorMessage = "خطا در بارگذاری: ${exception.message ?: "خطای نامشخص"}"
+                    isLoading = false
+                }
+            )
+        }
+    }
+
+    private sealed class LoadMode {
+        data object None : LoadMode()
+        data class Single(val categoryId: Int, val pairCount: Int) : LoadMode()
+        data class Combined(val pairCount: Int) : LoadMode()
     }
 
     private fun setupGame(words: List<WordDTO>) {
@@ -149,13 +200,23 @@ class MemoryGameViewModel(
     }
 
     fun resetGame() {
-        val currentWords = cards.map { it.word }.distinctBy { it.id }
-        if (currentWords.isNotEmpty()) {
-            setupGame(currentWords)
+        when (val mode = lastMode) {
+            is LoadMode.Combined -> loadCombinedWords(mode.pairCount)
+            is LoadMode.Single, LoadMode.None -> {
+                val currentWords = cards.map { it.word }.distinctBy { it.id }
+                if (currentWords.isNotEmpty()) {
+                    setupGame(currentWords)
+                }
+            }
         }
     }
 
     fun retry() {
         errorMessage = null
+        when (val mode = lastMode) {
+            is LoadMode.Combined -> loadCombinedWords(mode.pairCount)
+            is LoadMode.Single -> loadWords(mode.categoryId, mode.pairCount)
+            LoadMode.None -> { /* nothing to retry */ }
+        }
     }
 }

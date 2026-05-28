@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import mohaamadreza.saemipour.no.vazheh.AppLogger
+import mohaamadreza.saemipour.no.vazheh.data.ContentRepository
+import mohaamadreza.saemipour.no.vazheh.data.QuizQuestionDTO
 import mohaamadreza.saemipour.no.vazheh.data.QuizRepository
 import mohaamadreza.saemipour.no.vazheh.data.SubmitQuizRequest
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.QuizUiState
@@ -16,7 +18,8 @@ import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.QuizUiState
  * مدیریت آزمون - صوت کلمه پخش می‌شود و فرزند کلمه درست را انتخاب می‌کند
  */
 class QuizViewModel(
-    private val quizRepository: QuizRepository
+    private val quizRepository: QuizRepository,
+    private val contentRepository: ContentRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QuizUiState())
@@ -76,6 +79,91 @@ class QuizViewModel(
                         it.copy(
                             isLoadingQuestions = false,
                             errorMessage = "خطا در بارگذاری سوالات: ${exception.message ?: "خطای نامشخص"}"
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    /**
+     * Start a combined quiz session pulling questions from all categories
+     * شروع یک جلسه آزمون ترکیبی - سوالات از همه دسته‌بندی‌ها
+     *
+     * @param childId شناسه فرزند
+     * @param questionCount تعداد سوالات (پیش‌فرض: 5)
+     */
+    fun startCombinedQuiz(childId: Int, questionCount: Int = 5) {
+        _uiState.update {
+            it.copy(
+                childId = childId,
+                categoryId = COMBINED_CATEGORY_ID,
+                questions = emptyList(),
+                currentQuestionIndex = 0,
+                selectedOptionId = null,
+                isAnswerSubmitted = false,
+                lastAnswerCorrect = null,
+                correctWordFa = null,
+                isLoadingQuestions = true,
+                isQuizCompleted = false,
+                totalCorrect = 0,
+                totalAnswered = 0,
+                errorMessage = null
+            )
+        }
+
+        viewModelScope.launch {
+            contentRepository.getAllCategories().fold(
+                onSuccess = { categoriesResponse ->
+                    val categories = categoriesResponse.data
+                    if (!categoriesResponse.success || categories.isEmpty()) {
+                        _uiState.update {
+                            it.copy(
+                                isLoadingQuestions = false,
+                                errorMessage = "دسته‌بندی‌ای برای آزمون ترکیبی یافت نشد"
+                            )
+                        }
+                        return@fold
+                    }
+
+                    val perCategory = (questionCount / categories.size).coerceAtLeast(1)
+                    val collected = mutableListOf<QuizQuestionDTO>()
+
+                    for (category in categories) {
+                        val result = quizRepository.getQuizQuestions(
+                            categoryId = category.id,
+                            childId = childId,
+                            count = perCategory
+                        )
+                        result.onSuccess { listResp ->
+                            if (listResp.success) collected.addAll(listResp.data)
+                        }
+                    }
+
+                    val finalQuestions = collected.shuffled().take(questionCount)
+
+                    if (finalQuestions.isEmpty()) {
+                        _uiState.update {
+                            it.copy(
+                                isLoadingQuestions = false,
+                                errorMessage = "سوالی برای آزمون ترکیبی یافت نشد"
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                questions = finalQuestions,
+                                isLoadingQuestions = false
+                            )
+                        }
+                    }
+                },
+                onFailure = { exception ->
+                    AppLogger.d("QuizViewModel", "Error loading categories for combined quiz: ${exception.message}")
+                    _uiState.update {
+                        it.copy(
+                            isLoadingQuestions = false,
+                            errorMessage = "خطا در بارگذاری دسته‌بندی‌ها: ${exception.message ?: "خطای نامشخص"}"
                         )
                     }
                 }
@@ -259,10 +347,19 @@ class QuizViewModel(
     fun retry() {
         val categoryId = _uiState.value.categoryId
         val childId = _uiState.value.childId
-        
-        if (categoryId != null && childId != null) {
-            startQuiz(categoryId, childId)
+
+        if (childId != null) {
+            if (categoryId == COMBINED_CATEGORY_ID) {
+                startCombinedQuiz(childId)
+            } else if (categoryId != null) {
+                startQuiz(categoryId, childId)
+            }
         }
+    }
+
+    companion object {
+        /** Sentinel categoryId indicating a combined (cross-category) quiz session */
+        const val COMBINED_CATEGORY_ID = -1
     }
 }
 

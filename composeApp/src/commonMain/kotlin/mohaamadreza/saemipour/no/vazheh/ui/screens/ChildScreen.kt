@@ -2,6 +2,7 @@ package mohaamadreza.saemipour.no.vazheh.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -65,10 +67,8 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.peachPink
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.QuizViewModel
 import novazheh.composeapp.generated.resources.Res
-import novazheh.composeapp.generated.resources.category
 import novazheh.composeapp.generated.resources.icon
 import org.jetbrains.compose.resources.painterResource
-import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -80,10 +80,10 @@ fun ChildScreen(
     BackHandler {}
     val uiState by viewModel.uiState.collectAsState()
     val selectedChild = uiState.selectedChild
-    
-    // Dialog state for mode selection
-    var showModeDialog by remember { mutableStateOf(false) }
-    var selectedCategory by remember { mutableStateOf<CategoryDTO?>(null) }
+
+    // Dialog state for picking a category (or combined) when launching
+    // Memory Game or Quiz Game directly from the top row
+    var pickerGameType by remember { mutableStateOf<GameType?>(null) }
 
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -93,31 +93,47 @@ fun ChildScreen(
             )
 
             Spacer(Modifier.size(16.dp))
-            
-            // Game cards row
+
+            // Game cards - row 1
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Face Game Button
                 FaceGameCard(
                     modifier = Modifier.weight(1f),
                     onClick = { navController.navigate("face-game") }
                 )
-                
-                // Color Sorting Game Button
                 ColorSortingCard(
                     modifier = Modifier.weight(1f),
                     onClick = { navController.navigate("color-sorting") }
                 )
             }
-            
+
+            Spacer(Modifier.size(12.dp))
+
+            // Game cards - row 2 (Memory & Quiz - launch with category picker)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                MemoryGameCard(
+                    modifier = Modifier.weight(1f),
+                    onClick = { pickerGameType = GameType.Memory }
+                )
+                QuizGameCard(
+                    modifier = Modifier.weight(1f),
+                    onClick = { pickerGameType = GameType.Quiz }
+                )
+            }
+
             Spacer(Modifier.size(16.dp))
             Text(
                 modifier = Modifier.padding(horizontal = 24.dp),
-                text = stringResource(Res.string.category),
+                text = "آموزش",
                 style = MaterialTheme.typography.headlineLarge
             )
 
@@ -164,39 +180,40 @@ fun ChildScreen(
                     Categories(
                         categories = uiState.categories,
                         onCategoryClick = { category ->
-                            selectedCategory = category
-                            showModeDialog = true
+                            viewModel.onCategorySelected(category)
+                            navController.navigate("game")
                         }
                     )
                 }
             }
         }
-        
-        // Mode selection dialog
-        if (showModeDialog && selectedCategory != null) {
-            ModeSelectionDialog(
-                categoryName = selectedCategory?.nameFa ?: "",
-                onDismiss = { showModeDialog = false },
-                onGameMode = {
-                    showModeDialog = false
-                    selectedCategory?.let { category ->
-                        viewModel.onCategorySelected(category)
-                        navController.navigate("game")
+
+        // Category picker dialog for the top-row Memory / Quiz buttons
+        // (lets the user pick a single category or play a combined session)
+        pickerGameType?.let { gameType ->
+            CategoryPickerDialog(
+                gameType = gameType,
+                categories = uiState.categories,
+                onDismiss = { pickerGameType = null },
+                onCategoryPicked = { category ->
+                    pickerGameType = null
+                    when (gameType) {
+                        GameType.Memory -> navController.navigate("memory-game/${category.id}")
+                        GameType.Quiz -> {
+                            viewModel.onCategorySelected(category)
+                            quizViewModel.startQuiz(category.id, selectedChild?.id ?: 0, 5)
+                            navController.navigate("quiz")
+                        }
                     }
                 },
-                onQuizMode = {
-                    showModeDialog = false
-                    selectedCategory?.let { category ->
-                        viewModel.onCategorySelected(category)
-                        val childId = selectedChild?.id ?: 0
-                        quizViewModel.startQuiz(category.id, childId, 5)
-                        navController.navigate("quiz")
-                    }
-                },
-                onMemoryMode = {
-                    showModeDialog = false
-                    selectedCategory?.let { category ->
-                        navController.navigate("memory-game/${category.id}")
+                onCombinedPicked = {
+                    pickerGameType = null
+                    when (gameType) {
+                        GameType.Memory -> navController.navigate("memory-game/$COMBINED_CATEGORY_ID")
+                        GameType.Quiz -> {
+                            quizViewModel.startCombinedQuiz(selectedChild?.id ?: 0, 5)
+                            navController.navigate("quiz")
+                        }
                     }
                 }
             )
@@ -204,158 +221,7 @@ fun ChildScreen(
     }
 }
 
-/**
- * Dialog for selecting between Game (learning), Quiz, and Memory mode
- * دیالوگ انتخاب بین حالت یادگیری، آزمون و بازی حافظه
- */
-@Composable
-private fun ModeSelectionDialog(
-    categoryName: String,
-    onDismiss: () -> Unit,
-    onGameMode: () -> Unit,
-    onQuizMode: () -> Unit,
-    onMemoryMode: () -> Unit
-) {
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false)
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .padding(16.dp),
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                // Title
-                Text(
-                    text = "📚 $categoryName",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
-                )
-                
-                Spacer(Modifier.height(8.dp))
-                
-                Text(
-                    text = "چی می‌خوای انجام بدی؟",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = Color.Gray,
-                    textAlign = TextAlign.Center
-                )
-                
-                Spacer(Modifier.height(24.dp))
-                
-                // Mode buttons - first row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Learning Mode
-                    ModeCard(
-                        modifier = Modifier.weight(1f),
-                        emoji = "🎮",
-                        title = "یادگیری",
-                        description = "کلمه‌ها رو ببین و یاد بگیر",
-                        backgroundColor = SkyBlue,
-                        onClick = onGameMode
-                    )
-                    
-                    // Quiz Mode
-                    ModeCard(
-                        modifier = Modifier.weight(1f),
-                        emoji = "🎯",
-                        title = "آزمون",
-                        description = "صدا رو گوش کن و جواب بده",
-                        backgroundColor = MintGreen,
-                        onClick = onQuizMode
-                    )
-                }
-                
-                Spacer(Modifier.height(12.dp))
-                
-                // Memory Game Mode
-                ModeCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    emoji = "🧠",
-                    title = "بازی حافظه",
-                    description = "جفت‌های مشابه رو پیدا کن!",
-                    backgroundColor = Purple40,
-                    onClick = onMemoryMode
-                )
-                
-                Spacer(Modifier.height(16.dp))
-                
-                // Cancel button
-                TextButton(onClick = onDismiss) {
-                    Text(
-                        text = "انصراف",
-                        color = Color.Gray
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ModeCard(
-    modifier: Modifier = Modifier,
-    emoji: String,
-    title: String,
-    description: String,
-    backgroundColor: Color,
-    onClick: () -> Unit
-) {
-    Card(
-        modifier = modifier
-            .height(140.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = backgroundColor.copy(alpha = 0.15f)
-        )
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = emoji,
-                fontSize = 36.sp
-            )
-            
-            Spacer(Modifier.height(8.dp))
-            
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = backgroundColor
-            )
-            
-            Spacer(Modifier.height(4.dp))
-            
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.Gray,
-                textAlign = TextAlign.Center,
-                maxLines = 2
-            )
-        }
-    }
-}
+private enum class GameType { Memory, Quiz }
 
 @Composable
 private fun Categories(
@@ -531,5 +397,324 @@ private fun ColorSortingCard(
                 fontSize = 28.sp
             )
         }
+    }
+}
+
+/**
+ * Memory Game Card - دکمه‌ای برای رفتن به بازی حافظه
+ */
+@Composable
+private fun MemoryGameCard(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(80.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        border = BorderStroke(
+            width = 2.dp,
+            color = Purple40
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "بازی حافظه",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Purple40
+                )
+                Text(
+                    text = "جفت‌های مشابه!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+
+            Text(
+                text = "🧠",
+                fontSize = 28.sp
+            )
+        }
+    }
+}
+
+/**
+ * Quiz Game Card - دکمه‌ای برای رفتن به آزمون
+ */
+@Composable
+private fun QuizGameCard(
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier
+            .height(80.dp)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        border = BorderStroke(
+            width = 2.dp,
+            color = MintGreen
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column {
+                Text(
+                    text = "آزمون",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MintGreen
+                )
+                Text(
+                    text = "گوش کن و جواب بده!",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
+                )
+            }
+
+            Text(
+                text = "🎯",
+                fontSize = 28.sp
+            )
+        }
+    }
+}
+
+/**
+ * Dialog that lets the user pick a category (or play a combined session
+ * pulling from all categories) when launching the Memory or Quiz game
+ * from the top game-cards row.
+ * دیالوگ انتخاب دسته‌بندی یا حالت ترکیبی برای بازی حافظه و آزمون
+ */
+@Composable
+private fun CategoryPickerDialog(
+    gameType: GameType,
+    categories: List<CategoryDTO>,
+    onDismiss: () -> Unit,
+    onCategoryPicked: (CategoryDTO) -> Unit,
+    onCombinedPicked: () -> Unit
+) {
+    val accent = when (gameType) {
+        GameType.Memory -> Purple40
+        GameType.Quiz -> MintGreen
+    }
+    val emoji = when (gameType) {
+        GameType.Memory -> "🧠"
+        GameType.Quiz -> "🎯"
+    }
+    val title = when (gameType) {
+        GameType.Memory -> "بازی حافظه"
+        GameType.Quiz -> "آزمون"
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.92f)
+                .padding(16.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "$emoji $title",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = accent,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(Modifier.height(4.dp))
+
+                Text(
+                    text = "یک دسته‌بندی انتخاب کن یا بازی ترکیبی رو شروع کن",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                // Combined option (all categories together)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onCombinedPicked),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = accent.copy(alpha = 0.12f)
+                    ),
+                    border = BorderStroke(2.dp, accent)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "🎲 ترکیبی همه",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = accent
+                            )
+                            Text(
+                                text = "از همه دسته‌بندی‌ها با هم",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color.Gray
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = accent,
+                            modifier = Modifier.size(24.dp).rotate(180f)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                Text(
+                    text = "یا یک دسته‌بندی انتخاب کن:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 4.dp),
+                    textAlign = TextAlign.Start
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                if (categories.isEmpty()) {
+                    Text(
+                        text = "دسته‌بندی‌ای موجود نیست",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                } else {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.heightIn(max = 320.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(categories) { category ->
+                            CategoryPickItem(
+                                category = category,
+                                accent = accent,
+                                onClick = { onCategoryPicked(category) }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                TextButton(onClick = onDismiss) {
+                    Text(text = "انصراف", color = Color.Gray)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Compact version of [CategoryItem] used inside [CategoryPickerDialog].
+ * Shows the category image as a background with the name overlay,
+ * mirroring [CategoryItem] but at a smaller size.
+ */
+@Composable
+private fun CategoryPickItem(
+    category: CategoryDTO,
+    accent: Color,
+    onClick: () -> Unit
+) {
+    val imageRequest = ImageRequest.Builder(LocalPlatformContext.current)
+        .data(category.iconUrl)
+        .crossfade(true)
+        .build()
+
+    val painter = rememberAsyncImagePainter(model = imageRequest)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(84.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        // Background image from URL
+        Image(
+            painter = painter,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(14.dp))
+        )
+
+        // Accent border overlay
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .border(
+                    width = 1.5.dp,
+                    color = accent.copy(alpha = 0.6f),
+                    shape = RoundedCornerShape(14.dp)
+                )
+        )
+
+        // Icon overlay (smaller)
+        Image(
+            painter = painterResource(Res.drawable.icon),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(6.dp)
+                .size(20.dp),
+            contentDescription = null,
+        )
+
+        // Text overlay
+        Text(
+            text = category.nameFa,
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .align(Alignment.TopStart)
+                .padding(8.dp),
+        )
     }
 }

@@ -1,6 +1,7 @@
 package mohaamadreza.saemipour.no.vazheh.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -28,7 +29,9 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,10 +45,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import mohaamadreza.saemipour.no.vazheh.data.TokenStorage
+import mohaamadreza.saemipour.no.vazheh.pinning.AppPinningResult
+import mohaamadreza.saemipour.no.vazheh.pinning.rememberAppPinner
+import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
+import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SoftGray
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
+import org.koin.compose.koinInject
 
 /**
  * Dialog showing parents how to enable screen lock for kids mode
@@ -85,6 +94,12 @@ fun KidsModeGuideDialog(
                     fontWeight = FontWeight.Bold,
                     color = DarkText
                 )
+
+                // Quick-action buttons sit at the top so the mother can pin/unpin
+                // with one tap without scrolling through the brand guide first.
+                PinActionsSection(isAndroid = isAndroid)
+
+                Spacer(modifier = Modifier.height(20.dp))
                 
                 Spacer(modifier = Modifier.height(8.dp))
                 
@@ -94,34 +109,305 @@ fun KidsModeGuideDialog(
                     color = MutedText,
                     textAlign = TextAlign.Center
                 )
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                if (isAndroid) {
-                    AndroidGuide()
-                } else {
-                    IOSGuide()
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Wrap the platform-specific guide in a single top-level dropdown
+                // so the dialog stays compact by default. The parent acts as
+                // "Show me the step-by-step guide" and the brand sub-cards are
+                // collapsed too — so first paint is just a stack of headers.
+                ParentGuideDropdown(
+                    title = if (isAndroid) {
+                        "📱 اندروید - پین کردن صفحه (Screen Pinning / App Pin)"
+                    } else {
+                        "🍎 آیفون/آیپد - دسترسی هدایت‌شده (Guided Access)"
+                    }
+                ) {
+                    if (isAndroid) {
+                        AndroidGuide()
+                    } else {
+                        IOSGuide()
+                    }
                 }
-                
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Button(
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                TextButton(
                     onClick = onDismiss,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = TealPurple)
+                        .height(44.dp)
                 ) {
                     Text(
                         text = "متوجه شدم",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color = TealPurple
                     )
                 }
             }
         }
+    }
+}
+
+/**
+ * Top-of-dialog quick actions. On Android the mother gets a primary "pin now"
+ * button (calls [Activity.startLockTask]) and a secondary "unpin"
+ * (`stopLockTask`) button side-by-side, plus a status banner that reflects
+ * the most recent action. On iOS both buttons are hidden because there's no
+ * public Guided Access API — the user gets a one-time informational banner.
+ *
+ * Both pin and unpin actions are gated behind a 4-digit PIN. If no PIN is set
+ * yet, the first time the parent taps either button we walk them through
+ * creating one. A "🔑 تغییر رمز" link is also exposed so the parent can rotate
+ * the PIN later.
+ */
+@Composable
+private fun PinActionsSection(isAndroid: Boolean) {
+    val pinner = rememberAppPinner()
+    val tokenStorage = koinInject<TokenStorage>()
+    var status by remember { mutableStateOf<PinActionStatus?>(null) }
+
+    // Re-read on each composition pass so the "تغییر رمز" label flips after
+    // the user sets a PIN for the first time.
+    var hasPin by remember { mutableStateOf(tokenStorage.hasKidsPin()) }
+
+    // Which action the user wanted to perform; we only trigger it after the
+    // PIN has been verified (or set, for first-time users).
+    var pendingAction by remember { mutableStateOf<PendingPinAction?>(null) }
+    var showPinDialog by remember { mutableStateOf(false) }
+    var pinDialogMode by remember { mutableStateOf<PinCodeMode>(PinCodeMode.Create) }
+
+    fun executePending(action: PendingPinAction) {
+        when (action) {
+            PendingPinAction.Pin ->
+                status = PinActionStatus.fromPin(pinner.pin())
+            PendingPinAction.Unpin ->
+                status = if (pinner.unpin()) PinActionStatus.Unpinned else PinActionStatus.UnpinFailed
+            PendingPinAction.SetPin, PendingPinAction.ChangePin -> Unit
+        }
+    }
+
+    /**
+     * Entry point for the pin / unpin / change-pin buttons. Decides whether
+     * the user should be sent through a Create flow (no PIN yet), a Verify
+     * flow (existing PIN), or a Change flow (rotating the PIN).
+     */
+    fun requestAction(action: PendingPinAction) {
+        pendingAction = action
+        val existing = tokenStorage.getKidsPin()
+        pinDialogMode = when {
+            action == PendingPinAction.ChangePin && existing != null ->
+                PinCodeMode.Change(existing)
+            action == PendingPinAction.ChangePin && existing == null ->
+                PinCodeMode.Create
+            existing == null -> PinCodeMode.Create
+            else -> PinCodeMode.Verify(existing)
+        }
+        showPinDialog = true
+    }
+
+    // On iOS surface the "not supported" hint up-front so the mother knows the
+    // top buttons aren't applicable to her device.
+    LaunchedEffect(isAndroid) {
+        if (!isAndroid) {
+            status = PinActionStatus.UnsupportedPlatform
+        }
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        if (isAndroid) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Button(
+                    onClick = { requestAction(PendingPinAction.Pin) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = TealPurple)
+                ) {
+                    Text(
+                        text = "📌 قفل کن",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
+
+                Button(
+                    onClick = { requestAction(PendingPinAction.Unpin) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = TealPurple
+                    ),
+                    border = BorderStroke(width = 1.5.dp, color = TealPurple)
+                ) {
+                    Text(
+                        text = "🔓 خروج از قفل",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = TealPurple
+                    )
+                }
+            }
+
+            // PIN management link — set the PIN explicitly or change it later.
+            TextButton(
+                onClick = {
+                    requestAction(
+                        if (hasPin) PendingPinAction.ChangePin
+                        else PendingPinAction.SetPin
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = if (hasPin) "🔑 تغییر رمز" else "🔑 تعیین رمز ۴ رقمی",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TealPurple
+                )
+            }
+        }
+
+        // Status banner reflecting the most recent action
+        when (status) {
+            PinActionStatus.Pinned -> StatusBanner(
+                text = "✅ برنامه پین شد! برای خروج روی «خروج از پین» بزنید و رمز را وارد کنید.",
+                color = MintGreen
+            )
+            PinActionStatus.Unpinned -> StatusBanner(
+                text = "🔓 پین برنامه برداشته شد.",
+                color = MintGreen
+            )
+            PinActionStatus.PinSet -> StatusBanner(
+                text = "🔑 رمز ۴ رقمی با موفقیت تنظیم شد.",
+                color = MintGreen
+            )
+            PinActionStatus.PinChanged -> StatusBanner(
+                text = "🔑 رمز با موفقیت تغییر کرد.",
+                color = MintGreen
+            )
+            PinActionStatus.NotAvailable -> StatusBanner(
+                text = "⚠️ هنوز پین کردن برنامه در تنظیمات گوشی فعال نیست. ابتدا مطابق راهنمای زیر آن را روشن کنید.",
+                color = CoralRed
+            )
+            PinActionStatus.UnsupportedPlatform -> StatusBanner(
+                text = "ℹ️ پین کردن خودکار روی iOS پشتیبانی نمی‌شود. لطفاً از مسیر دستی Guided Access استفاده کنید.",
+                color = MutedText
+            )
+            PinActionStatus.PinFailed -> StatusBanner(
+                text = "❌ پین کردن انجام نشد. لطفاً مطابق راهنمای زیر تنظیمات گوشی را بررسی کنید.",
+                color = CoralRed
+            )
+            PinActionStatus.UnpinFailed -> StatusBanner(
+                text = "❌ خروج از پین انجام نشد. اگر برنامه پین نیست، نیازی به این عمل ندارید.",
+                color = CoralRed
+            )
+            null -> Unit
+        }
+    }
+
+    if (showPinDialog) {
+        PinCodeDialog(
+            mode = pinDialogMode,
+            onDismiss = {
+                showPinDialog = false
+                pendingAction = null
+            },
+            onSuccess = { enteredPin ->
+                showPinDialog = false
+                val action = pendingAction
+                pendingAction = null
+
+                when (pinDialogMode) {
+                    is PinCodeMode.Verify -> {
+                        // Existing PIN matched — run the pending action.
+                        action?.let { executePending(it) }
+                    }
+                    PinCodeMode.Create -> {
+                        // First-time setup. Persist the new PIN, then either run
+                        // the action the user was trying to perform, or just
+                        // confirm that the PIN was saved.
+                        tokenStorage.saveKidsPin(enteredPin)
+                        hasPin = true
+                        when (action) {
+                            PendingPinAction.Pin, PendingPinAction.Unpin ->
+                                executePending(action)
+                            PendingPinAction.SetPin, PendingPinAction.ChangePin, null ->
+                                status = PinActionStatus.PinSet
+                        }
+                    }
+                    is PinCodeMode.Change -> {
+                        // The dialog verified the old PIN itself, then walked
+                        // the user through choosing a new one; here it hands
+                        // back the new PIN.
+                        tokenStorage.saveKidsPin(enteredPin)
+                        hasPin = true
+                        status = PinActionStatus.PinChanged
+                    }
+                }
+            }
+        )
+    }
+}
+
+private enum class PendingPinAction { Pin, Unpin, SetPin, ChangePin }
+
+/**
+ * Local UI status enum that merges pin / unpin / pin-management outcomes
+ * into a single state so the banner only ever shows the most recent action.
+ */
+private enum class PinActionStatus {
+    Pinned,
+    Unpinned,
+    PinSet,
+    PinChanged,
+    NotAvailable,
+    UnsupportedPlatform,
+    PinFailed,
+    UnpinFailed;
+
+    companion object {
+        fun fromPin(result: AppPinningResult): PinActionStatus = when (result) {
+            AppPinningResult.Pinned -> Pinned
+            AppPinningResult.NotAvailable -> NotAvailable
+            AppPinningResult.Unsupported -> UnsupportedPlatform
+            AppPinningResult.Failed -> PinFailed
+        }
+    }
+}
+
+@Composable
+private fun StatusBanner(text: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = color.copy(alpha = 0.10f),
+                shape = RoundedCornerShape(10.dp)
+            )
+            .border(
+                width = 1.dp,
+                color = color.copy(alpha = 0.5f),
+                shape = RoundedCornerShape(10.dp)
+            )
+            .padding(12.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = color
+        )
     }
 }
 
@@ -131,13 +417,6 @@ private fun AndroidGuide() {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = "📱 اندروید - پین کردن صفحه (Screen Pinning / App Pin)",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = TealPurple
-        )
-
         Text(
             text = "مسیر فعال‌سازی روی هر گوشی متفاوت است. برند گوشی خود را انتخاب کنید:",
             style = MaterialTheme.typography.bodySmall,
@@ -242,6 +521,65 @@ private fun AndroidGuide() {
 }
 
 /**
+ * Top-level collapsible container that wraps the whole platform-specific
+ * guide ([AndroidGuide] / [IOSGuide]). The brand-specific accordions are
+ * already collapsed inside, so the entire guide tree is hidden behind a
+ * single tap by default — keeping the dialog short on first render.
+ */
+@Composable
+private fun ParentGuideDropdown(
+    title: String,
+    content: @Composable () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(
+                width = 1.5.dp,
+                color = TealPurple.copy(alpha = 0.4f),
+                shape = RoundedCornerShape(14.dp)
+            )
+            .background(
+                color = TealPurple.copy(alpha = 0.04f),
+                shape = RoundedCornerShape(14.dp)
+            )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(horizontal = 14.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = TealPurple,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "بستن راهنما" else "نمایش راهنما",
+                tint = TealPurple
+            )
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 12.dp, end = 12.dp, bottom = 12.dp)
+            ) {
+                content()
+            }
+        }
+    }
+}
+
+/**
  * Collapsible per-brand section. Brands are collapsed by default so the dialog
  * doesn't overwhelm the parent with text — she taps the brand that matches her
  * phone to expand the exact steps.
@@ -325,13 +663,6 @@ private fun IOSGuide() {
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = "🍎 آیفون/آیپد - دسترسی هدایت‌شده (Guided Access)",
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = TealPurple
-        )
-        
         GuideStep(
             number = 1,
             text = "به تنظیمات > دسترسی‌پذیری > دسترسی هدایت‌شده بروید"

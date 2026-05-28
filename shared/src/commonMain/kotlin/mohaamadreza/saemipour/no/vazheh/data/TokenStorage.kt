@@ -13,6 +13,7 @@ class TokenStorage(private val settings: Settings) {
         private const val KEY_USERNAME = "username"
         private const val KEY_DISPLAY_NAME = "display_name"
         private const val KEY_TIMER_DURATION_MINUTES = "timer_duration_minutes"
+        private const val KEY_KIDS_PIN = "kids_mode_pin"
         private const val DEFAULT_TIMER_DURATION = 10
     }
 
@@ -68,5 +69,27 @@ class TokenStorage(private val settings: Settings) {
 
     fun getTimerDuration(): Int {
         return settings.getInt(KEY_TIMER_DURATION_MINUTES, DEFAULT_TIMER_DURATION)
+    }
+
+    // ==================== Kids Mode PIN ====================
+    // 4-digit PIN that gates app pinning / unpinning from the kids-mode dialog.
+    // Stored as plaintext on purpose — this is a soft lock to prevent a child
+    // from tapping the buttons themselves, not a security boundary. Anyone with
+    // file-system access can already read this prefs file regardless.
+
+    fun saveKidsPin(pin: String) {
+        settings.putString(KEY_KIDS_PIN, pin)
+    }
+
+    fun getKidsPin(): String? {
+        return settings.getStringOrNull(KEY_KIDS_PIN)
+    }
+
+    fun hasKidsPin(): Boolean {
+        return !getKidsPin().isNullOrBlank()
+    }
+
+    fun clearKidsPin() {
+        settings.remove(KEY_KIDS_PIN)
     }
 }

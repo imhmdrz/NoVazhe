@@ -32,8 +32,8 @@ class QuizRepository(
         childId: Int? = null
     ): Result<ApiResponse<QuizQuestionDTO>> {
         return try {
+            // Questions are public — guests (no token) can play; send auth only if present.
             val token = tokenStorage.getToken()
-                ?: return Result.failure(Exception("No token found"))
 
             val url = buildString {
                 append("${ApiConfig.BASE_URL}${ApiConfig.QUIZ_QUESTION}")
@@ -46,7 +46,7 @@ class QuizRepository(
             val response: ApiResponse<QuizQuestionDTO> =
                 httpClient
                     .get(url) {
-                        header(HttpHeaders.Authorization, "Bearer $token")
+                        if (token != null) header(HttpHeaders.Authorization, "Bearer $token")
                     }
                     .body()
             Result.success(response)
@@ -69,8 +69,8 @@ class QuizRepository(
         count: Int = 5
     ): Result<ListResponse<QuizQuestionDTO>> {
         return try {
+            // Questions are public — guests (no token) can play; send auth only if present.
             val token = tokenStorage.getToken()
-                ?: return Result.failure(Exception("No token found"))
 
             val url = buildString {
                 append("${ApiConfig.BASE_URL}${ApiConfig.QUIZ_QUESTIONS}")
@@ -84,7 +84,7 @@ class QuizRepository(
             val response: ListResponse<QuizQuestionDTO> =
                 httpClient
                     .get(url) {
-                        header(HttpHeaders.Authorization, "Bearer $token")
+                        if (token != null) header(HttpHeaders.Authorization, "Bearer $token")
                     }
                     .body()
             Result.success(response)

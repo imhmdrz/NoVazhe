@@ -101,13 +101,13 @@ fun ChildScreen(
                     .padding(horizontal = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                QuizGameCard(
+                    modifier = Modifier.weight(1f),
+                    onClick = { pickerGameType = GameType.Quiz }
+                )
                 FaceGameCard(
                     modifier = Modifier.weight(1f),
                     onClick = { navController.navigate("face-game") }
-                )
-                ColorSortingCard(
-                    modifier = Modifier.weight(1f),
-                    onClick = { navController.navigate("color-sorting") }
                 )
             }
 
@@ -124,9 +124,9 @@ fun ChildScreen(
                     modifier = Modifier.weight(1f),
                     onClick = { pickerGameType = GameType.Memory }
                 )
-                QuizGameCard(
+                ColorSortingCard(
                     modifier = Modifier.weight(1f),
-                    onClick = { pickerGameType = GameType.Quiz }
+                    onClick = { navController.navigate("color-sorting") }
                 )
             }
 
@@ -220,7 +220,7 @@ fun ChildScreen(
                         GameType.Memory -> navController.navigate("memory-game/${category.id}")
                         GameType.Quiz -> {
                             viewModel.onCategorySelected(category)
-                            quizViewModel.startQuiz(category.id, selectedChild?.id ?: 0, 5)
+                            quizViewModel.startQuiz(category.id, selectedChild?.id, 5)
                             navController.navigate("quiz")
                         }
                         GameType.Shadow -> navController.navigate("shadow-match/${category.id}")
@@ -231,7 +231,7 @@ fun ChildScreen(
                     when (gameType) {
                         GameType.Memory -> navController.navigate("memory-game/$COMBINED_CATEGORY_ID")
                         GameType.Quiz -> {
-                            quizViewModel.startCombinedQuiz(selectedChild?.id ?: 0, 5)
+                            quizViewModel.startCombinedQuiz(selectedChild?.id, 5)
                             navController.navigate("quiz")
                         }
                         GameType.Shadow -> navController.navigate("shadow-match/$COMBINED_CATEGORY_ID")

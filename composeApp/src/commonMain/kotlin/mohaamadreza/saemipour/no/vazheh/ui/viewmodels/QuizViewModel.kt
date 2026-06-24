@@ -35,7 +35,7 @@ class QuizViewModel(
      * @param childId شناسه فرزند
      * @param questionCount تعداد سوالات (پیش‌فرض: 5)
      */
-    fun startQuiz(categoryId: Int, childId: Int, questionCount: Int = 5) {
+    fun startQuiz(categoryId: Int, childId: Int?, questionCount: Int = 5) {
         _uiState.update {
             it.copy(
                 childId = childId,
@@ -93,7 +93,7 @@ class QuizViewModel(
      * @param childId شناسه فرزند
      * @param questionCount تعداد سوالات (پیش‌فرض: 5)
      */
-    fun startCombinedQuiz(childId: Int, questionCount: Int = 5) {
+    fun startCombinedQuiz(childId: Int?, questionCount: Int = 5) {
         _uiState.update {
             it.copy(
                 childId = childId,
@@ -240,52 +240,39 @@ class QuizViewModel(
      */
     fun submitAnswer() {
         val currentState = _uiState.value
-        val childId = currentState.childId ?: return
         val currentQuestion = currentState.currentQuestion ?: return
         val selectedOptionId = currentState.selectedOptionId ?: return
+        val childId = currentState.childId
 
-        _uiState.update { it.copy(isSubmittingAnswer = true) }
+        // Correctness is known client-side (the question carries the correct wordId), so the
+        // result shows instantly and the game works for guests without any server round-trip.
+        val isCorrect = selectedOptionId == currentQuestion.wordId
+        val correctWordFa = currentQuestion.options
+            .firstOrNull { it.wordId == currentQuestion.wordId }?.wordFa
 
-        viewModelScope.launch {
-            val request = SubmitQuizRequest(
-                childId = childId,
-                wordId = currentQuestion.wordId,
-                selectedWordId = selectedOptionId
+        _uiState.update {
+            it.copy(
+                isSubmittingAnswer = false,
+                isAnswerSubmitted = true,
+                lastAnswerCorrect = isCorrect,
+                correctWordFa = correctWordFa,
+                totalCorrect = it.totalCorrect + if (isCorrect) 1 else 0,
+                totalAnswered = it.totalAnswered + 1
             )
+        }
 
-            quizRepository.submitQuizAnswer(request).fold(
-                onSuccess = { response ->
-                    if (response.success && response.data != null) {
-                        val result = response.data ?: return@launch
-                        _uiState.update {
-                            it.copy(
-                                isSubmittingAnswer = false,
-                                isAnswerSubmitted = true,
-                                lastAnswerCorrect = result.isCorrect,
-                                correctWordFa = result.correctWordFa,
-                                totalCorrect = it.totalCorrect + if (result.isCorrect) 1 else 0,
-                                totalAnswered = it.totalAnswered + 1
-                            )
-                        }
-                    } else {
-                        _uiState.update {
-                            it.copy(
-                                isSubmittingAnswer = false,
-                                errorMessage = response.message
-                            )
-                        }
-                    }
-                },
-                onFailure = { exception ->
-                    AppLogger.d("QuizViewModel", "Error submitting answer: ${exception.message}")
-                    _uiState.update {
-                        it.copy(
-                            isSubmittingAnswer = false,
-                            errorMessage = "خطا در ثبت پاسخ: ${exception.message ?: "خطای نامشخص"}"
-                        )
-                    }
+        // Record progress on the server only for a logged-in child; best-effort, never blocks play.
+        if (childId != null) {
+            viewModelScope.launch {
+                val request = SubmitQuizRequest(
+                    childId = childId,
+                    wordId = currentQuestion.wordId,
+                    selectedWordId = selectedOptionId
+                )
+                quizRepository.submitQuizAnswer(request).onFailure { exception ->
+                    AppLogger.d("QuizViewModel", "Error recording quiz progress: ${exception.message}")
                 }
-            )
+            }
         }
     }
 
@@ -348,12 +335,11 @@ class QuizViewModel(
         val categoryId = _uiState.value.categoryId
         val childId = _uiState.value.childId
 
-        if (childId != null) {
-            if (categoryId == COMBINED_CATEGORY_ID) {
-                startCombinedQuiz(childId)
-            } else if (categoryId != null) {
-                startQuiz(categoryId, childId)
-            }
+        // childId may be null for guests — that's fine, the quiz still loads.
+        if (categoryId == COMBINED_CATEGORY_ID) {
+            startCombinedQuiz(childId)
+        } else if (categoryId != null) {
+            startQuiz(categoryId, childId)
         }
     }
 

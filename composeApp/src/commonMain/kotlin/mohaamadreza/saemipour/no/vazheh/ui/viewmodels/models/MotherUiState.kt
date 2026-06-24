@@ -9,6 +9,9 @@ import mohaamadreza.saemipour.no.vazheh.data.CustomWordDTO
 data class MotherUiState(
     val username: String = "",
     val displayName: String = "",
+    // Whether a parent account is logged in. Drives the locked Profile tab — guests
+    // can use the dashboard/games but must log in to reach Profile/settings.
+    val isLoggedIn: Boolean = false,
     val selectedTab: MotherTab = MotherTab.DASHBOARD,
     
     // Children states using sealed classes

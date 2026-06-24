@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.Person
@@ -151,7 +152,9 @@ fun MotherScreen(
                 bottomBar = {
                     MotherBottomNavigation(
                         selectedTab = uiState.selectedTab,
-                        onTabSelected = viewModel::onTabSelected
+                        isLoggedIn = uiState.isLoggedIn,
+                        onTabSelected = viewModel::onTabSelected,
+                        onRequireLogin = { navController.navigate("auth") }
                     )
                 }
             ) { paddingValues ->
@@ -168,7 +171,7 @@ fun MotherScreen(
                             quizViewModel = quizViewModel
                         )
 
-                        MotherTab.PROFILE -> ProfileContent(
+                        MotherTab.PROFILE -> if (uiState.isLoggedIn) ProfileContent(
                             username = uiState.username,
                             displayName = uiState.displayName,
                             timerDurationMinutes = childUiState.timerDurationMinutes,
@@ -176,10 +179,8 @@ fun MotherScreen(
                                 childViewModel.setTimerDuration(minutes)
                             },
                             onLogout = {
+                                // Stay in the app as a guest; the Profile tab re-locks.
                                 viewModel.logout()
-                                navController.navigate("auth") {
-                                    popUpTo(0) { inclusive = true }
-                                }
                             },
                             childrenState = uiState.childrenState,
                             customWordsState = uiState.customWordsState,
@@ -213,6 +214,8 @@ fun MotherScreen(
                             onDeleteCustomWord = { wordId ->
                                 viewModel.deleteCustomWord(wordId)
                             }
+                        ) else GuestProfilePrompt(
+                            onLogin = { navController.navigate("auth") }
                         )
                     }
                 }
@@ -236,7 +239,9 @@ fun MotherScreen(
 @Composable
 private fun MotherBottomNavigation(
     selectedTab: MotherTab,
-    onTabSelected: (MotherTab) -> Unit
+    isLoggedIn: Boolean,
+    onTabSelected: (MotherTab) -> Unit,
+    onRequireLogin: () -> Unit
 ) {
     NavigationBar(
         containerColor = Color.White,
@@ -269,18 +274,25 @@ private fun MotherBottomNavigation(
         )
 
         NavigationBarItem(
-            selected = selectedTab == MotherTab.PROFILE,
-            onClick = { onTabSelected(MotherTab.PROFILE) },
+            selected = selectedTab == MotherTab.PROFILE && isLoggedIn,
+            // Guests must log in before reaching settings — tapping it opens the login screen.
+            onClick = {
+                if (isLoggedIn) onTabSelected(MotherTab.PROFILE) else onRequireLogin()
+            },
             icon = {
                 Icon(
-                    imageVector = if (selectedTab == MotherTab.PROFILE) Icons.Filled.Person else Icons.Outlined.Person,
-                    contentDescription = "تنظیمات",
+                    imageVector = when {
+                        !isLoggedIn -> Icons.Filled.Lock
+                        selectedTab == MotherTab.PROFILE -> Icons.Filled.Person
+                        else -> Icons.Outlined.Person
+                    },
+                    contentDescription = if (isLoggedIn) "تنظیمات" else "ورود",
                     modifier = Modifier.size(28.dp)
                 )
             },
             label = {
                 Text(
-                    text = "تنظیمات",
+                    text = if (isLoggedIn) "تنظیمات" else "ورود",
                     fontWeight = if (selectedTab == MotherTab.PROFILE) FontWeight.Bold else FontWeight.Normal
                 )
             },
@@ -292,6 +304,57 @@ private fun MotherBottomNavigation(
                 indicatorColor = TealPurple.copy(alpha = 0.08f)
             )
         )
+    }
+}
+
+// ==================== GUEST PROMPT ====================
+
+/**
+ * Shown on the Profile tab for guests (not logged in). Settings/children require an
+ * account, so this nudges the user to log in. The tab itself is normally locked, so
+ * this also acts as a safety net if the Profile tab is ever reached while logged out.
+ */
+@Composable
+private fun GuestProfilePrompt(onLogin: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(text = "🔒", style = MaterialTheme.typography.displaySmall)
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "برای دسترسی به تنظیمات وارد شوید",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = DarkText
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "بازی‌ها بدون ورود هم در دسترس هستند؛ برای مدیریت فرزندان و کلمات باید وارد شوید.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MutedText,
+            modifier = Modifier.fillMaxWidth(),
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(24.dp))
+        Button(
+            onClick = onLogin,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(16.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = TealPurple)
+        ) {
+            Text(
+                text = "ورود به حساب کاربری",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.White
+            )
+        }
     }
 }
 

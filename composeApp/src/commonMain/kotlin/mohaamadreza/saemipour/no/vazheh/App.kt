@@ -64,7 +64,9 @@ fun App() {
         val navController = rememberNavController()
 
         val authViewModel: AuthViewModel = koinViewModel()
-        val startDestination = remember { if (authViewModel.isLoggedIn()) "mother" else "auth" }
+        // The app always opens on the (guest-capable) dashboard; logging in is only
+        // required to reach the Profile tab.
+        val startDestination = remember { "mother" }
 
         // Shared ChildViewModel across child and game screens
         val childViewModel: ChildViewModel = koinViewModel()
@@ -79,22 +81,23 @@ fun App() {
             AuthStateManager.authEvents.collect { event ->
                 when (event) {
                     is AuthEvent.Unauthorized -> {
-                        // Token is invalid - clear storage and navigate to login
-                        // توکن نامعتبر است - پاک کردن و رفتن به صفحه ورود
-                        AppLogger.d("App", "Unauthorized - navigating to auth screen")
+                        // Token is invalid/expired - clear it and drop back to the guest
+                        // dashboard (not a login wall). توکن نامعتبر - بازگشت به داشبورد مهمان
+                        AppLogger.d("App", "Unauthorized - returning to guest dashboard")
                         authViewModel.forceLogout()
-                        navController.navigate("auth") {
+                        motherViewModel.retry()
+                        navController.navigate("mother") {
                             popUpTo(0) { inclusive = true }
                         }
                     }
                     is AuthEvent.LoggedOut -> {
-                        // User logged out - navigate to login
-                        navController.navigate("auth") {
-                            popUpTo(0) { inclusive = true }
-                        }
+                        // Logout keeps the user in the app as a guest; just refresh so the
+                        // Profile tab re-locks. خروج: ماندن در برنامه به‌صورت مهمان
+                        motherViewModel.retry()
                     }
                     is AuthEvent.LoggedIn -> {
-                        // User logged in - handled by individual screens
+                        // Refresh so the Profile tab unlocks; AuthScreen handles navigation.
+                        motherViewModel.retry()
                     }
                 }
             }

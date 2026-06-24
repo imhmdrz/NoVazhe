@@ -75,34 +75,6 @@ object AuthService {
         }
     }
 
-    /** Test mode without login - allows app testing without authentication تست بدون ورود */
-    fun testWithoutLogin(): AuthResponse {
-        return transaction {
-            // Create or get test user
-            val testUsername = "test_user"
-            val existingTestUser = Parents.selectAll()
-                    .where { Parents.username eq testUsername }
-                    .singleOrNull()
-
-            val parentId = existingTestUser?.let { it[Parents.id].value }
-                    ?: run {
-                        // Create test user if it doesn't exist
-                        Parents.insertAndGetId {
-                            it[username] = testUsername
-                            it[passwordHash] = PasswordUtils.hashPassword("test123")
-                            it[displayName] = "Test User"
-                            it[createdAt] = LocalDateTime.now()
-                            it[updatedAt] = LocalDateTime.now()
-                        }.value
-                    }
-
-            val token = JwtConfig.makeToken(parentId)
-            val parent = getParentById(parentId)
-
-            AuthResponse(true, "تست بدون ورود فعال شد", token, parent)
-        }
-    }
-
     /** Get parent by ID */
     fun getParentById(parentId: Int): ParentDTO? {
         return transaction {

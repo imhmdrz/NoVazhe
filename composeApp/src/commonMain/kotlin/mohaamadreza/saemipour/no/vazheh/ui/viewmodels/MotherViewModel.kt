@@ -38,9 +38,33 @@ class MotherViewModel(
     val uiState = _uiState.asStateFlow()
 
     init {
-        loadChildren()
-        loadCustomWords()
+        refresh()
+    }
+
+    /**
+     * Re-read the login state and (re)load data accordingly. Categories are public
+     * (needed for the games), but children & custom words require a logged-in parent,
+     * so they're only loaded when authenticated. Called on init, on re-entering the
+     * screen, and after login/logout so the Profile tab locks/unlocks correctly.
+     */
+    fun refresh() {
+        val loggedIn = authRepository.isLoggedIn()
+        _uiState.update { it.copy(isLoggedIn = loggedIn) }
+        loadUserInfo()
         loadCategories()
+        if (loggedIn) {
+            loadChildren()
+            loadCustomWords()
+        } else {
+            // Drop any parent-only data so a guest never sees a previous session's children/words.
+            _uiState.update {
+                it.copy(
+                    childrenState = ChildrenState.Idle,
+                    customWordsState = CustomWordsState.Idle,
+                    selectedChild = null
+                )
+            }
+        }
     }
 
     fun loadUserInfo() {
@@ -60,6 +84,18 @@ class MotherViewModel(
 
     fun logout() {
         authRepository.logout()
+        // Become a guest immediately: lock Profile, clear parent data, return to dashboard.
+        _uiState.update {
+            it.copy(
+                isLoggedIn = false,
+                selectedTab = MotherTab.DASHBOARD,
+                username = "",
+                displayName = "",
+                childrenState = ChildrenState.Idle,
+                customWordsState = CustomWordsState.Idle,
+                selectedChild = null
+            )
+        }
     }
 
     // ==================== Children Operations - عملیات فرزندان ====================
@@ -296,10 +332,7 @@ class MotherViewModel(
     }
 
     fun retry() {
-        loadUserInfo()
-        loadChildren()
-        loadCustomWords()
-        loadCategories()
+        refresh()
     }
 
     fun showAddChildDialog() {

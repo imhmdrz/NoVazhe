@@ -16,7 +16,6 @@ object ApiConfig {
     const val AUTH_LOGIN = "/api/auth/login"
     const val AUTH_REGISTER = "/api/auth/register"
     const val AUTH_ME = "/api/auth/me"
-    const val AUTH_TEST = "/api/auth/test-without-login"
 
     // Content endpoints
     const val CATEGORIES = "/api/categories"

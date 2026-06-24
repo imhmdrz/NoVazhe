@@ -2,17 +2,29 @@ package mohaamadreza.saemipour.no.vazheh.ui.components
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import io.github.alexzhirkevich.compottie.Compottie
 import io.github.alexzhirkevich.compottie.LottieCompositionSpec
 import io.github.alexzhirkevich.compottie.animateLottieCompositionAsState
@@ -76,6 +88,61 @@ fun WinCelebrationOverlay(
         CornerHorn(cornerPainter, Alignment.TopStart, 90f, cornerSize)
         CornerHorn(cornerPainter, Alignment.TopEnd, 180f, cornerSize)
         CornerHorn(cornerPainter, Alignment.BottomEnd, 270f, cornerSize)
+    }
+}
+
+/**
+ * A win dialog that shows the [WinCelebrationOverlay] *in front of* the dialog's dim scrim, so
+ * the animation stays bright instead of being washed out behind the dimmed window. The centered
+ * card mirrors a Material [androidx.compose.material3.AlertDialog] with [title]/[text]/[confirmButton]
+ * slots, so existing win dialogs can be converted by simply renaming the call.
+ */
+@Composable
+fun WinCelebrationDialog(
+    onDismissRequest: () -> Unit,
+    confirmButton: @Composable () -> Unit,
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    shape: Shape = RoundedCornerShape(24.dp),
+    title: (@Composable () -> Unit)? = null,
+    text: (@Composable () -> Unit)? = null,
+) {
+    Dialog(
+        onDismissRequest = onDismissRequest,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+            // Bright celebration, rendered in front of the dialog window's dim scrim.
+            WinCelebrationOverlay()
+
+            // The dialog card on top of the celebration.
+            Surface(
+                shape = shape,
+                color = containerColor,
+                tonalElevation = 6.dp,
+                modifier = modifier
+                    .padding(horizontal = 32.dp)
+                    .widthIn(min = 280.dp, max = 400.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    title?.let {
+                        it()
+                        Spacer(Modifier.height(16.dp))
+                    }
+                    text?.let {
+                        it()
+                        Spacer(Modifier.height(24.dp))
+                    }
+                    confirmButton()
+                }
+            }
+        }
     }
 }
 

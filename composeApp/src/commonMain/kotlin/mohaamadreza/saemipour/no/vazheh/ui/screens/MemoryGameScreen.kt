@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -63,7 +62,7 @@ import coil3.request.crossfade
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
-import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationOverlay
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationDialog
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
@@ -152,7 +151,6 @@ fun MemoryGameScreen(
                 }
 
                 if (viewModel.isWin) {
-                    WinCelebrationOverlay()
                     WinDialog(
                         moves = viewModel.moves,
                         onPlayAgain = { viewModel.resetGame() },
@@ -469,7 +467,7 @@ private fun WinDialog(
     onPlayAgain: () -> Unit,
     onBack: () -> Unit
 ) {
-    AlertDialog(
+    WinCelebrationDialog(
         onDismissRequest = { },
         containerColor = MintGreen,
         shape = RoundedCornerShape(24.dp),

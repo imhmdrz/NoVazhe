@@ -13,6 +13,7 @@ actual fun rememberAppPinner(): AppPinner = remember { IosAppPinner }
  */
 private object IosAppPinner : AppPinner {
     override fun pin(): AppPinningResult = AppPinningResult.Unsupported
+    override suspend fun pinAndAwait(timeoutMs: Long): AppPinningResult = AppPinningResult.Unsupported
     override fun unpin(): Boolean = false
     override fun isPinned(): Boolean = false
 }

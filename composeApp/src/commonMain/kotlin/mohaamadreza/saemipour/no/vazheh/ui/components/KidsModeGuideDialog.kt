@@ -35,6 +35,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.launch
 import mohaamadreza.saemipour.no.vazheh.data.TokenStorage
 import mohaamadreza.saemipour.no.vazheh.pinning.AppPinningResult
 import mohaamadreza.saemipour.no.vazheh.pinning.rememberAppPinner
@@ -65,6 +67,10 @@ fun KidsModeGuideDialog(
     onDismiss: () -> Unit,
     isAndroid: Boolean = true // Platform detection
 ) {
+    // The step-by-step guide stays hidden until the parent actually tries to pin
+    // and it fails. On iOS there's no programmatic pinning, so reveal it up-front.
+    var showGuide by remember { mutableStateOf(!isAndroid) }
+
     Dialog(onDismissRequest = onDismiss, DialogProperties(usePlatformDefaultWidth = false)) {
         Card(
             modifier = Modifier
@@ -95,38 +101,44 @@ fun KidsModeGuideDialog(
                     color = DarkText
                 )
 
-                // Quick-action buttons sit at the top so the mother can pin/unpin
-                // with one tap without scrolling through the brand guide first.
-                PinActionsSection(isAndroid = isAndroid)
-
                 Spacer(modifier = Modifier.height(20.dp))
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Text(
-                    text = "برای جلوگیری از خروج کودک از برنامه، مراحل زیر را انجام دهید:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MutedText,
-                    textAlign = TextAlign.Center
+                // Quick-action button sits at the top so the mother can pin/unpin
+                // with one tap without scrolling through the brand guide first.
+                PinActionsSection(
+                    isAndroid = isAndroid,
+                    onPinFailed = { showGuide = true }
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                // The brand guide only appears once pinning fails (or on iOS),
+                // so the dialog stays focused on the single action by default.
+                if (showGuide) {
+                    Spacer(modifier = Modifier.height(20.dp))
 
-                // Wrap the platform-specific guide in a single top-level dropdown
-                // so the dialog stays compact by default. The parent acts as
-                // "Show me the step-by-step guide" and the brand sub-cards are
-                // collapsed too — so first paint is just a stack of headers.
-                ParentGuideDropdown(
-                    title = if (isAndroid) {
-                        "📱 اندروید - پین کردن صفحه (Screen Pinning / App Pin)"
-                    } else {
-                        "🍎 آیفون/آیپد - دسترسی هدایت‌شده (Guided Access)"
-                    }
-                ) {
-                    if (isAndroid) {
-                        AndroidGuide()
-                    } else {
-                        IOSGuide()
+                    Text(
+                        text = "برای جلوگیری از خروج کودک از برنامه، مراحل زیر را انجام دهید:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MutedText,
+                        textAlign = TextAlign.Center
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Wrap the platform-specific guide in a single top-level dropdown
+                    // so the dialog stays compact by default. The parent acts as
+                    // "Show me the step-by-step guide" and the brand sub-cards are
+                    // collapsed too — so first paint is just a stack of headers.
+                    ParentGuideDropdown(
+                        title = if (isAndroid) {
+                            "📱 اندروید - پین کردن صفحه (Screen Pinning / App Pin)"
+                        } else {
+                            "🍎 آیفون/آیپد - دسترسی هدایت‌شده (Guided Access)"
+                        }
+                    ) {
+                        if (isAndroid) {
+                            AndroidGuide()
+                        } else {
+                            IOSGuide()
+                        }
                     }
                 }
 
@@ -163,10 +175,17 @@ fun KidsModeGuideDialog(
  * the PIN later.
  */
 @Composable
-private fun PinActionsSection(isAndroid: Boolean) {
+private fun PinActionsSection(
+    isAndroid: Boolean,
+    onPinFailed: () -> Unit
+) {
     val pinner = rememberAppPinner()
+    val scope = rememberCoroutineScope()
     val tokenStorage = koinInject<TokenStorage>()
     var status by remember { mutableStateOf<PinActionStatus?>(null) }
+
+    // Drives the single toggle button: "unlock" when the app is pinned, "lock" otherwise.
+    var isPinned by remember { mutableStateOf(pinner.isPinned()) }
 
     // Re-read on each composition pass so the "تغییر رمز" label flips after
     // the user sets a PIN for the first time.
@@ -181,9 +200,22 @@ private fun PinActionsSection(isAndroid: Boolean) {
     fun executePending(action: PendingPinAction) {
         when (action) {
             PendingPinAction.Pin ->
-                status = PinActionStatus.fromPin(pinner.pin())
-            PendingPinAction.Unpin ->
+                // startLockTask() doesn't block and there's no "user tapped OK" callback, so
+                // wait for the OS to actually report the pinned state before showing success.
+                scope.launch {
+                    val result = pinner.pinAndAwait()
+                    status = PinActionStatus.fromPin(result)
+                    isPinned = pinner.isPinned()
+                    // Pinning didn't engage (disabled in Settings, consent cancelled, OEM
+                    // quirk) — reveal the step-by-step guide so the parent can enable it.
+                    if (result == AppPinningResult.NotAvailable || result == AppPinningResult.Failed) {
+                        onPinFailed()
+                    }
+                }
+            PendingPinAction.Unpin -> {
                 status = if (pinner.unpin()) PinActionStatus.Unpinned else PinActionStatus.UnpinFailed
+                isPinned = pinner.isPinned()
+            }
             PendingPinAction.SetPin, PendingPinAction.ChangePin -> Unit
         }
     }
@@ -220,45 +252,31 @@ private fun PinActionsSection(isAndroid: Boolean) {
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         if (isAndroid) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Button(
-                    onClick = { requestAction(PendingPinAction.Pin) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = TealPurple)
-                ) {
-                    Text(
-                        text = "📌 قفل کن",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-
-                Button(
-                    onClick = { requestAction(PendingPinAction.Unpin) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(52.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
+            // Single toggle: shows "unlock" while pinned, "lock" otherwise.
+            Button(
+                onClick = {
+                    requestAction(if (isPinned) PendingPinAction.Unpin else PendingPinAction.Pin)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = if (isPinned) {
+                    ButtonDefaults.buttonColors(
                         containerColor = Color.White,
                         contentColor = TealPurple
-                    ),
-                    border = BorderStroke(width = 1.5.dp, color = TealPurple)
-                ) {
-                    Text(
-                        text = "🔓 خروج از قفل",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = TealPurple
                     )
-                }
+                } else {
+                    ButtonDefaults.buttonColors(containerColor = TealPurple)
+                },
+                border = if (isPinned) BorderStroke(width = 1.5.dp, color = TealPurple) else null
+            ) {
+                Text(
+                    text = if (isPinned) "🔓 خروج از قفل" else "📌 قفل کن",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isPinned) TealPurple else Color.White
+                )
             }
 
             // PIN management link — set the PIN explicitly or change it later.

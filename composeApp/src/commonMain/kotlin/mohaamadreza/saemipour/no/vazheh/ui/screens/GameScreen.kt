@@ -1,5 +1,6 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -253,9 +254,13 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                                         model = imageRequest
                                     )
 
+                                    // Shake the image while the word's audio is playing
+                                    val shakeAngle = rememberShakeRotation(active = isPlaying)
+
                                     if (isNumbersCategory) {
                                         Box(
                                             modifier = Modifier
+                                                .rotate(shakeAngle)
                                                 .heightIn(max = 250.dp)
                                                 .clip(RoundedCornerShape(24.dp))
                                                 .background(Color(0xFF9E9E9E))
@@ -272,7 +277,10 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                                         Image(
                                             painter = painter,
                                             contentDescription = null,
-                                            modifier = Modifier.heightIn(max = 250.dp).clip(RoundedCornerShape(24.dp))
+                                            modifier = Modifier
+                                                .rotate(shakeAngle)
+                                                .heightIn(max = 250.dp)
+                                                .clip(RoundedCornerShape(24.dp))
                                         )
                                     }
 
@@ -310,6 +318,29 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
             }
         }
     }
+}
+
+/**
+ * Produces a gentle back-and-forth "shake" rotation (in degrees) that loops while [active] is
+ * true and smoothly settles back to 0 when it stops. Used to make the word image wiggle while
+ * its audio is playing.
+ */
+@Composable
+private fun rememberShakeRotation(active: Boolean): Float {
+    val rotation = remember { Animatable(0f) }
+    LaunchedEffect(active) {
+        if (active) {
+            rotation.snapTo(0f)
+            repeat(3) {
+                rotation.animateTo(5f, tween(90))
+                rotation.animateTo(-5f, tween(180))
+                rotation.animateTo(0f, tween(90))
+            }
+        } else {
+            rotation.animateTo(0f, tween(200))
+        }
+    }
+    return rotation.value
 }
 
 /**

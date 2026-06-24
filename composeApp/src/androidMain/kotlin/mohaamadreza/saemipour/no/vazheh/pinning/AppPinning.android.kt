@@ -7,6 +7,8 @@ import android.os.Build
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 
 @Composable
 actual fun rememberAppPinner(): AppPinner {
@@ -53,6 +55,35 @@ private class AndroidAppPinner(
         } catch (_: Throwable) {
             AppPinningResult.Failed
         }
+    }
+
+    override suspend fun pinAndAwait(timeoutMs: Long): AppPinningResult {
+        val act = activity ?: return AppPinningResult.Failed
+        if (isPinned()) return AppPinningResult.Pinned
+
+        // Kick off the request. startLockTask() returns immediately — on OEMs that show the
+        // "OK / Got it" consent dialog we are NOT pinned yet at this point.
+        try {
+            act.startLockTask()
+        } catch (_: IllegalStateException) {
+            return AppPinningResult.NotAvailable
+        } catch (_: SecurityException) {
+            return AppPinningResult.NotAvailable
+        } catch (_: Throwable) {
+            return AppPinningResult.Failed
+        }
+
+        // There is no callback for the user tapping "OK", so poll the real lock-task state
+        // until it actually flips to pinned. A timeout means the user dismissed/cancelled the
+        // consent dialog (or pinning never engaged).
+        val pinned = withTimeoutOrNull(timeoutMs) {
+            while (!isPinned()) {
+                delay(150)
+            }
+            true
+        } ?: false
+
+        return if (pinned) AppPinningResult.Pinned else AppPinningResult.NotAvailable
     }
 
     override fun unpin(): Boolean {

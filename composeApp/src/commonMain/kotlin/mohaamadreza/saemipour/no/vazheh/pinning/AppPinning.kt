@@ -33,7 +33,28 @@ enum class AppPinningResult {
  * - On iOS: a stub that always returns [AppPinningResult.Unsupported].
  */
 interface AppPinner {
+    /**
+     * Requests screen pinning and returns *optimistically*: on Android this calls
+     * [Activity.startLockTask], which is non-blocking, so on OEMs that show a "OK / Got it"
+     * confirmation dialog the result is reported before the user has actually confirmed.
+     * Prefer [pinAndAwait] when you need to know the user really pinned.
+     */
     fun pin(): AppPinningResult
+
+    /**
+     * Requests screen pinning and then waits for the OS to actually enter the pinned state.
+     *
+     * `startLockTask()` does not block and there is no callback for the user tapping "OK" on
+     * the OEM screen-pinning consent dialog, so the only way to know the user confirmed is to
+     * observe [ActivityManager.getLockTaskModeState] flipping to pinned. This polls that state
+     * until it becomes pinned or [timeoutMs] elapses (the latter meaning the user dismissed /
+     * cancelled the consent dialog, or pinning is disabled in Settings).
+     *
+     * @return [AppPinningResult.Pinned] once the OS confirms pinning, otherwise the failure
+     *   reason (or [AppPinningResult.NotAvailable] on timeout).
+     */
+    suspend fun pinAndAwait(timeoutMs: Long = 6_000L): AppPinningResult
+
     fun unpin(): Boolean
     fun isPinned(): Boolean
 }

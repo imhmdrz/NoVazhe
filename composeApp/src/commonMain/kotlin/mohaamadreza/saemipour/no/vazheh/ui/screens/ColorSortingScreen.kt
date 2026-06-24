@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -65,7 +64,7 @@ import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
-import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationOverlay
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationDialog
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
@@ -269,7 +268,6 @@ fun ColorSortingScreen(
 
             // Win dialog
             if (viewModel.isWin) {
-                WinCelebrationOverlay()
                 WinDialog(
                     onPlayAgain = { viewModel.resetGame() },
                     onBack = { navController.popBackStack() }
@@ -602,7 +600,7 @@ private fun WinDialog(
     onPlayAgain: () -> Unit,
     onBack: () -> Unit
 ) {
-    AlertDialog(
+    WinCelebrationDialog(
         onDismissRequest = { },
         containerColor = MintGreen,
         shape = RoundedCornerShape(24.dp),

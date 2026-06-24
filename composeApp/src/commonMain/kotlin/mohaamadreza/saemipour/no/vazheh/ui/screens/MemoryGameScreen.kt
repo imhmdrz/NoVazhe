@@ -63,6 +63,7 @@ import coil3.request.crossfade
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationOverlay
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
@@ -151,6 +152,7 @@ fun MemoryGameScreen(
                 }
 
                 if (viewModel.isWin) {
+                    WinCelebrationOverlay()
                     WinDialog(
                         moves = viewModel.moves,
                         onPlayAgain = { viewModel.resetGame() },

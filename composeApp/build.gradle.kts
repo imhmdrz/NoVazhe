@@ -53,6 +53,7 @@ kotlin {
             implementation(libs.multiplatform.settings)
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.image.picker.kmp)
+            implementation(libs.compottie)
         }
         commonTest.dependencies { implementation(libs.kotlin.test) }
     }

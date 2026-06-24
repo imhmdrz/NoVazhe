@@ -79,7 +79,13 @@ class OddOneOutViewModel(
         viewModelScope.launch {
             contentRepository.getAllCategories().fold(
                 onSuccess = { categoriesResponse ->
-                    val categories = categoriesResponse.data
+                    val categories = categoriesResponse.data.filter { category ->
+                        val isNumbersCategory = category.nameEn.equals("Numbers", ignoreCase = true) ||
+                                category.nameEn.equals("Number", ignoreCase = true) ||
+                                category.nameFa.contains("عدد") ||
+                                category.nameFa.contains("اعداد")
+                        !isNumbersCategory
+                    }
                     if (!categoriesResponse.success || categories.isEmpty()) {
                         errorMessage = "دسته‌بندی‌ای برای این بازی یافت نشد"
                         isLoading = false

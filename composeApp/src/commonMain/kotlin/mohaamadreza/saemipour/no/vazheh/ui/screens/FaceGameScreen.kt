@@ -49,6 +49,7 @@ import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DragTarget
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationOverlay
 import mohaamadreza.saemipour.no.vazheh.ui.components.DragbleScreen
 import mohaamadreza.saemipour.no.vazheh.ui.components.DropItem
 import novazheh.composeapp.generated.resources.Res
@@ -303,6 +304,7 @@ fun FaceGameScreen(
 
             // Win Dialog
             if (viewModel.isWin) {
+                WinCelebrationOverlay()
                 AlertDialog(
                     onDismissRequest = { },
                     containerColor = Color(0xFF4CAF50),

@@ -79,6 +79,7 @@ import mohaamadreza.saemipour.no.vazheh.data.QuizOptionDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationOverlay
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
@@ -365,6 +366,11 @@ private fun QuizCompletedContent(
             ),
         contentAlignment = Alignment.Center
     ) {
+        // Celebration animation behind the result, only for winning scores
+        if (scorePercent >= 80) {
+            WinCelebrationOverlay()
+        }
+
         // Decorative rotating background circle
         Box(
             modifier = Modifier

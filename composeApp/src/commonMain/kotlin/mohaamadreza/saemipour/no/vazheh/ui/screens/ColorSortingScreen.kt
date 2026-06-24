@@ -10,7 +10,6 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -66,6 +65,7 @@ import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationOverlay
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
@@ -269,6 +269,7 @@ fun ColorSortingScreen(
 
             // Win dialog
             if (viewModel.isWin) {
+                WinCelebrationOverlay()
                 WinDialog(
                     onPlayAgain = { viewModel.resetGame() },
                     onBack = { navController.popBackStack() }
@@ -301,16 +302,10 @@ private fun ProgressCard(
             Text(text = "✅", fontSize = 28.sp)
             Spacer(Modifier.width(12.dp))
             Text(
-                text = "$sortedCount از $totalItems",
+                text = " مرتب شده ${sortedCount.toPersianDigits()} از ${totalItems.toPersianDigits()}",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MintGreen
-            )
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "مرتب شده",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
             )
         }
     }
@@ -671,3 +666,12 @@ private fun WinDialog(
         }
     )
 }
+
+private fun String.toPersianDigits(): String {
+    val persianDigits = charArrayOf('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹')
+    return this.map { ch ->
+        if (ch in '0'..'9') persianDigits[ch - '0'] else ch
+    }.joinToString("")
+}
+
+private fun Int.toPersianDigits(): String = this.toString().toPersianDigits()

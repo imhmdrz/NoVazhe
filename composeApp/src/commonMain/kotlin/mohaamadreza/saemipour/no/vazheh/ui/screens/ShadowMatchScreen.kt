@@ -67,6 +67,7 @@ import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationOverlay
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
@@ -153,6 +154,7 @@ fun ShadowMatchScreen(
                 }
 
                 if (viewModel.isWin) {
+                    WinCelebrationOverlay()
                     WinDialog(
                         stars = viewModel.stars,
                         totalRounds = viewModel.totalRounds,

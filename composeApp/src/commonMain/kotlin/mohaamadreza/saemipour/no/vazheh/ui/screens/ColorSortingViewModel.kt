@@ -168,7 +168,7 @@ class ColorSortingViewModel(
         GameColor.BROWN to listOf("🎈")
     )
 
-    fun setupGame(colorCount: Int = 4, itemsPerColor: Int = 2) {
+    fun setupGame(colorCount: Int = 4, itemsPerColor: Int = 1) {
         items.clear()
         baskets.clear()
         isWin = false

@@ -2,16 +2,22 @@ package mohaamadreza.saemipour.no.vazheh
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.savedstate.read
@@ -20,6 +26,7 @@ import coil3.compose.LocalPlatformContext
 import mohaamadreza.saemipour.no.vazheh.data.AuthEvent
 import mohaamadreza.saemipour.no.vazheh.data.AuthStateManager
 import mohaamadreza.saemipour.no.vazheh.image.newImageLoader
+import mohaamadreza.saemipour.no.vazheh.ui.components.AppPinToggle
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AddWordScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AuthScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.ColorSortingScreen
@@ -93,6 +100,10 @@ fun App() {
             }
         }
 
+        val navEntry by navController.currentBackStackEntryAsState()
+        val currentRoute = navEntry?.destination?.route
+
+        Box(modifier = Modifier.fillMaxSize()) {
         NavHost(
             modifier =
                 Modifier.fillMaxSize()
@@ -185,6 +196,17 @@ fun App() {
                         viewModel = viewModel
                     )
                 }
+            }
+        }
+
+            // Global lock/unlock padlock — shown everywhere except the auth screen.
+            if (currentRoute != null && currentRoute != "auth") {
+                AppPinToggle(
+                    refreshKey = currentRoute,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                )
             }
         }
     }

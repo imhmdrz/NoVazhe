@@ -1,6 +1,5 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,8 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items as gridItems
-import androidx.compose.foundation.lazy.items as listItems
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -105,6 +102,8 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateCategoryState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateCustomWordState
+import androidx.compose.foundation.lazy.grid.items as gridItems
+import androidx.compose.foundation.lazy.items as listItems
 
 /** Which step of the add-word flow is currently shown. */
 private enum class AddWordStep { Categories, Words, NewWord }
@@ -342,18 +341,6 @@ fun AddWordScreen(
             playerState = PlayerState()
         }
 
-        // After a word is added: notify, reset, return to the category's word list, reload
-        LaunchedEffect(uiState.createCustomWordState) {
-            if (uiState.createCustomWordState is CreateCustomWordState.Success) {
-                snackbarHostState.showSnackbar("کلمه با موفقیت اضافه شد")
-                viewModel.clearCreateCustomWordError()
-                resetWordForm()
-                showNewWordForm = false
-                selectedCategory?.let { viewModel.loadCategoryWords(it.id) }
-                viewModel.loadCustomWords()
-            }
-        }
-
         fun handleBack() {
             when (step) {
                 AddWordStep.NewWord -> {
@@ -365,6 +352,19 @@ fun AddWordScreen(
                     viewModel.clearCategoryWords()
                 }
                 AddWordStep.Categories -> navController.popBackStack()
+            }
+        }
+
+        // After a word is added: notify, reset, return to the category's word list, reload
+        LaunchedEffect(uiState.createCustomWordState) {
+            if (uiState.createCustomWordState is CreateCustomWordState.Success) {
+                snackbarHostState.showSnackbar("کلمه با موفقیت اضافه شد")
+                viewModel.clearCreateCustomWordError()
+                resetWordForm()
+                showNewWordForm = false
+                selectedCategory?.let { viewModel.loadCategoryWords(it.id) }
+                viewModel.loadCustomWords()
+                handleBack()
             }
         }
 

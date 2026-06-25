@@ -17,6 +17,7 @@ import mohaamadreza.saemipour.no.vazheh.data.CreateCustomWordRequest
 import mohaamadreza.saemipour.no.vazheh.data.Gender
 import mohaamadreza.saemipour.no.vazheh.data.UpdateChildRequest
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CategoriesState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CategoryWordsState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.ChildrenState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateCategoryState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateChildState
@@ -643,5 +644,47 @@ class MotherViewModel(
 
     fun clearCreateCategoryError() {
         _uiState.update { it.copy(createCategoryState = CreateCategoryState.Idle) }
+    }
+
+    // ==================== Category Words - کلمات یک دسته‌بندی ====================
+
+    /**
+     * Load the base/curated words for a single category (public endpoint), shown in the
+     * add-word manager when a category is opened. Parent-created custom words for the same
+     * category are merged in the UI from [MotherUiState.customWords].
+     * بارگذاری کلمات یک دسته‌بندی
+     */
+    fun loadCategoryWords(categoryId: Int) {
+        _uiState.update { it.copy(categoryWordsState = CategoryWordsState.Loading) }
+
+        viewModelScope.launch {
+            contentRepository.getWordsByCategory(categoryId).fold(
+                onSuccess = { response ->
+                    if (response.success) {
+                        _uiState.update {
+                            it.copy(categoryWordsState = CategoryWordsState.Success(response.data))
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(categoryWordsState = CategoryWordsState.Error("خطا در بارگذاری کلمات"))
+                        }
+                    }
+                },
+                onFailure = { exception ->
+                    AppLogger.d("MotherViewModel", "Error loading category words: ${exception.message}")
+                    _uiState.update {
+                        it.copy(
+                            categoryWordsState = CategoryWordsState.Error(
+                                "خطا در اتصال: ${exception.message ?: "خطای نامشخص"}"
+                            )
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    fun clearCategoryWords() {
+        _uiState.update { it.copy(categoryWordsState = CategoryWordsState.Idle) }
     }
 }

@@ -1,9 +1,9 @@
 package mohaamadreza.saemipour.no.vazheh.database.tables
 
-import java.time.LocalDateTime
 import org.jetbrains.exposed.dao.id.IntIdTable
 import org.jetbrains.exposed.sql.ReferenceOption
 import org.jetbrains.exposed.sql.javatime.datetime
+import java.time.LocalDateTime
 
 /** Parents table - Mother accounts (والدین) نام کاربری، پسورد و نام نمایشی */
 object Parents : IntIdTable("parents") {
@@ -31,7 +31,7 @@ object Children : IntIdTable("children") {
 object Categories : IntIdTable("categories") {
     val nameFa = varchar("name_fa", 100) // نام فارسی
     val nameEn = varchar("name_en", 100) // نام انگلیسی
-    val iconUrl = varchar("icon_url", 255).nullable()
+    val iconUrl = text("icon_url").nullable()
     val displayOrder = integer("display_order").default(0)
     val isActive = bool("is_active").default(true)
     val createdAt = datetime("created_at").default(LocalDateTime.now())
@@ -42,8 +42,8 @@ object Words : IntIdTable("words") {
     val categoryId = reference("category_id", Categories, onDelete = ReferenceOption.CASCADE)
     val wordFa = varchar("word_fa", 100) // کلمه فارسی
     val wordEn = varchar("word_en", 100) // کلمه انگلیسی
-    val imageUrl = varchar("image_url", 255).nullable() // تصویر کلمه
-    val audioUrl = varchar("audio_url", 255).nullable() // صوت کلمه
+    val imageUrl = text("image_url").nullable() // تصویر کلمه (base64 data URL)
+    val audioUrl = text("audio_url") // صوت ضبط شده توسط مادر (base64 data URL)
     val displayOrder = integer("display_order").default(0)
     val isActive = bool("is_active").default(true)
     val createdAt = datetime("created_at").default(LocalDateTime.now())

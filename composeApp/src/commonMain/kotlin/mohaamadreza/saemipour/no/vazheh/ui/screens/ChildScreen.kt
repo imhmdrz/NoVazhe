@@ -2,6 +2,7 @@ package mohaamadreza.saemipour.no.vazheh.ui.screens
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -43,6 +45,7 @@ import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -689,60 +692,6 @@ private fun CategoryPickerDialog(
 
                 Spacer(Modifier.height(16.dp))
 
-                // Combined option (all categories together)
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(onClick = onCombinedPicked),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = accent.copy(alpha = 0.12f)
-                    ),
-                    border = BorderStroke(2.dp, accent)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "🎲 ترکیبی همه",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = accent
-                            )
-                            Text(
-                                text = "از همه دسته‌بندی‌ها با هم",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.Gray
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            tint = accent,
-                            modifier = Modifier.size(24.dp).rotate(180f)
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                Text(
-                    text = "یا یک دسته‌بندی انتخاب کن:",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.Gray,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = 4.dp),
-                    textAlign = TextAlign.Start
-                )
-
-                Spacer(Modifier.height(8.dp))
-
                 if (categories.isEmpty()) {
                     Text(
                         text = "دسته‌بندی‌ای موجود نیست",
@@ -753,10 +702,19 @@ private fun CategoryPickerDialog(
                 } else {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(2),
-                        modifier = Modifier.heightIn(max = 320.dp),
+                        modifier = Modifier.heightIn(max = 360.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        // Combined "all categories" option, styled like a category tile,
+                        // sits first in the grid.
+                        item {
+                            CombinedPickItem(
+                                categories = categories,
+                                accent = accent,
+                                onClick = onCombinedPicked
+                            )
+                        }
                         items(categories) { category ->
                             CategoryPickItem(
                                 category = category,
@@ -774,6 +732,99 @@ private fun CategoryPickerDialog(
                 }
             }
         }
+    }
+}
+
+/**
+ * Grid tile for the "combined / all categories" option, sized like [CategoryPickItem].
+ * Its background is a 2×2 collage built from the first four categories' images (filling
+ * empty quadrants with the accent colour), under a dark scrim with a centered label.
+ * پس‌زمینه از تصاویر چند دسته‌بندی اول ساخته می‌شود
+ */
+@Composable
+private fun CombinedPickItem(
+    categories: List<CategoryDTO>,
+    accent: Color,
+    onClick: () -> Unit
+) {
+    val previews = categories.take(4)
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(84.dp)
+            .clip(RoundedCornerShape(14.dp))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        // 2×2 collage background from the first categories
+        Column(modifier = Modifier.fillMaxSize()) {
+            repeat(2) { row ->
+                Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+                    repeat(2) { col ->
+                        val category = previews.getOrNull(row * 2 + col)
+                        Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                            if (category != null) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(
+                                        model = ImageRequest.Builder(LocalPlatformContext.current)
+                                            .data(category.iconUrl)
+                                            .crossfade(true)
+                                            .build()
+                                    ),
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(accent.copy(alpha = 0.35f))
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Dark scrim so the label stays readable over the collage
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.4f))
+        )
+
+        Image(
+            painter = painterResource(Res.drawable.icon),
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(6.dp)
+                .size(20.dp),
+            contentDescription = null,
+        )
+
+        // Accent border to mark it as the special "combined" option
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .border(
+                    width = 2.dp,
+                    color = accent,
+                    shape = RoundedCornerShape(14.dp)
+                )
+        )
+
+        // Centered label
+        Text(
+            text = "🎲 ترکیبی",
+            style = MaterialTheme.typography.titleSmall.copy(shadow = Shadow()),
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 6.dp)
+        )
     }
 }
 

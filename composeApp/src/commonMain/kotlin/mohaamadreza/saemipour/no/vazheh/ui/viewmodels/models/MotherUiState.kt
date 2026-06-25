@@ -4,6 +4,7 @@ import androidx.compose.runtime.Stable
 import mohaamadreza.saemipour.no.vazheh.data.CategoryDTO
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.data.CustomWordDTO
+import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 
 @Stable
 data class MotherUiState(
@@ -28,6 +29,9 @@ data class MotherUiState(
     // Categories (used by the add-word flow to pick or create a category)
     val categoriesState: CategoriesState = CategoriesState.Idle,
     val createCategoryState: CreateCategoryState = CreateCategoryState.Idle,
+
+    // Base/curated words for the currently opened category (in the add-word manager)
+    val categoryWordsState: CategoryWordsState = CategoryWordsState.Idle,
 
     // Selected child
     val selectedChild: ChildDTO? = null,
@@ -103,6 +107,17 @@ data class MotherUiState(
 
     val createCategoryErrorMessage: String?
         get() = (createCategoryState as? CreateCategoryState.Error)?.message
+
+    // ==================== Category Words Helpers ====================
+
+    val categoryWords: List<WordDTO>
+        get() = (categoryWordsState as? CategoryWordsState.Success)?.words ?: emptyList()
+
+    val isLoadingCategoryWords: Boolean
+        get() = categoryWordsState is CategoryWordsState.Loading
+
+    val categoryWordsErrorMessage: String?
+        get() = (categoryWordsState as? CategoryWordsState.Error)?.message
 }
 
 @Stable
@@ -179,4 +194,13 @@ sealed class CreateCategoryState {
     data object Loading : CreateCategoryState()
     data class Success(val category: CategoryDTO) : CreateCategoryState()
     data class Error(val message: String) : CreateCategoryState()
+}
+
+// ==================== Category Words States ====================
+@Stable
+sealed class CategoryWordsState {
+    data object Idle : CategoryWordsState()
+    data object Loading : CategoryWordsState()
+    data class Success(val words: List<WordDTO>) : CategoryWordsState()
+    data class Error(val message: String) : CategoryWordsState()
 }

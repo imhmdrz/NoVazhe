@@ -59,6 +59,37 @@ data class WordProgressDTO(
     val accuracyPercent: Double
 )
 
+@Serializable
+data class ChildProgressStatsDTO(
+    val childId: Int,
+    val childName: String,
+    val totalWords: Int,
+    val learnedWords: Int,
+    val inProgressWords: Int,
+    val totalAttempts: Int,
+    val correctAttempts: Int,
+    val overallAccuracyPercent: Double,
+    val progressByCategory: List<CategoryProgressDTO>
+)
+
+@Serializable
+data class CategoryProgressDTO(
+    val categoryId: Int,
+    val categoryNameFa: String,
+    val categoryNameEn: String,
+    val totalWords: Int,
+    val learnedWords: Int,
+    val progressPercent: Double
+)
+
+@Serializable
+data class RecentQuizAttemptDTO(
+    val wordFa: String,
+    val wordEn: String,
+    val isCorrect: Boolean,
+    val attemptedAt: String
+)
+
 // ==================== Custom Word DTOs - کلمات سفارشی ====================
 
 @Serializable

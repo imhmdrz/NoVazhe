@@ -3,6 +3,7 @@ package mohaamadreza.saemipour.no.vazheh.di
 import mohaamadreza.saemipour.no.vazheh.data.AuthRepository
 import mohaamadreza.saemipour.no.vazheh.data.ChildRepository
 import mohaamadreza.saemipour.no.vazheh.data.ContentRepository
+import mohaamadreza.saemipour.no.vazheh.data.ProgressRepository
 import mohaamadreza.saemipour.no.vazheh.data.QuizRepository
 import mohaamadreza.saemipour.no.vazheh.data.TokenStorage
 import mohaamadreza.saemipour.no.vazheh.data.createSettings
@@ -23,4 +24,5 @@ val sharedModule = module {
     single { ContentRepository(get(), get()) }
     single { ChildRepository(get(), get()) }
     single { QuizRepository(get(), get()) }
+    single { ProgressRepository(get(), get()) }
 }

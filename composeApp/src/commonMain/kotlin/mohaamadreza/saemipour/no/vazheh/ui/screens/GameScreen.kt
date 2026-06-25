@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
@@ -53,6 +54,7 @@ import coil3.compose.rememberAsyncImagePainter
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import mohaamadreza.saemipour.no.vazheh.data.WordProgressDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
@@ -61,6 +63,7 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.QuizViewModel
 import novazheh.composeapp.generated.resources.Res
 import novazheh.composeapp.generated.resources.background
 import novazheh.composeapp.generated.resources.button
@@ -68,7 +71,11 @@ import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
+fun GameScreen(
+    navController: NavController,
+    viewModel: ChildViewModel,
+    quizViewModel: QuizViewModel
+) {
     val uiState by viewModel.uiState.collectAsState()
     
     var isPlaying by remember { mutableStateOf(false) }
@@ -111,8 +118,20 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
             currentWord?.audioUrl?.let {
                 player.play(it)
             }
+            // Load this word's learning progress for a logged-in child
+            if (uiState.hasChildId) {
+                currentWord?.let { viewModel.loadWordProgress(it.id) }
+            }
         }
-        
+
+        // Start a quiz on the current category for this child and open the quiz screen.
+        fun openCategoryQuiz() {
+            val category = uiState.selectedCategory ?: return
+            player.pause()
+            quizViewModel.startQuiz(category.id, uiState.selectedChild?.id, 5)
+            navController.navigate("quiz")
+        }
+
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Box(modifier = Modifier.fillMaxSize()) {
                 // Background
@@ -122,6 +141,29 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                     modifier = Modifier.fillMaxSize().zIndex(-1f),
                     contentScale = ContentScale.Crop,
                 )
+
+                // Category learning progress (logged-in child only), top-end corner
+                if (uiState.hasChildId) {
+                    uiState.selectedCategoryProgress?.let { progress ->
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(16.dp)
+                                .zIndex(10f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(color = MintGreen.copy(alpha = 0.9f))
+                                .clickable { openCategoryQuiz() }
+                                .padding(horizontal = 14.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "🎯 ${progress.learnedWords.toPersianDigits()} از ${progress.totalWords.toPersianDigits()} یاد گرفت",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
 
                 // Timer display at top-right corner
                 if (uiState.isTimerEnabled) {
@@ -295,6 +337,14 @@ fun GameScreen(navController: NavController, viewModel: ChildViewModel) {
                                         textAlign = TextAlign.Center,
                                     )
 
+                                    // Per-word learning progress (logged-in child only)
+                                    if (uiState.hasChildId) {
+                                        uiState.wordProgress?.let { wp ->
+                                            Spacer(modifier = Modifier.size(8.dp))
+                                            WordProgressBadge(wp, onClick = { openCategoryQuiz() })
+                                        }
+                                    }
+
                                     Spacer(modifier = Modifier.size(12.dp))
 
                                     // Audio play/pause button
@@ -342,6 +392,64 @@ private fun rememberShakeRotation(active: Boolean): Float {
     }
     return rotation.value
 }
+
+/**
+ * Number of correct answers needed for a word to count as "learned".
+ * Mirrors `LEARNED_THRESHOLD` in the server's QuizService — keep them in sync.
+ */
+private const val LEARNED_THRESHOLD = 3
+
+/**
+ * Learning-progress indicator under the word: a segmented bar with one segment per
+ * required correct answer ([LEARNED_THRESHOLD]). Segments fill green for each
+ * [WordProgressDTO.correctAttempts]; the rest stay empty gray (the remaining correct
+ * answers needed to learn the word). Total attempts are shown below.
+ */
+@Composable
+private fun WordProgressBadge(
+    progress: WordProgressDTO,
+    onClick: () -> Unit
+) {
+    val filled = progress.correctAttempts.coerceIn(0, LEARNED_THRESHOLD)
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(Color.White.copy(alpha = 0.85f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    ) {
+        if (progress.isLearned) {
+            Text("✅ یاد گرفتی",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = if (progress.isLearned) MintGreen else Purple40
+            )
+
+            Spacer(modifier = Modifier.size(6.dp))
+        }
+
+        // Segmented bar: green for each correct answer, gray for the remaining ones.
+        Row(horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+            repeat(LEARNED_THRESHOLD) { index ->
+                Box(
+                    modifier = Modifier
+                        .size(width = 28.dp, height = 10.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(if (index < filled) MintGreen else Color(0xFFD9D9D9))
+                )
+            }
+        }
+    }
+}
+
+private fun String.toPersianDigits(): String {
+    val persianDigits = charArrayOf('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹')
+    return this.map { ch -> if (ch in '0'..'9') persianDigits[ch - '0'] else ch }.joinToString("")
+}
+
+private fun Int.toPersianDigits(): String = this.toString().toPersianDigits()
 
 /**
  * Audio play/pause button for GameScreen

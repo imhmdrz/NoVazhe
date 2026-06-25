@@ -128,7 +128,11 @@ fun App() {
             }
             composable("game") {
                 OrientationWrapper(Orientation.Vertical) {
-                    GameScreen(navController = navController, viewModel = childViewModel)
+                    GameScreen(
+                        navController = navController,
+                        viewModel = childViewModel,
+                        quizViewModel = quizViewModel
+                    )
                 }
             }
             composable("mother") {

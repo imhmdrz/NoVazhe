@@ -12,12 +12,14 @@ import mohaamadreza.saemipour.no.vazheh.AppLogger
 import mohaamadreza.saemipour.no.vazheh.data.CategoryDTO
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.data.ContentRepository
+import mohaamadreza.saemipour.no.vazheh.data.ProgressRepository
 import mohaamadreza.saemipour.no.vazheh.data.TokenStorage
 import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.ChildUiState
 
 class ChildViewModel(
     private val contentRepository: ContentRepository,
+    private val progressRepository: ProgressRepository,
     private val tokenStorage: TokenStorage
 ) : ViewModel() {
 
@@ -96,6 +98,8 @@ class ChildViewModel(
                                 isLoadingWords = false
                             )
                         }
+                        // Refresh per-category/overall progress for the selected child
+                        loadProgressStats()
                     } else {
                         _uiState.update {
                             it.copy(
@@ -135,6 +139,46 @@ class ChildViewModel(
     fun getCurrentWord(): WordDTO? {
         val state = _uiState.value
         return state.words.getOrNull(state.currentWordIndex)
+    }
+
+    // ==================== Progress (logged-in child only) ====================
+
+    /**
+     * Load progress for a single word (attempts, accuracy, learned flag) and show it on the
+     * current word. No-op for guests / when no child is selected.
+     * پیشرفت کلمه‌ی فعلی برای فرزند
+     */
+    fun loadWordProgress(wordId: Int) {
+        val childId = _uiState.value.selectedChild?.id ?: return
+        // Clear stale data while the new word's progress loads
+        _uiState.update { it.copy(wordProgress = null) }
+        viewModelScope.launch {
+            progressRepository.getWordProgress(childId, wordId).onSuccess { response ->
+                if (response.success) {
+                    _uiState.update { it.copy(wordProgress = response.data) }
+                }
+            }.onFailure { exception ->
+                AppLogger.d("ChildViewModel", "Error loading word progress: ${exception.message}")
+            }
+        }
+    }
+
+    /**
+     * Load the child's overall progress stats (learned words, accuracy, per-category).
+     * No-op for guests / when no child is selected.
+     * آمار کلی پیشرفت فرزند
+     */
+    fun loadProgressStats() {
+        val childId = _uiState.value.selectedChild?.id ?: return
+        viewModelScope.launch {
+            progressRepository.getChildProgressStats(childId).onSuccess { response ->
+                if (response.success) {
+                    _uiState.update { it.copy(progressStats = response.data) }
+                }
+            }.onFailure { exception ->
+                AppLogger.d("ChildViewModel", "Error loading progress stats: ${exception.message}")
+            }
+        }
     }
 
     fun canGoNext(): Boolean {

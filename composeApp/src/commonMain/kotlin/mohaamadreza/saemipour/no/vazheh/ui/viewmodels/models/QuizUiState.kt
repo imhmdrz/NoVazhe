@@ -1,37 +1,47 @@
 package mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models
 
 import androidx.compose.runtime.Stable
+import mohaamadreza.saemipour.no.vazheh.data.ChildProgressStatsDTO
 import mohaamadreza.saemipour.no.vazheh.data.QuizOptionDTO
 import mohaamadreza.saemipour.no.vazheh.data.QuizQuestionDTO
+import mohaamadreza.saemipour.no.vazheh.data.RecentQuizAttemptDTO
 
 @Stable
 data class QuizUiState(
     // Current quiz session
     val childId: Int? = null,
     val categoryId: Int? = null,
-    
+
     // Questions
     val questions: List<QuizQuestionDTO> = emptyList(),
     val currentQuestionIndex: Int = 0,
-    
+
     // Current question state
     val selectedOptionId: Int? = null,
     val isAnswerSubmitted: Boolean = false,
     val lastAnswerCorrect: Boolean? = null,
     val correctWordFa: String? = null,
-    
+
     // Loading states
     val isLoadingQuestions: Boolean = false,
     val isSubmittingAnswer: Boolean = false,
-    
+
     // Error
     val errorMessage: String? = null,
-    
+
     // Quiz completion
     val isQuizCompleted: Boolean = false,
     val totalCorrect: Int = 0,
-    val totalAnswered: Int = 0
+    val totalAnswered: Int = 0,
+
+    // Progress summary shown on the result screen (only for a logged-in child)
+    val progressStats: ChildProgressStatsDTO? = null,
+    val recentAttempts: List<RecentQuizAttemptDTO> = emptyList()
 ) {
+    /** True when progress can be tracked/shown: a child id is attached to the session. */
+    val hasChildId: Boolean
+        get() = childId != null
+
     // Current question helper
     val currentQuestion: QuizQuestionDTO?
         get() = questions.getOrNull(currentQuestionIndex)

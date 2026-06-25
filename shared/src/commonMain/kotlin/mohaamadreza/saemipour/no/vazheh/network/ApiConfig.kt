@@ -29,4 +29,7 @@ object ApiConfig {
     const val QUIZ_QUESTION = "/api/quiz/question"
     const val QUIZ_QUESTIONS = "/api/quiz/questions"
     const val QUIZ_SUBMIT = "/api/quiz/submit"
+
+    // Progress endpoints (base: /api/progress/child/{childId})
+    const val PROGRESS_CHILD = "/api/progress/child"
 }

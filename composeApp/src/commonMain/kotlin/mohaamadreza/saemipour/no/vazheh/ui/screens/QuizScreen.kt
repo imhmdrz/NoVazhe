@@ -29,8 +29,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -75,7 +77,9 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import mohaamadreza.saemipour.no.vazheh.data.ChildProgressStatsDTO
 import mohaamadreza.saemipour.no.vazheh.data.QuizOptionDTO
+import mohaamadreza.saemipour.no.vazheh.data.RecentQuizAttemptDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
@@ -110,23 +114,24 @@ fun QuizScreen(
     viewModel: QuizViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+
     var isPlaying by remember { mutableStateOf(false) }
-    
+
     val audioUpdates = remember {
         object : AudioUpdates {
             override fun onProgressUpdate(playerState: PlayerState) {
                 isPlaying = playerState.isPlaying
             }
+
             override fun onReady() {}
             override fun onError(exception: Exception) {
                 isPlaying = false
             }
         }
     }
-    
+
     AudioProvider(audioUpdates) { player ->
-        
+
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Box(
                 modifier = Modifier
@@ -145,6 +150,7 @@ fun QuizScreen(
                     uiState.isLoadingQuestions -> {
                         LoadingContent()
                     }
+
                     uiState.errorMessage != null -> {
                         ErrorContent(
                             message = uiState.errorMessage ?: "",
@@ -152,18 +158,22 @@ fun QuizScreen(
                             onBack = { navController.popBackStack() }
                         )
                     }
+
                     uiState.isQuizCompleted -> {
                         QuizCompletedContent(
                             totalCorrect = uiState.totalCorrect,
                             totalAnswered = uiState.totalAnswered,
                             scorePercent = uiState.scorePercent,
+                            progressStats = if (uiState.hasChildId) uiState.progressStats else null,
+                            recentAttempts = if (uiState.hasChildId) uiState.recentAttempts else emptyList(),
                             onPlayAgain = { viewModel.retry() },
-                            onBack = { 
+                            onBack = {
                                 viewModel.resetQuiz()
-                                navController.popBackStack() 
+                                navController.popBackStack()
                             }
                         )
                     }
+
                     uiState.currentQuestion != null -> {
                         QuizContent(
                             progressText = uiState.progressText,
@@ -197,6 +207,7 @@ fun QuizScreen(
                             }
                         )
                     }
+
                     else -> {
                         // Empty state
                         Box(
@@ -286,6 +297,8 @@ private fun QuizCompletedContent(
     totalCorrect: Int,
     totalAnswered: Int,
     scorePercent: Int,
+    progressStats: ChildProgressStatsDTO?,
+    recentAttempts: List<RecentQuizAttemptDTO>,
     onPlayAgain: () -> Unit,
     onBack: () -> Unit
 ) {
@@ -294,41 +307,41 @@ private fun QuizCompletedContent(
         scorePercent >= 50 -> SkyBlue
         else -> CoralRed
     }
-    
+
     val emoji = when {
         scorePercent >= 80 -> "🎉"
         scorePercent >= 50 -> "👍"
         else -> "💪"
     }
-    
+
     val title = when {
         scorePercent == 100 -> "آفرین قهرمان!"
         scorePercent >= 80 -> "عالی بود!"
         scorePercent >= 50 -> "خوب بود!"
         else -> "ادامه بده!"
     }
-    
+
     val message = when {
         scorePercent == 100 -> "همه پاسخ‌ها درست بود!"
         scorePercent >= 80 -> "نتیجه خیلی خوبی گرفتی!"
         scorePercent >= 50 -> "می‌تونی بهتر هم بشی!"
         else -> "دفعه بعد بهتر می‌شه!"
     }
-    
+
     val stars = when {
         scorePercent >= 80 -> 3
         scorePercent >= 50 -> 2
         scorePercent >= 25 -> 1
         else -> 0
     }
-    
+
     // Animated score counter
     val animatedScore by animateFloatAsState(
         targetValue = scorePercent.toFloat(),
         animationSpec = tween(durationMillis = 1500),
         label = "score"
     )
-    
+
     // Pulse animation for emoji
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -340,7 +353,7 @@ private fun QuizCompletedContent(
         ),
         label = "pulseScale"
     )
-    
+
     // Rotation for decorative element
     val rotation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -351,7 +364,7 @@ private fun QuizCompletedContent(
         ),
         label = "rotation"
     )
-    
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -389,193 +402,312 @@ private fun QuizCompletedContent(
                     shape = CircleShape
                 )
         )
-        
-        Card(
+
+        Column(
             modifier = Modifier
-                .padding(24.dp)
-                .fillMaxWidth(0.92f),
-            shape = RoundedCornerShape(36.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.White
-            ),
-            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp, vertical = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
         ) {
-            Column(
+            Card(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.White,
-                                scoreColor.copy(alpha = 0.05f)
-                            )
-                        )
-                    )
-                    .padding(28.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                    .fillMaxWidth(),
+                shape = RoundedCornerShape(36.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
             ) {
-                // Animated emoji
-                Text(
-                    text = emoji,
-                    fontSize = 90.sp,
-                    modifier = Modifier.scale(pulseScale)
-                )
-                
-                // Title
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    color = scoreColor
-                )
-                
-                // Stars row
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    repeat(3) { index ->
-                        val isFilled = index < stars
-                        val starScale by animateFloatAsState(
-                            targetValue = if (isFilled) 1f else 0.7f,
-                            animationSpec = tween(durationMillis = 500, delayMillis = 200 + index * 200),
-                            label = "starScale$index"
-                        )
-                        Text(
-                            text = if (isFilled) "⭐" else "☆",
-                            fontSize = 44.sp,
-                            modifier = Modifier.scale(starScale),
-                            color = if (isFilled) scoreColor else Color.Gray.copy(alpha = 0.4f)
-                        )
-                    }
-                }
-                
-                // Message
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.titleMedium,
-                    textAlign = TextAlign.Center,
-                    color = DarkText.copy(alpha = 0.8f)
-                )
-                
-                // Score circle with gradient
-                Box(
+                Column(
                     modifier = Modifier
-                        .size(150.dp)
+                        .fillMaxWidth()
                         .background(
-                            brush = Brush.radialGradient(
+                            brush = Brush.verticalGradient(
                                 colors = listOf(
-                                    scoreColor.copy(alpha = 0.2f),
+                                    Color.White,
                                     scoreColor.copy(alpha = 0.05f)
                                 )
-                            ),
-                            shape = CircleShape
+                            )
                         )
-                        .border(
-                            width = 5.dp,
-                            brush = Brush.sweepGradient(
-                                colors = listOf(
-                                    scoreColor,
-                                    scoreColor.copy(alpha = 0.6f),
-                                    scoreColor
-                                )
-                            ),
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                        .padding(28.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+                    // Animated emoji
+                    Text(
+                        text = emoji,
+                        fontSize = 90.sp,
+                        modifier = Modifier.scale(pulseScale)
+                    )
+
+                    // Title
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = scoreColor
+                    )
+
+                    // Stars row
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(
-                            text = "${animatedScore.toInt().toPersianDigits()}٪",
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = scoreColor
+                        repeat(3) { index ->
+                            val isFilled = index < stars
+                            val starScale by animateFloatAsState(
+                                targetValue = if (isFilled) 1f else 0.7f,
+                                animationSpec = tween(
+                                    durationMillis = 500,
+                                    delayMillis = 200 + index * 200
+                                ),
+                                label = "starScale$index"
+                            )
+                            Text(
+                                text = if (isFilled) "⭐" else "☆",
+                                fontSize = 44.sp,
+                                modifier = Modifier.scale(starScale),
+                                color = if (isFilled) scoreColor else Color.Gray.copy(alpha = 0.4f)
+                            )
+                        }
+                    }
+
+                    // Message
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        color = DarkText.copy(alpha = 0.8f)
+                    )
+
+                    // Score circle with gradient
+                    Box(
+                        modifier = Modifier
+                            .size(150.dp)
+                            .background(
+                                brush = Brush.radialGradient(
+                                    colors = listOf(
+                                        scoreColor.copy(alpha = 0.2f),
+                                        scoreColor.copy(alpha = 0.05f)
+                                    )
+                                ),
+                                shape = CircleShape
+                            )
+                            .border(
+                                width = 5.dp,
+                                brush = Brush.sweepGradient(
+                                    colors = listOf(
+                                        scoreColor,
+                                        scoreColor.copy(alpha = 0.6f),
+                                        scoreColor
+                                    )
+                                ),
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "${animatedScore.toInt().toPersianDigits()}٪",
+                                style = MaterialTheme.typography.displaySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = scoreColor
+                            )
+                            Text(
+                                text = "امتیاز",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Color.Gray
+                            )
+                        }
+                    }
+
+                    // Stats row
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        StatChip(
+                            modifier = Modifier.weight(1f),
+                            label = "درست",
+                            value = totalCorrect.toPersianDigits(),
+                            color = MintGreen,
+                            icon = "✅"
                         )
-                        Text(
-                            text = "امتیاز",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = Color.Gray
+                        StatChip(
+                            modifier = Modifier.weight(1f),
+                            label = "اشتباه",
+                            value = (totalAnswered - totalCorrect).toPersianDigits(),
+                            color = CoralRed,
+                            icon = "❌"
+                        )
+                        StatChip(
+                            modifier = Modifier.weight(1f),
+                            label = "کل",
+                            value = totalAnswered.toPersianDigits(),
+                            color = SkyBlue,
+                            icon = "📊"
                         )
                     }
+
+                    Spacer(Modifier.height(4.dp))
+
+                    // Buttons
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Button(
+                            onClick = onPlayAgain,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Purple40
+                            ),
+                            shape = RoundedCornerShape(18.dp)
+                        ) {
+                            Icon(Icons.Default.Refresh, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "بازی مجدد",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        Button(
+                            onClick = onBack,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(56.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Color.White,
+                                contentColor = Purple40
+                            ),
+                            shape = RoundedCornerShape(18.dp),
+                            border = androidx.compose.foundation.BorderStroke(2.dp, Purple40)
+                        ) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "بازگشت",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
-                
-                // Stats row
+            }
+
+            // Learning progress summary (logged-in child only)
+            if (progressStats != null) {
+                ProgressSummaryCard(progressStats)
+            }
+            if (recentAttempts.isNotEmpty()) {
+                RecentAttemptsCard(recentAttempts)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProgressSummaryCard(stats: ChildProgressStatsDTO) {
+    Card(
+        modifier = Modifier.fillMaxWidth(0.92f),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "📈 پیشرفت ${stats.childName}",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = DarkText
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                StatChip(
+                    modifier = Modifier.weight(1f),
+                    label = "یاد گرفته",
+                    value = "${stats.learnedWords.toPersianDigits()}/${stats.totalWords.toPersianDigits()}",
+                    color = MintGreen,
+                    icon = "🎓"
+                )
+                StatChip(
+                    modifier = Modifier.weight(1f),
+                    label = "در حال یادگیری",
+                    value = stats.inProgressWords.toPersianDigits(),
+                    color = SkyBlue,
+                    icon = "📚"
+                )
+                StatChip(
+                    modifier = Modifier.weight(1f),
+                    label = "دقت کلی",
+                    value = "${stats.overallAccuracyPercent.toInt().toPersianDigits()}٪",
+                    color = Purple40,
+                    icon = "🎯"
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RecentAttemptsCard(attempts: List<RecentQuizAttemptDTO>) {
+    Card(
+        modifier = Modifier.fillMaxWidth(0.92f),
+        shape = RoundedCornerShape(28.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "🕑 آزمون‌های اخیر",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = DarkText
+            )
+            attempts.take(10).forEach { attempt ->
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    StatChip(
-                        modifier = Modifier.weight(1f),
-                        label = "درست",
-                        value = totalCorrect.toPersianDigits(),
-                        color = MintGreen,
-                        icon = "✅"
+                    Text(
+                        text = if (attempt.isCorrect) "✅" else "❌",
+                        fontSize = 18.sp
                     )
-                    StatChip(
-                        modifier = Modifier.weight(1f),
-                        label = "اشتباه",
-                        value = (totalAnswered - totalCorrect).toPersianDigits(),
-                        color = CoralRed,
-                        icon = "❌"
-                    )
-                    StatChip(
-                        modifier = Modifier.weight(1f),
-                        label = "کل",
-                        value = totalAnswered.toPersianDigits(),
-                        color = SkyBlue,
-                        icon = "📊"
-                    )
-                }
-                
-                Spacer(Modifier.height(4.dp))
-                
-                // Buttons
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Button(
-                        onClick = onPlayAgain,
+                    Text(
+                        text = attempt.wordFa,
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = FontWeight.Medium,
+                        color = DarkText,
                         modifier = Modifier
                             .weight(1f)
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Purple40
-                        ),
-                        shape = RoundedCornerShape(18.dp)
-                    ) {
-                        Icon(Icons.Default.Refresh, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "بازی مجدد",
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                    Button(
-                        onClick = onBack,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color.White,
-                            contentColor = Purple40
-                        ),
-                        shape = RoundedCornerShape(18.dp),
-                        border = androidx.compose.foundation.BorderStroke(2.dp, Purple40)
-                    ) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowForward,
-                            contentDescription = null
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            text = "بازگشت",
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                            .padding(horizontal = 12.dp)
+                    )
+                    Text(
+                        text = if (attempt.isCorrect) "درست" else "اشتباه",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (attempt.isCorrect) MintGreen else CoralRed
+                    )
                 }
             }
         }
@@ -676,9 +808,9 @@ private fun QuizContent(
                     trackColor = Purple40.copy(alpha = 0.2f)
                 )
             }
-            
+
             Spacer(Modifier.width(16.dp))
-            
+
             // Back button
             IconButton(onClick = onBack) {
                 Icon(
@@ -689,24 +821,24 @@ private fun QuizContent(
                 )
             }
         }
-        
+
         Spacer(Modifier.height(32.dp))
-        
+
         // Play audio button
         PlayAudioButton(
             isPlaying = isPlaying,
             onClick = { if (isPlaying) onStopAudio() else onPlayAudio() }
         )
-        
+
         Text(
             text = "🔊 صدا را گوش کن و تصویر درست را انتخاب کن!",
             style = MaterialTheme.typography.bodyMedium,
             color = Color.Gray,
             modifier = Modifier.padding(top = 8.dp)
         )
-        
+
         Spacer(Modifier.height(24.dp))
-        
+
         // Options grid
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -718,13 +850,13 @@ private fun QuizContent(
                 val isSelected = selectedOptionId == option.wordId
                 val isCorrect = option.wordId == correctWordId
                 val showResult = isAnswerSubmitted
-                
+
                 OptionCard(
                     option = option,
                     isSelected = isSelected,
                     showResult = showResult,
                     isCorrectAnswer = isCorrect,
-                    onClick = { 
+                    onClick = {
                         if (!isAnswerSubmitted) {
                             onOptionSelected(option.wordId)
                         }
@@ -732,7 +864,7 @@ private fun QuizContent(
                 )
             }
         }
-        
+
         // Feedback message
         AnimatedVisibility(
             visible = isAnswerSubmitted && lastAnswerCorrect != null,
@@ -744,9 +876,9 @@ private fun QuizContent(
                 correctWordFa = correctWordFa
             )
         }
-        
+
         Spacer(Modifier.height(16.dp))
-        
+
         // Action buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -759,6 +891,7 @@ private fun QuizContent(
                         color = Purple40
                     )
                 }
+
                 canSubmitAnswer -> {
                     Button(
                         onClick = onSubmitAnswer,
@@ -777,6 +910,7 @@ private fun QuizContent(
                         )
                     }
                 }
+
                 isAnswerSubmitted -> {
                     Button(
                         onClick = if (hasMoreQuestions) onNextQuestion else onFinishQuiz,
@@ -816,7 +950,7 @@ private fun PlayAudioButton(
         animationSpec = tween(300),
         label = "scale"
     )
-    
+
     Box(
         modifier = Modifier
             .size(100.dp)
@@ -857,14 +991,14 @@ private fun OptionCard(
         isSelected -> Purple40
         else -> Color.Transparent
     }
-    
+
     val backgroundColor = when {
         showResult && isCorrectAnswer -> MintGreen.copy(alpha = 0.1f)
         showResult && isSelected && !isCorrectAnswer -> CoralRed.copy(alpha = 0.1f)
         isSelected -> Purple40.copy(alpha = 0.1f)
         else -> Color.White
     }
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -907,7 +1041,7 @@ private fun OptionCard(
                     )
                     Spacer(Modifier.height(10.dp))
                 }
-                
+
                 // Word text
                 Text(
                     text = option.wordFa,
@@ -915,7 +1049,7 @@ private fun OptionCard(
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
-                
+
                 Text(
                     text = option.wordEn,
                     style = MaterialTheme.typography.bodyMedium,
@@ -923,7 +1057,7 @@ private fun OptionCard(
                     textAlign = TextAlign.Center
                 )
             }
-            
+
             // Result icon overlay
             if (showResult) {
                 Box(
@@ -940,6 +1074,7 @@ private fun OptionCard(
                                 modifier = Modifier.size(28.dp)
                             )
                         }
+
                         isSelected && !isCorrectAnswer -> {
                             Icon(
                                 Icons.Default.Close,
@@ -966,7 +1101,7 @@ private fun FeedbackMessage(
     } else {
         "❌ اشتباه بود! پاسخ درست: $correctWordFa"
     }
-    
+
     Box(
         modifier = Modifier
             .fillMaxWidth()

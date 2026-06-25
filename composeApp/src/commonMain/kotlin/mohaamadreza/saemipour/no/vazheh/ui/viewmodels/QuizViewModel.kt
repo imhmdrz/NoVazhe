@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import mohaamadreza.saemipour.no.vazheh.AppLogger
 import mohaamadreza.saemipour.no.vazheh.data.ContentRepository
+import mohaamadreza.saemipour.no.vazheh.data.ProgressRepository
 import mohaamadreza.saemipour.no.vazheh.data.QuizQuestionDTO
 import mohaamadreza.saemipour.no.vazheh.data.QuizRepository
 import mohaamadreza.saemipour.no.vazheh.data.SubmitQuizRequest
@@ -19,7 +20,8 @@ import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.QuizUiState
  */
 class QuizViewModel(
     private val quizRepository: QuizRepository,
-    private val contentRepository: ContentRepository
+    private val contentRepository: ContentRepository,
+    private val progressRepository: ProgressRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QuizUiState())
@@ -284,7 +286,7 @@ class QuizViewModel(
      */
     fun nextQuestion() {
         val currentState = _uiState.value
-        
+
         if (currentState.hasMoreQuestions) {
             _uiState.update {
                 it.copy(
@@ -296,8 +298,7 @@ class QuizViewModel(
                 )
             }
         } else {
-            // Quiz completed
-            _uiState.update { it.copy(isQuizCompleted = true) }
+            completeQuiz()
         }
     }
 
@@ -306,7 +307,34 @@ class QuizViewModel(
      * پایان آزمون و نمایش نتایج
      */
     fun finishQuiz() {
+        completeQuiz()
+    }
+
+    /** Mark the quiz completed and (for a logged-in child) load the progress summary. */
+    private fun completeQuiz() {
         _uiState.update { it.copy(isQuizCompleted = true) }
+        loadProgressSummary()
+    }
+
+    /**
+     * Load the child's overall progress stats + recent quiz attempts to show on the result
+     * screen. No-op for guests (no childId). Best-effort — failures are ignored.
+     * بارگذاری آمار پیشرفت و آزمون‌های اخیر برای صفحه نتیجه
+     */
+    private fun loadProgressSummary() {
+        val childId = _uiState.value.childId ?: return
+        viewModelScope.launch {
+            progressRepository.getChildProgressStats(childId).onSuccess { response ->
+                if (response.success) _uiState.update { it.copy(progressStats = response.data) }
+            }.onFailure { e ->
+                AppLogger.d("QuizViewModel", "Error loading progress stats: ${e.message}")
+            }
+            progressRepository.getRecentAttempts(childId).onSuccess { response ->
+                if (response.success) _uiState.update { it.copy(recentAttempts = response.data) }
+            }.onFailure { e ->
+                AppLogger.d("QuizViewModel", "Error loading recent attempts: ${e.message}")
+            }
+        }
     }
 
     // ==================== Utilities ====================

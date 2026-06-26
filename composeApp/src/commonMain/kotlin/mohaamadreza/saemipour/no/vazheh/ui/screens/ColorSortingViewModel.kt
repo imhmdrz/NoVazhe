@@ -23,9 +23,7 @@ enum class GameColor(
     ORANGE("نارنجی", "Orange", Color(0xFFFF9800)),
     PURPLE("بنفش", "Purple", Color(0xFF8E24AA)),
     PINK("صورتی", "Pink", Color(0xFFEC407A)),
-    BLACK("سیاه", "Black", Color(0xFF212121)),
-    WHITE("سفید", "White", Color(0xFFFAFAFA)),
-    BROWN("قهوه‌ای", "Brown", Color(0xFF6D4C41));
+    BLACK("سیاه", "Black", Color(0xFF212121));
 
     companion object {
         /**
@@ -164,8 +162,6 @@ class ColorSortingViewModel(
         GameColor.PURPLE to listOf("🎈"),
         GameColor.PINK to listOf("🎈"),
         GameColor.BLACK to listOf("🎈"),
-        GameColor.WHITE to listOf("🎈"),
-        GameColor.BROWN to listOf("🎈")
     )
 
     fun setupGame(colorCount: Int = 4, itemsPerColor: Int = 1) {

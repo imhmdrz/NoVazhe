@@ -559,7 +559,7 @@ private fun ColorDropItem(
                 if (basket.items.isNotEmpty()) {
                     // نمایش تعداد بادکنک‌های جمع شده
                     Text(
-                        text = "🎈 ${basket.items.size}",
+                        text = "🎈",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.White

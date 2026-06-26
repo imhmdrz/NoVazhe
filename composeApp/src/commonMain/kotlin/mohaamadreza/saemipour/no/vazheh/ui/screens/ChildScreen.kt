@@ -1,5 +1,7 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -19,8 +21,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -33,6 +37,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +51,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -60,7 +66,9 @@ import coil3.compose.LocalPlatformContext
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.data.CategoryDTO
+import mohaamadreza.saemipour.no.vazheh.ui.animation.sharedElementKey
 import mohaamadreza.saemipour.no.vazheh.ui.components.ChildAppBarComponent
 import mohaamadreza.saemipour.no.vazheh.ui.theme.BlackAlpha
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
@@ -258,9 +266,11 @@ private fun Categories(
         horizontalArrangement = Arrangement.spacedBy(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        items(categories) { category ->
+        itemsIndexed(categories) { index, category ->
             CategoryItem(
                 category = category,
+                index = index,
+                modifier = Modifier.animateItem(),
                 onClick = { onCategoryClick(category) }
             )
         }
@@ -268,33 +278,51 @@ private fun Categories(
 }
 
 @Composable
-private fun CategoryItem(
+private fun LazyGridItemScope.CategoryItem(
     category: CategoryDTO,
+    index: Int,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
     val imageRequest = ImageRequest.Builder(LocalPlatformContext.current)
         .data(category.iconUrl)
         .crossfade(true)
         .build()
-    
+
     val painter = rememberAsyncImagePainter(
         model = imageRequest
     )
-    
+
+    // Staggered "pop-in": each tile fades + scales up shortly after the one before it.
+    val appear = remember { Animatable(0f) }
+    LaunchedEffect(category.id) {
+        delay(index * 55L)
+        appear.animateTo(1f, tween(360))
+    }
+
     Box(
-        modifier = Modifier
+        modifier = modifier
+            .graphicsLayer {
+                alpha = appear.value
+                val scale = 0.85f + 0.15f * appear.value
+                scaleX = scale
+                scaleY = scale
+            }
             .widthIn(min = 160.dp)
             .height(140.dp)
             .clip(RoundedCornerShape(24.dp))
-            .clickable(onClick = onClick),
+            .clickable(onClick = onClick)
+            .sharedElementKey("category-img-${category.id}"),
         contentAlignment = Alignment.Center
     ) {
-        // Background image from URL with logging
+        // Background image from URL — shared element that morphs into the GameScreen hero.
         Image(
             painter = painter,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp))
+            modifier = Modifier
+                .fillMaxSize()
+                .clip(RoundedCornerShape(24.dp))
         )
         
         // Icon overlay

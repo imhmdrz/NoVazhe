@@ -1,5 +1,6 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -12,6 +13,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -175,37 +179,51 @@ fun QuizScreen(
                     }
 
                     uiState.currentQuestion != null -> {
-                        QuizContent(
-                            progressText = uiState.progressText,
-                            progressPercent = (uiState.currentQuestionIndex + 1).toFloat() / uiState.questions.size,
-                            options = uiState.currentQuestion?.options ?: emptyList(),
-                            correctWordId = uiState.currentQuestion?.wordId ?: 0,
-                            selectedOptionId = uiState.selectedOptionId,
-                            isAnswerSubmitted = uiState.isAnswerSubmitted,
-                            lastAnswerCorrect = uiState.lastAnswerCorrect,
-                            correctWordFa = uiState.correctWordFa,
-                            canSubmitAnswer = uiState.canSubmitAnswer,
-                            canGoToNextQuestion = uiState.canGoToNextQuestion,
-                            hasMoreQuestions = uiState.hasMoreQuestions,
-                            isSubmittingAnswer = uiState.isSubmittingAnswer,
-                            isPlaying = isPlaying,
-                            onPlayAudio = {
-                                val audioUrl = uiState.currentQuestion?.audioUrl
-                                if (!audioUrl.isNullOrEmpty()) {
-                                    player.play(audioUrl)
-                                }
+                        // Slide each new question in while the previous one slides out.
+                        AnimatedContent(
+                            targetState = uiState.currentQuestionIndex,
+                            transitionSpec = {
+                                (slideInHorizontally(tween(350)) { it } + fadeIn(tween(350))) togetherWith
+                                        (slideOutHorizontally(tween(350)) { -it } + fadeOut(
+                                            tween(
+                                                350
+                                            )
+                                        ))
                             },
-                            onStopAudio = { player.pause() },
-                            onOptionSelected = { viewModel.selectOption(it) },
-                            onSubmitAnswer = { viewModel.submitAnswer() },
-                            onNextQuestion = { viewModel.nextQuestion() },
-                            onFinishQuiz = { viewModel.finishQuiz() },
-                            onBack = {
-                                player.pause()
-                                viewModel.resetQuiz()
-                                navController.popBackStack()
-                            }
-                        )
+                            label = "question"
+                        ) { _ ->
+                            QuizContent(
+                                progressText = uiState.progressText,
+                                progressPercent = (uiState.currentQuestionIndex + 1).toFloat() / uiState.questions.size,
+                                options = uiState.currentQuestion?.options ?: emptyList(),
+                                correctWordId = uiState.currentQuestion?.wordId ?: 0,
+                                selectedOptionId = uiState.selectedOptionId,
+                                isAnswerSubmitted = uiState.isAnswerSubmitted,
+                                lastAnswerCorrect = uiState.lastAnswerCorrect,
+                                correctWordFa = uiState.correctWordFa,
+                                canSubmitAnswer = uiState.canSubmitAnswer,
+                                canGoToNextQuestion = uiState.canGoToNextQuestion,
+                                hasMoreQuestions = uiState.hasMoreQuestions,
+                                isSubmittingAnswer = uiState.isSubmittingAnswer,
+                                isPlaying = isPlaying,
+                                onPlayAudio = {
+                                    val audioUrl = uiState.currentQuestion?.audioUrl
+                                    if (!audioUrl.isNullOrEmpty()) {
+                                        player.play(audioUrl)
+                                    }
+                                },
+                                onStopAudio = { player.pause() },
+                                onOptionSelected = { viewModel.selectOption(it) },
+                                onSubmitAnswer = { viewModel.submitAnswer() },
+                                onNextQuestion = { viewModel.nextQuestion() },
+                                onFinishQuiz = { viewModel.finishQuiz() },
+                                onBack = {
+                                    player.pause()
+                                    viewModel.resetQuiz()
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
                     }
 
                     else -> {

@@ -1,5 +1,13 @@
 package mohaamadreza.saemipour.no.vazheh
 
+import androidx.compose.animation.AnimatedContentTransitionScope.SlideDirection
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.Box
@@ -8,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -26,6 +35,8 @@ import coil3.compose.LocalPlatformContext
 import mohaamadreza.saemipour.no.vazheh.data.AuthEvent
 import mohaamadreza.saemipour.no.vazheh.data.AuthStateManager
 import mohaamadreza.saemipour.no.vazheh.image.newImageLoader
+import mohaamadreza.saemipour.no.vazheh.ui.animation.LocalNavAnimatedVisibilityScope
+import mohaamadreza.saemipour.no.vazheh.ui.animation.LocalSharedTransitionScope
 import mohaamadreza.saemipour.no.vazheh.ui.components.AppPinToggle
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AddWordScreen
 import mohaamadreza.saemipour.no.vazheh.ui.screens.AuthScreen
@@ -50,6 +61,7 @@ import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.QuizViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 @Preview
 fun App() {
@@ -70,7 +82,7 @@ fun App() {
 
         // Shared ChildViewModel across child and game screens
         val childViewModel: ChildViewModel = koinViewModel()
-        
+
         // QuizViewModel for quiz screens
         val quizViewModel: QuizViewModel = koinViewModel()
 
@@ -90,11 +102,13 @@ fun App() {
                             popUpTo(0) { inclusive = true }
                         }
                     }
+
                     is AuthEvent.LoggedOut -> {
                         // Logout keeps the user in the app as a guest; just refresh so the
                         // Profile tab re-locks. خروج: ماندن در برنامه به‌صورت مهمان
                         motherViewModel.retry()
                     }
+
                     is AuthEvent.LoggedIn -> {
                         // Refresh so the Profile tab unlocks; AuthScreen handles navigation.
                         motherViewModel.retry()
@@ -106,114 +120,191 @@ fun App() {
         val navEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navEntry?.destination?.route
 
-        Box(modifier = Modifier.fillMaxSize()) {
-        NavHost(
-            modifier =
-                Modifier.fillMaxSize()
-                    .background(MaterialTheme.colorScheme.background)
-                    .safeDrawingPadding(),
-            navController = navController,
-            startDestination = startDestination
-        ) {
-            composable("face-game") {
-                val viewModel: FaceGameViewModel = koinViewModel()
-                OrientationWrapper(Orientation.Vertical) {
-                    FaceGameScreen(navController = navController, viewModel = viewModel)
-                }
-            }
-            composable("auth") {
-                OrientationWrapper(Orientation.Vertical) {
-                    AuthScreen(navController = navController, viewModel = authViewModel)
-                }
-            }
-            composable("game") {
-                OrientationWrapper(Orientation.Vertical) {
-                    GameScreen(
+        // Default screen-to-screen transition: a directional slide + fade that respects the
+        // back stack (forward pushes from the end, Back pops toward the start).
+        val slideDuration = 350
+        SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
+            CompositionLocalProvider(LocalSharedTransitionScope provides this) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    NavHost(
+                        modifier =
+                            Modifier.fillMaxSize()
+                                .background(MaterialTheme.colorScheme.background)
+                                .safeDrawingPadding(),
                         navController = navController,
-                        viewModel = childViewModel,
-                        quizViewModel = quizViewModel
-                    )
-                }
-            }
-            composable("mother") {
-                LaunchedEffect(Unit) {
-                    motherViewModel.retry()
-                }
-                OrientationWrapper(Orientation.Vertical) {
-                    MotherScreen(
-                        navController = navController,
-                        viewModel = motherViewModel,
-                        childViewModel = childViewModel,
-                        quizViewModel = quizViewModel
-                    )
-                }
-            }
-            composable("add-word") {
-                OrientationWrapper(Orientation.Vertical) {
-                    AddWordScreen(navController = navController, viewModel = motherViewModel)
-                }
-            }
-            composable("quiz") {
-                OrientationWrapper(Orientation.Vertical) {
-                    QuizScreen(navController = navController, viewModel = quizViewModel)
-                }
-            }
-            composable(
-                route = "memory-game/{categoryId}",
-                arguments = listOf(navArgument("categoryId") { type = NavType.IntType })
-            ) { backStackEntry ->
-                val categoryId = backStackEntry.arguments?.read { getInt("categoryId") } ?: 0
-                val viewModel: MemoryGameViewModel = koinViewModel()
-                OrientationWrapper(Orientation.Vertical) {
-                    MemoryGameScreen(
-                        navController = navController,
-                        viewModel = viewModel,
-                        categoryId = categoryId
-                    )
-                }
-            }
-            composable("color-sorting") {
-                val viewModel: ColorSortingViewModel = koinViewModel()
-                OrientationWrapper(Orientation.Vertical) {
-                    ColorSortingScreen(
-                        navController = navController,
-                        viewModel = viewModel
-                    )
-                }
-            }
-            composable(
-                route = "shadow-match/{categoryId}",
-                arguments = listOf(navArgument("categoryId") { type = NavType.IntType })
-            ) { backStackEntry ->
-                val categoryId = backStackEntry.arguments?.read { getInt("categoryId") } ?: 0
-                val viewModel: ShadowMatchViewModel = koinViewModel()
-                OrientationWrapper(Orientation.Vertical) {
-                    ShadowMatchScreen(
-                        navController = navController,
-                        viewModel = viewModel,
-                        categoryId = categoryId
-                    )
-                }
-            }
-            composable("odd-one-out") {
-                val viewModel: OddOneOutViewModel = koinViewModel()
-                OrientationWrapper(Orientation.Vertical) {
-                    OddOneOutScreen(
-                        navController = navController,
-                        viewModel = viewModel
-                    )
-                }
-            }
-        }
+                        startDestination = startDestination,
+                        enterTransition = {
+                            slideIntoContainer(SlideDirection.Start, tween(slideDuration)) + fadeIn(
+                                tween(slideDuration)
+                            )
+                        },
+                        exitTransition = {
+                            slideOutOfContainer(
+                                SlideDirection.Start,
+                                tween(slideDuration)
+                            ) + fadeOut(tween(slideDuration))
+                        },
+                        popEnterTransition = {
+                            slideIntoContainer(SlideDirection.End, tween(slideDuration)) + fadeIn(
+                                tween(slideDuration)
+                            )
+                        },
+                        popExitTransition = {
+                            slideOutOfContainer(SlideDirection.End, tween(slideDuration)) + fadeOut(
+                                tween(slideDuration)
+                            )
+                        }
+                    ) {
+                        // Games launched from the dashboard "zoom in" toward the child rather than slide.
+                        val zoomEnter =
+                            scaleIn(tween(slideDuration), initialScale = 0.82f) + fadeIn(
+                                tween(slideDuration)
+                            )
+                        val zoomPopExit =
+                            scaleOut(tween(slideDuration), targetScale = 0.82f) + fadeOut(
+                                tween(slideDuration)
+                            )
+                        composable(
+                            "face-game",
+                            enterTransition = { zoomEnter },
+                            popExitTransition = { zoomPopExit }
+                        ) {
+                            val viewModel: FaceGameViewModel = koinViewModel()
+                            OrientationWrapper(Orientation.Vertical) {
+                                FaceGameScreen(navController = navController, viewModel = viewModel)
+                            }
+                        }
+                        composable("auth") {
+                            OrientationWrapper(Orientation.Vertical) {
+                                AuthScreen(navController = navController, viewModel = authViewModel)
+                            }
+                        }
+                        composable(
+                            "game",
+                            // Fade only: the category image shared-element does the visual heavy lifting here.
+                            enterTransition = { fadeIn(tween(slideDuration)) },
+                            exitTransition = { fadeOut(tween(slideDuration)) },
+                            popEnterTransition = { fadeIn(tween(slideDuration)) },
+                            popExitTransition = { fadeOut(tween(slideDuration)) }
+                        ) {
+                            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {
+                                OrientationWrapper(Orientation.Vertical) {
+                                    GameScreen(
+                                        navController = navController,
+                                        viewModel = childViewModel,
+                                        quizViewModel = quizViewModel
+                                    )
+                                }
+                            }
+                        }
+                        composable("mother") {
+                            LaunchedEffect(Unit) {
+                                motherViewModel.retry()
+                            }
+                            CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides this) {
+                                OrientationWrapper(Orientation.Vertical) {
+                                    MotherScreen(
+                                        navController = navController,
+                                        viewModel = motherViewModel,
+                                        childViewModel = childViewModel,
+                                        quizViewModel = quizViewModel
+                                    )
+                                }
+                            }
+                        }
+                        composable("add-word") {
+                            OrientationWrapper(Orientation.Vertical) {
+                                AddWordScreen(
+                                    navController = navController,
+                                    viewModel = motherViewModel
+                                )
+                            }
+                        }
+                        composable(
+                            "quiz",
+                            enterTransition = { zoomEnter },
+                            popExitTransition = { zoomPopExit }
+                        ) {
+                            OrientationWrapper(Orientation.Vertical) {
+                                QuizScreen(navController = navController, viewModel = quizViewModel)
+                            }
+                        }
+                        composable(
+                            route = "memory-game/{categoryId}",
+                            arguments = listOf(navArgument("categoryId") {
+                                type = NavType.IntType
+                            }),
+                            enterTransition = { zoomEnter },
+                            popExitTransition = { zoomPopExit }
+                        ) { backStackEntry ->
+                            val categoryId =
+                                backStackEntry.arguments?.read { getInt("categoryId") } ?: 0
+                            val viewModel: MemoryGameViewModel = koinViewModel()
+                            OrientationWrapper(Orientation.Vertical) {
+                                MemoryGameScreen(
+                                    navController = navController,
+                                    viewModel = viewModel,
+                                    categoryId = categoryId
+                                )
+                            }
+                        }
+                        composable(
+                            "color-sorting",
+                            enterTransition = { zoomEnter },
+                            popExitTransition = { zoomPopExit }
+                        ) {
+                            val viewModel: ColorSortingViewModel = koinViewModel()
+                            OrientationWrapper(Orientation.Vertical) {
+                                ColorSortingScreen(
+                                    navController = navController,
+                                    viewModel = viewModel
+                                )
+                            }
+                        }
+                        composable(
+                            route = "shadow-match/{categoryId}",
+                            arguments = listOf(navArgument("categoryId") {
+                                type = NavType.IntType
+                            }),
+                            enterTransition = { zoomEnter },
+                            popExitTransition = { zoomPopExit }
+                        ) { backStackEntry ->
+                            val categoryId =
+                                backStackEntry.arguments?.read { getInt("categoryId") } ?: 0
+                            val viewModel: ShadowMatchViewModel = koinViewModel()
+                            OrientationWrapper(Orientation.Vertical) {
+                                ShadowMatchScreen(
+                                    navController = navController,
+                                    viewModel = viewModel,
+                                    categoryId = categoryId
+                                )
+                            }
+                        }
+                        composable(
+                            "odd-one-out",
+                            enterTransition = { zoomEnter },
+                            popExitTransition = { zoomPopExit }
+                        ) {
+                            val viewModel: OddOneOutViewModel = koinViewModel()
+                            OrientationWrapper(Orientation.Vertical) {
+                                OddOneOutScreen(
+                                    navController = navController,
+                                    viewModel = viewModel
+                                )
+                            }
+                        }
+                    }
 
-            // Global lock/unlock padlock — shown everywhere except the auth screen.
-            if (currentRoute != null && currentRoute != "auth") {
-                AppPinToggle(
-                    refreshKey = currentRoute,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(16.dp)
-                )
+                    // Global lock/unlock padlock — shown everywhere except the auth screen.
+                    if (currentRoute != null && currentRoute != "auth") {
+                        AppPinToggle(
+                            refreshKey = currentRoute,
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(16.dp)
+                        )
+                    }
+                }
             }
         }
     }

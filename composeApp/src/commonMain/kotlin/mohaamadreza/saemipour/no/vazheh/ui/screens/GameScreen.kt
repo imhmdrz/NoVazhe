@@ -58,6 +58,7 @@ import mohaamadreza.saemipour.no.vazheh.data.WordProgressDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
+import mohaamadreza.saemipour.no.vazheh.ui.animation.sharedElementKey
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
@@ -141,6 +142,44 @@ fun GameScreen(
                     modifier = Modifier.fillMaxSize().zIndex(-1f),
                     contentScale = ContentScale.Crop,
                 )
+
+                // Always-present category hero pill (top-center). Its image is the landing spot
+                // for the shared-element morph from the dashboard category tile, and it tells the
+                // child which category they're in. کارت دسته‌بندی — مقصد انیمیشن مشترک
+                uiState.selectedCategory?.let { category ->
+                    Row(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = 12.dp)
+                            .zIndex(10f)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Color.White.copy(alpha = 0.85f))
+                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .sharedElementKey("category-img-${category.id}"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Image(
+                            painter = rememberAsyncImagePainter(
+                                model = ImageRequest.Builder(LocalPlatformContext.current)
+                                    .data(category.iconUrl)
+                                    .crossfade(true)
+                                    .build()
+                            ),
+                            contentDescription = null,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                        )
+                        Text(
+                            text = category.nameFa,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                    }
+                }
 
                 // Category learning progress (logged-in child only), top-end corner
                 if (uiState.hasChildId) {

@@ -52,6 +52,7 @@ class FaceGameViewModel : ViewModel() {
         FacePartItem(
             id = FacePart.LEFT_EYEBROW,
             resource = Res.drawable.abroo1,
+            audioUrl = "https://ik.imagekit.io/mhmdrzsaemi/Face/novazhe/abroo.mp3",
             targetOffsetXPercent = 0.24f,
             targetOffsetYPercent = 0.38f,
             widthPercent = 0.21f,
@@ -64,6 +65,7 @@ class FaceGameViewModel : ViewModel() {
         FacePartItem(
             id = FacePart.RIGHT_EYEBROW,
             resource = Res.drawable.abroo2,
+            audioUrl = "https://ik.imagekit.io/mhmdrzsaemi/Face/novazhe/abroo.mp3",
             targetOffsetXPercent = 0.492f,
             targetOffsetYPercent = 0.399f,
             widthPercent = 0.205f,
@@ -76,6 +78,7 @@ class FaceGameViewModel : ViewModel() {
         FacePartItem(
             id = FacePart.LEFT_EYE,
             resource = Res.drawable.eye1,
+            audioUrl = "https://ik.imagekit.io/mhmdrzsaemi/Face/novazhe/cheshm.mp3",
             targetOffsetXPercent = 0.25f,
             targetOffsetYPercent = 0.43f,
             widthPercent = 0.17f,
@@ -88,6 +91,7 @@ class FaceGameViewModel : ViewModel() {
         FacePartItem(
             id = FacePart.RIGHT_EYE,
             resource = Res.drawable.eye2,
+            audioUrl = "https://ik.imagekit.io/mhmdrzsaemi/Face/novazhe/cheshm.mp3",
             targetOffsetXPercent = 0.48f,
             targetOffsetYPercent = 0.443f,
             widthPercent = 0.17f,
@@ -100,6 +104,7 @@ class FaceGameViewModel : ViewModel() {
         FacePartItem(
             id = FacePart.NOSE,
             resource = Res.drawable.nouse,
+            audioUrl = "https://ik.imagekit.io/mhmdrzsaemi/Face/novazhe/bini.mp3",
             targetOffsetXPercent = 0.34f,
             targetOffsetYPercent = 0.45f,
             widthPercent = 0.20f,
@@ -113,6 +118,7 @@ class FaceGameViewModel : ViewModel() {
         FacePartItem(
             id = FacePart.LIPS,
             resource = Res.drawable.lips,
+            audioUrl = "https://ik.imagekit.io/mhmdrzsaemi/Face/novazhe/dahan.mp3",
             targetOffsetXPercent = 0.275f,
             targetOffsetYPercent = 0.52f,
             widthPercent = 0.28f,

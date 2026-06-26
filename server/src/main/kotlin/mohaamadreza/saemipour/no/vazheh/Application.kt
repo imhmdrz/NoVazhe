@@ -11,6 +11,7 @@ import io.ktor.server.auth.Authentication
 import io.ktor.server.auth.jwt.JWTPrincipal
 import io.ktor.server.auth.jwt.jwt
 import io.ktor.server.engine.embeddedServer
+import io.ktor.server.http.content.staticFiles
 import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
@@ -34,7 +35,9 @@ import mohaamadreza.saemipour.no.vazheh.routes.progressRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.quizRoutes
 import mohaamadreza.saemipour.no.vazheh.security.JwtConfig
 import mohaamadreza.saemipour.no.vazheh.services.AuthService
+import mohaamadreza.saemipour.no.vazheh.services.StorageService
 import org.slf4j.event.Level
+import java.io.File
 
 fun main() {
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = Application::module)
@@ -175,6 +178,10 @@ fun Application.configureRouting() {
                 MessageResponse(true, "سرور در حال اجراست")
             )
         }
+
+        // Static content (images + audio) served from the local content directory,
+        // e.g. GET /content/words/fruits/apple.png . See StorageService.
+        staticFiles(StorageService.PUBLIC_PATH, File(StorageService.contentDir))
 
             // OpenAPI JSON endpoint
         openAPI(path = "/openapi", swaggerFile = "openapi/documentation.yaml")

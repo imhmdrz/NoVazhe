@@ -54,6 +54,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.json)
             implementation(libs.image.picker.kmp)
             implementation(libs.compottie)
+            implementation(libs.backdrop)
         }
         commonTest.dependencies { implementation(libs.kotlin.test) }
     }

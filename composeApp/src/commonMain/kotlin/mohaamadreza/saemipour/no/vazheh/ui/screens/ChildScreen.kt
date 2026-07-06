@@ -10,6 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -56,6 +57,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,9 +86,10 @@ import org.jetbrains.compose.resources.painterResource
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun ChildScreen(
-    navController: NavController, 
+    navController: NavController,
     viewModel: ChildViewModel,
-    quizViewModel: QuizViewModel
+    quizViewModel: QuizViewModel,
+    bottomPadding: Dp = 0.dp
 ) {
     BackHandler {}
     val uiState by viewModel.uiState.collectAsState()
@@ -209,6 +212,7 @@ fun ChildScreen(
                 else -> {
                     Categories(
                         categories = uiState.categories,
+                        bottomPadding = bottomPadding,
                         onCategoryClick = { category ->
                             viewModel.onCategorySelected(category)
                             navController.navigate("game")
@@ -258,11 +262,14 @@ private enum class GameType { Memory, Quiz, Shadow }
 @Composable
 private fun Categories(
     categories: List<CategoryDTO>,
+    bottomPadding: Dp,
     onCategoryClick: (CategoryDTO) -> Unit
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        modifier = Modifier.padding(24.dp).clip(RoundedCornerShape(24.dp)),
+        modifier = Modifier.padding(horizontal = 24.dp).padding(top = 24.dp)
+            .clip(RoundedCornerShape(24.dp)),
+        contentPadding = PaddingValues(bottom = bottomPadding + 24.dp),
         horizontalArrangement = Arrangement.spacedBy(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {

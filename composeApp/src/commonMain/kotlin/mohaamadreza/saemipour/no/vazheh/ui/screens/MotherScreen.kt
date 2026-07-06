@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,9 +51,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.kyant.backdrop.backdrops.LayerBackdrop
+import com.kyant.backdrop.backdrops.layerBackdrop
+import com.kyant.backdrop.backdrops.rememberLayerBackdrop
+import com.kyant.backdrop.drawBackdrop
+import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
+import com.kyant.backdrop.effects.vibrancy
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.isAndroidPlatform
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
@@ -138,6 +147,9 @@ fun MotherScreen(
 
     AudioProvider(audioUpdates = audioUpdates) { audioPlayer ->
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            // Captures the screen content so the bottom bar can refract it (liquid glass).
+            val backdrop = rememberLayerBackdrop()
+
             Scaffold(
                 snackbarHost = {
                     SnackbarHost(snackbarHostState) { data ->
@@ -151,6 +163,7 @@ fun MotherScreen(
                 },
                 bottomBar = {
                     MotherBottomNavigation(
+                        backdrop = backdrop,
                         selectedTab = uiState.selectedTab,
                         isLoggedIn = uiState.isLoggedIn,
                         onTabSelected = viewModel::onTabSelected,
@@ -158,20 +171,27 @@ fun MotherScreen(
                     )
                 }
             ) { paddingValues ->
+                // Only top padding is consumed: content intentionally extends under the
+                // glass bottom bar so it stays visible through it. Scrollables receive the
+                // bar height as extra bottom content padding instead.
+                val bottomBarPadding = paddingValues.calculateBottomPadding()
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(paddingValues)
+                        .layerBackdrop(backdrop)
                         .background(SoftGray)
+                        .padding(top = paddingValues.calculateTopPadding())
                 ) {
                     when (uiState.selectedTab) {
                         MotherTab.DASHBOARD -> ChildScreen(
                             navController = navController,
                             viewModel = childViewModel,
-                            quizViewModel = quizViewModel
+                            quizViewModel = quizViewModel,
+                            bottomPadding = bottomBarPadding
                         )
 
                         MotherTab.PROFILE -> if (uiState.isLoggedIn) ProfileContent(
+                            bottomPadding = bottomBarPadding,
                             username = uiState.username,
                             displayName = uiState.displayName,
                             timerDurationMinutes = childUiState.timerDurationMinutes,
@@ -238,15 +258,31 @@ fun MotherScreen(
 
 @Composable
 private fun MotherBottomNavigation(
+    backdrop: LayerBackdrop,
     selectedTab: MotherTab,
     isLoggedIn: Boolean,
     onTabSelected: (MotherTab) -> Unit,
     onRequireLogin: () -> Unit
 ) {
+    val barShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp,
-        modifier = Modifier.clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
+        containerColor = Color.Transparent,
+        tonalElevation = 0.dp,
+        modifier = Modifier
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { barShape },
+                effects = {
+                    vibrancy()
+                    blur(5.dp.toPx())
+                    lens(16.dp.toPx(), 32.dp.toPx())
+                },
+                // Translucent surface keeps labels/icons readable over the refracted
+                // content; it is also the fallback look below Android 12/13 where the
+                // blur/lens effects are unavailable.
+                onDrawSurface = { drawRect(Color.White.copy(alpha = 0.85f)) }
+            )
+            .clip(barShape)
     ) {
         NavigationBarItem(
             selected = selectedTab == MotherTab.DASHBOARD,
@@ -362,6 +398,7 @@ private fun GuestProfilePrompt(onLogin: () -> Unit) {
 
 @Composable
 private fun ProfileContent(
+    bottomPadding: Dp,
     username: String,
     displayName: String,
     timerDurationMinutes: Int,
@@ -390,6 +427,7 @@ private fun ProfileContent(
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = bottomPadding),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // Children & Custom Words Section

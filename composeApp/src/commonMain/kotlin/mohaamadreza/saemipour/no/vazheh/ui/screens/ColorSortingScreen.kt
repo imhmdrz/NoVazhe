@@ -1,10 +1,18 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
@@ -16,6 +24,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -50,12 +59,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -400,17 +414,22 @@ private fun ColorDragTarget(
 }
 
 /**
- * یک بادکنک رنگی به همراه نخ
+ * یک بادکنک رنگی؛ اندازه با [width] تعیین می‌شود و بقیه‌ی اجزا متناسب با آن مقیاس می‌گیرند.
+ * برای بادکنک‌های بسته‌شده به باکس، نخ جدا کشیده می‌شود پس [showString] را false بدهید.
  */
 @Composable
-private fun Balloon(color: Color) {
+private fun Balloon(
+    color: Color,
+    width: Dp = 64.dp,
+    showString: Boolean = true
+) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // بدنه بادکنک
         Box(
             modifier = Modifier
-                .size(width = 64.dp, height = 78.dp)
+                .size(width = width, height = width * 1.22f)
                 .clip(RoundedCornerShape(50))
                 .background(
                     brush = Brush.radialGradient(
@@ -433,8 +452,8 @@ private fun Balloon(color: Color) {
             // نقطه نور (highlight)
             Box(
                 modifier = Modifier
-                    .padding(start = 12.dp, top = 10.dp)
-                    .size(14.dp)
+                    .padding(start = width * 0.19f, top = width * 0.16f)
+                    .size(width * 0.22f)
                     .clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.6f))
             )
@@ -442,16 +461,103 @@ private fun Balloon(color: Color) {
         // گره کوچک پایین بادکنک
         Box(
             modifier = Modifier
-                .size(width = 8.dp, height = 6.dp)
+                .size(width = width * 0.125f, height = width * 0.094f)
                 .background(color.copy(alpha = 0.9f))
         )
-        // نخ بادکنک
-        Box(
-            modifier = Modifier
-                .width(2.dp)
-                .height(22.dp)
-                .background(Color.Gray.copy(alpha = 0.7f))
+        if (showString) {
+            // نخ بادکنک
+            Box(
+                modifier = Modifier
+                    .width(2.dp)
+                    .height(22.dp)
+                    .background(Color.Gray.copy(alpha = 0.7f))
+            )
+        }
+    }
+}
+
+/**
+ * دسته‌ی بادکنک‌های جمع‌شده‌ی یک باکس: بادکنک‌ها بزرگ‌تر بالای باکس شناورند و
+ * هرکدام با یک نخ منحنی به لبه‌ی باکس بسته شده‌اند. تکان‌خوردن آرام هر بادکنک
+ * و ظاهرشدن با انیمیشن، حس بادکنک واقعی را برای کودک می‌سازد.
+ */
+@Composable
+private fun BasketBalloonCluster(
+    items: List<ColorItem>,
+    modifier: Modifier = Modifier
+) {
+    // جایگاه هر بادکنک نسبت به وسطِ بالای باکس
+    val slots = listOf(
+        DpOffset(0.dp, 4.dp),
+        DpOffset((-26).dp, 20.dp),
+        DpOffset(26.dp, 20.dp),
+        DpOffset((-13).dp, 34.dp),
+        DpOffset(13.dp, 34.dp)
+    )
+    val balloonWidth = 46.dp
+    // بدنه + گره؛ نقطه‌ی شروع نخ از همین‌جاست
+    val balloonBodyHeight = balloonWidth * 1.22f + balloonWidth * 0.094f
+
+    val shown = items.take(slots.size)
+    val infiniteTransition = rememberInfiniteTransition(label = "balloonBob")
+    val bobs = shown.mapIndexed { index, _ ->
+        infiniteTransition.animateFloat(
+            initialValue = -1f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(durationMillis = 1500 + index * 300, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "bob$index"
         )
+    }
+
+    val bobRangePx = with(LocalDensity.current) { 4.dp.toPx() }
+
+    Box(modifier = modifier) {
+        // نخ‌ها: از ته هر بادکنک تا وسط لبه‌ی باکس (با کمی خمیدگی طبیعی)
+        Canvas(modifier = Modifier.matchParentSize()) {
+            val anchor = Offset(size.width / 2f, size.height)
+            shown.forEachIndexed { index, _ ->
+                val slot = slots[index]
+                val bob = bobs[index].value * bobRangePx
+                val startX = size.width / 2f + slot.x.toPx()
+                val startY = slot.y.toPx() + balloonBodyHeight.toPx() + bob
+                val stringPath = Path().apply {
+                    moveTo(startX, startY)
+                    quadraticBezierTo(
+                        (startX + anchor.x) / 2f,
+                        (startY + anchor.y) / 2f + 8.dp.toPx(),
+                        anchor.x,
+                        anchor.y
+                    )
+                }
+                drawPath(
+                    path = stringPath,
+                    color = Color.Gray.copy(alpha = 0.65f),
+                    style = Stroke(width = 1.5.dp.toPx())
+                )
+            }
+        }
+
+        shown.forEachIndexed { index, item ->
+            val slot = slots[index]
+            // هر بادکنک با انیمیشن کوچک→بزرگ ظاهر می‌شود
+            val appear = remember { MutableTransitionState(false).apply { targetState = true } }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(x = slot.x, y = slot.y)
+                    .graphicsLayer { translationY = bobs[index].value * bobRangePx }
+            ) {
+                AnimatedVisibility(
+                    visibleState = appear,
+                    enter = scaleIn(animationSpec = tween(400)) + fadeIn(tween(400))
+                ) {
+                    Balloon(color = item.color.color, width = balloonWidth, showString = false)
+                }
+            }
+        }
     }
 }
 
@@ -507,6 +613,14 @@ private fun ColorDropItem(
             }
         }
 
+        // بادکنک‌های جمع‌شده، بزرگ‌تر و آویزان به باکس
+        BasketBalloonCluster(
+            items = basket.items,
+            modifier = Modifier
+                .width(96.dp)
+                .height(104.dp)
+        )
+
         // Box visual
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -553,15 +667,7 @@ private fun ColorDropItem(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                if (basket.items.isNotEmpty()) {
-                    // نمایش تعداد بادکنک‌های جمع شده
-                    Text(
-                        text = "🎈",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
+                // بادکنک‌های جمع‌شده حالا بالای باکس آویزانند (BasketBalloonCluster)
             }
         }
 

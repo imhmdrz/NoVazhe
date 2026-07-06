@@ -34,6 +34,8 @@ navigationCompose = "2.9.1"
 xmlSerialization = "0.91.1"
 koin = "4.1.1"
 accompanist = "0.37.3"
+# 2.0.0 stable requires compileSdk 37; alpha03 is the latest that builds with compileSdk 36
+backdrop = "2.0.0-alpha03"
 coil = "3.3.0"
 activity-compose = "1.10.1"
 work-runtime-ktx = "2.11.0"
@@ -86,6 +88,7 @@ ktor-logging = { module = "io.ktor:ktor-client-logging", version.ref = "ktor" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "kotlinx-coroutines" }
 accompanist-permissions = { module = "com.google.accompanist:accompanist-permissions" , version.ref = "accompanist" }
+backdrop = { module = "io.github.kyant0:backdrop", version.ref = "backdrop" }
 
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
 material-icons-core = { module = "org.jetbrains.compose.material:material-icons-core", version.ref = "materialIconsCore" }

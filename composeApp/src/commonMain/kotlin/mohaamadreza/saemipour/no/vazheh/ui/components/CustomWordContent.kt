@@ -68,7 +68,7 @@ fun CustomWordContent(
                         .crossfade(true)
                         .build(),
                     contentDescription = "تصویر انتخاب شده",
-                    modifier = Modifier.size(width = 100.dp, height = 56.dp),
+                    modifier = Modifier.size(45.dp).clip(CircleShape),
                     contentScale = androidx.compose.ui.layout.ContentScale.Crop
                 )
 

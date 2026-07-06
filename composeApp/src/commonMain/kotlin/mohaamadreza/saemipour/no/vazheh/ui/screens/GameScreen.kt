@@ -49,12 +49,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
-import kotlinx.coroutines.delay
 import coil3.compose.LocalPlatformContext
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.data.WordProgressDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
@@ -451,7 +451,7 @@ private fun rememberShakeRotation(active: Boolean): Float {
 private const val LEARNED_THRESHOLD = 3
 
 /** مدت بی‌تحرکی (بعد از پایان صدا) تا رفتن خودکار به کلمه‌ی بعد */
-private const val AUTO_ADVANCE_DELAY_MS = 7_000L
+private const val AUTO_ADVANCE_DELAY_MS = 4_000L
 
 /**
  * Learning-progress indicator under the word: a segmented bar with one segment per

@@ -1,5 +1,8 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,9 +17,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyGridItemScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -58,6 +64,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -67,6 +74,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
+import coil3.compose.rememberAsyncImagePainter
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import io.github.ismoy.imagepickerkmp.domain.models.GalleryPhotoResult
@@ -102,7 +110,9 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateCategoryState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CreateCustomWordState
-import androidx.compose.foundation.lazy.grid.items as gridItems
+import novazheh.composeapp.generated.resources.Res
+import novazheh.composeapp.generated.resources.icon
+import org.jetbrains.compose.resources.painterResource
 import androidx.compose.foundation.lazy.items as listItems
 
 /** Which step of the add-word flow is currently shown. */
@@ -409,7 +419,9 @@ fun AddWordScreen(
                                     .height(56.dp),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = ButtonDefaults.buttonColors(containerColor = TealPurple),
+                                // تصویر هم مثل کلمه و صدا الزامی است
                                 enabled = wordFa.isNotBlank() && audioUrl.isNotBlank() &&
+                                    imageUrl.isNotBlank() &&
                                     !uiState.isCreatingCustomWord && !isRecording && !isProcessingAudio
                             ) {
                                 if (uiState.isCreatingCustomWord) {
@@ -636,15 +648,21 @@ private fun CategoryListContent(
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
-        modifier = Modifier.fillMaxSize().padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        modifier = Modifier.fillMaxSize().padding(horizontal = 24.dp).padding(top = 24.dp)
+            .clip(RoundedCornerShape(24.dp)),
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+        verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
         item {
             AddTile(label = "دسته‌بندی جدید", onClick = onAddCategory)
         }
-        gridItems(categories) { category ->
-            CategoryTile(category = category, onClick = { onCategoryClick(category) })
+        itemsIndexed(categories) { index, category ->
+            CategoryTile(
+                category = category,
+                index = index,
+                modifier = Modifier.animateItem(),
+                onClick = { onCategoryClick(category) }
+            )
         }
     }
 }
@@ -657,13 +675,13 @@ private fun AddTile(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(110.dp)
-            .clip(RoundedCornerShape(16.dp))
+            .height(140.dp)
+            .clip(RoundedCornerShape(24.dp))
             .background(TealPurple.copy(alpha = 0.08f))
             .border(
                 width = 1.5.dp,
                 color = TealPurple,
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(24.dp)
             )
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
@@ -686,44 +704,65 @@ private fun AddTile(
     }
 }
 
+// Mirrors CategoryItem in ChildScreen (same size, corners, overlays, pop-in animation)
 @Composable
-private fun CategoryTile(
+private fun LazyGridItemScope.CategoryTile(
     category: CategoryDTO,
+    index: Int,
+    modifier: Modifier = Modifier,
     onClick: () -> Unit
 ) {
+    val imageRequest = ImageRequest.Builder(LocalPlatformContext.current)
+        .data(category.iconUrl)
+        .crossfade(true)
+        .build()
+
+    val painter = rememberAsyncImagePainter(model = imageRequest)
+
+    // Staggered "pop-in": each tile fades + scales up shortly after the one before it.
+    val appear = remember { Animatable(0f) }
+    LaunchedEffect(category.id) {
+        delay(index * 55L)
+        appear.animateTo(1f, tween(360))
+    }
+
     Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(110.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(SoftGray)
+        modifier = modifier
+            .graphicsLayer {
+                alpha = appear.value
+                val scale = 0.85f + 0.15f * appear.value
+                scaleX = scale
+                scaleY = scale
+            }
+            .widthIn(min = 160.dp)
+            .height(140.dp)
+            .clip(RoundedCornerShape(24.dp))
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
-        AsyncImage(
-            model = ImageRequest.Builder(LocalPlatformContext.current)
-                .data(category.iconUrl)
-                .crossfade(true)
-                .build(),
+        // Background image from URL
+        Image(
+            painter = painter,
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            modifier = Modifier.fillMaxSize()
-        )
-
-        // Scrim for label legibility
-        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.28f))
+                .clip(RoundedCornerShape(24.dp))
         )
 
+        // Icon overlay
+        Image(
+            painter = painterResource(Res.drawable.icon),
+            modifier = Modifier.align(Alignment.TopEnd).padding(12.dp),
+            contentDescription = null,
+        )
+
+        // Text overlay
         Text(
             text = category.nameFa,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
+            style = MaterialTheme.typography.titleMedium,
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(8.dp)
+            modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
         )
     }
 }

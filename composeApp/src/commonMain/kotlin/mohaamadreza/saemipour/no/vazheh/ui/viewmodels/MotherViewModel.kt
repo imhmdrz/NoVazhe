@@ -416,6 +416,12 @@ class MotherViewModel(
             }
             return
         }
+        if (imageUrl.isNullOrBlank()) {
+            _uiState.update {
+                it.copy(createCustomWordState = CreateCustomWordState.Error("تصویر کلمه الزامی است"))
+            }
+            return
+        }
 
         AppLogger.d("MotherViewModel", "Creating custom word: $wordFa")
         _uiState.update { it.copy(createCustomWordState = CreateCustomWordState.Loading) }

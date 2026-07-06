@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -461,7 +462,7 @@ private fun ProfileContent(
                             .padding(top = 8.dp, bottom = 12.dp)
                     ) {
                         Text(
-                            "فرزندان شما",
+                            "فرزندان کاربر ${username.ifEmpty { "تنظیم نشده" }}",
                             Modifier.weight(1f),
                             style = MaterialTheme.typography.bodyLarge,
                             color = DarkText
@@ -536,22 +537,30 @@ private fun ProfileContent(
                         }
                     }
 
-                    is CustomWordsState.Success -> {
-                        items(customWordsState.words.size) { index ->
-                            val word = customWordsState.words[index]
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 24.dp, vertical = 6.dp)
-                            ) {
-                                CustomWordContent(
-                                    word = word,
-                                    isPlaying = currentPlayingAudioUrl == word.audioUrl,
-                                    onPlayClick = { audioUrl -> onPlayAudio(audioUrl) },
-                                    onStopClick = onStopAudio,
-                                    onDeleteClick = { wordId -> onDeleteCustomWord(wordId) },
-                                    onClick = {}
-                                )
+                    is CustomWordsState.Success -> item {
+                        // Show at most ~2 rows; the rest of the added words scroll
+                        // inside this fixed-height list instead of growing the page.
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = 180.dp)
+                        ) {
+                            items(customWordsState.words.size) { index ->
+                                val word = customWordsState.words[index]
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 24.dp, vertical = 6.dp)
+                                ) {
+                                    CustomWordContent(
+                                        word = word,
+                                        isPlaying = currentPlayingAudioUrl == word.audioUrl,
+                                        onPlayClick = { audioUrl -> onPlayAudio(audioUrl) },
+                                        onStopClick = onStopAudio,
+                                        onDeleteClick = { wordId -> onDeleteCustomWord(wordId) },
+                                        onClick = {}
+                                    )
+                                }
                             }
                         }
                     }
@@ -561,32 +570,6 @@ private fun ProfileContent(
             }
 
             else -> {}
-        }
-
-        item { Spacer(modifier = Modifier.height(24.dp)) }
-
-        // User Info Card
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    UserInfoRow(
-                        label = "نام کاربری",
-                        value = username.ifEmpty { "تنظیم نشده" }
-                    )
-                }
-            }
         }
 
         item { Spacer(modifier = Modifier.height(24.dp)) }
@@ -608,17 +591,30 @@ private fun ProfileContent(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     Text(
-                        text = "⏱️ تنظیم زمان بازی",
-                        style = MaterialTheme.typography.titleMedium,
+                        text = "⏱️ مدت زمان مجاز بازی فرزند را تنظیم کنید",
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = DarkText
                     )
 
-                    Text(
-                        text = "مدت زمان مجاز بازی فرزند را تنظیم کنید",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MutedText
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                color = TealPurple.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(6.dp)
+                            )
+                            .padding(4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "زمان انتخاب شده: $timerDurationMinutes دقیقه",
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = TealPurple
+                        )
+                    }
+
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -629,6 +625,11 @@ private fun ProfileContent(
                             minutes = 1,
                             isSelected = timerDurationMinutes == 1,
                             onClick = { onTimerDurationChange(1) }
+                        )
+                        TimerOptionButton(
+                            minutes = 5,
+                            isSelected = timerDurationMinutes == 5,
+                            onClick = { onTimerDurationChange(5) }
                         )
                         TimerOptionButton(
                             minutes = 10,
@@ -644,24 +645,6 @@ private fun ProfileContent(
                             minutes = 30,
                             isSelected = timerDurationMinutes == 30,
                             onClick = { onTimerDurationChange(30) }
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(
-                                color = TealPurple.copy(alpha = 0.1f),
-                                shape = RoundedCornerShape(12.dp)
-                            )
-                            .padding(12.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "زمان انتخاب شده: $timerDurationMinutes دقیقه",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium,
-                            color = TealPurple
                         )
                     }
                 }
@@ -751,7 +734,7 @@ private fun TimerOptionButton(
 ) {
     Box(
         modifier = Modifier
-            .size(60.dp)
+            .size(40.dp)
             .background(
                 color = if (isSelected) TealPurple else SoftGray,
                 shape = CircleShape

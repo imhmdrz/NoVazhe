@@ -61,6 +61,13 @@ fun ImageSelectionSection(
                 fontWeight = FontWeight.Bold,
                 color = DarkText
             )
+            // فیلد الزامی
+            Text(
+                text = " *",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = CoralRed
+            )
         }
 
         Spacer(modifier = Modifier.height(12.dp))

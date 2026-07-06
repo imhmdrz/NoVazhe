@@ -44,6 +44,21 @@ fun WinCelebrationOverlay(
             Res.readBytes("files/main_winning.json").decodeToString()
         )
     }
+    val main2Composition by rememberLottieComposition {
+        LottieCompositionSpec.JsonString(
+            Res.readBytes("files/main_winning2.json").decodeToString()
+        )
+    }
+    val main3Composition by rememberLottieComposition {
+        LottieCompositionSpec.JsonString(
+            Res.readBytes("files/main_winning3.json").decodeToString()
+        )
+    }
+    val main4Composition by rememberLottieComposition {
+        LottieCompositionSpec.JsonString(
+            Res.readBytes("files/main_winning4.json").decodeToString()
+        )
+    }
     val cornerComposition by rememberLottieComposition {
         LottieCompositionSpec.JsonString(
             Res.readBytes("files/corner_winning.json").decodeToString()
@@ -52,6 +67,18 @@ fun WinCelebrationOverlay(
 
     val mainProgress by animateLottieCompositionAsState(
         composition = mainComposition,
+        iterations = Compottie.IterateForever,
+    )
+    val main2Progress by animateLottieCompositionAsState(
+        composition = main2Composition,
+        iterations = Compottie.IterateForever,
+    )
+    val main3Progress by animateLottieCompositionAsState(
+        composition = main3Composition,
+        iterations = Compottie.IterateForever,
+    )
+    val main4Progress by animateLottieCompositionAsState(
+        composition = main4Composition,
         iterations = Compottie.IterateForever,
     )
     val cornerProgress by animateLottieCompositionAsState(
@@ -74,6 +101,36 @@ fun WinCelebrationOverlay(
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize(),
+        )
+
+        Image(
+            painter = rememberLottiePainter(
+                composition = main2Composition,
+                progress = { main2Progress },
+            ),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        Image(
+            painter = rememberLottiePainter(
+                composition = main3Composition,
+                progress = { main3Progress },
+            ),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+
+        Image(
+            painter = rememberLottiePainter(
+                composition = main4Composition,
+                progress = { main4Progress },
+            ),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.align(Alignment.Center),
         )
 
         // Horns in the four corners, each rotated to point inward.

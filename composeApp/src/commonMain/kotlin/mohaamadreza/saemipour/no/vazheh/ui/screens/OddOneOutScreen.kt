@@ -66,6 +66,7 @@ import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
+import mohaamadreza.saemipour.no.vazheh.ui.components.LoseOverlay
 import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
 import mohaamadreza.saemipour.no.vazheh.ui.components.backToDashboard
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
@@ -100,7 +101,7 @@ fun OddOneOutScreen(
         if (viewModel.showWrongFeedback) {
             delay(1100)
             viewModel.clearWrongFeedback()
-            if (!viewModel.isWin) viewModel.advanceToNextRound()
+            if (!viewModel.isGameOver) viewModel.advanceToNextRound()
         }
     }
 
@@ -119,7 +120,7 @@ fun OddOneOutScreen(
                 }
                 delay(1100)
                 viewModel.clearLastCorrectWord()
-                if (!viewModel.isWin) viewModel.advanceToNextRound()
+                if (!viewModel.isGameOver) viewModel.advanceToNextRound()
             }
         }
 
@@ -154,6 +155,15 @@ fun OddOneOutScreen(
                 if (viewModel.isWin) {
                     // فقط انیمیشن برد؛ لمس صفحه = شروع دوباره بازی
                     WinCelebration(onTap = { viewModel.resetGame() })
+                }
+
+                if (viewModel.isLose) {
+                    // ستاره‌ی کافی جمع نشد؛ لمس صفحه یا دکمه = تلاش دوباره
+                    LoseOverlay(
+                        stars = viewModel.stars,
+                        totalRounds = viewModel.totalRounds,
+                        onTap = { viewModel.resetGame() }
+                    )
                 }
             }
         }

@@ -1,5 +1,6 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -16,10 +17,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.Home
@@ -48,7 +51,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
@@ -540,27 +545,59 @@ private fun ProfileContent(
                     is CustomWordsState.Success -> item {
                         // Show at most ~2 rows; the rest of the added words scroll
                         // inside this fixed-height list instead of growing the page.
-                        LazyColumn(
+                        val wordsListState = rememberLazyListState()
+                        // Fade + chevron hint shown while more words are below the fold.
+                        val hintAlpha by animateFloatAsState(
+                            if (wordsListState.canScrollForward) 1f else 0f
+                        )
+
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(max = 180.dp)
                         ) {
-                            items(customWordsState.words.size) { index ->
-                                val word = customWordsState.words[index]
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 24.dp, vertical = 6.dp)
-                                ) {
-                                    CustomWordContent(
-                                        word = word,
-                                        isPlaying = currentPlayingAudioUrl == word.audioUrl,
-                                        onPlayClick = { audioUrl -> onPlayAudio(audioUrl) },
-                                        onStopClick = onStopAudio,
-                                        onDeleteClick = { wordId -> onDeleteCustomWord(wordId) },
-                                        onClick = {}
-                                    )
+                            LazyColumn(
+                                state = wordsListState,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(customWordsState.words.size) { index ->
+                                    val word = customWordsState.words[index]
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 24.dp, vertical = 6.dp)
+                                    ) {
+                                        CustomWordContent(
+                                            word = word,
+                                            isPlaying = currentPlayingAudioUrl == word.audioUrl,
+                                            onPlayClick = { audioUrl -> onPlayAudio(audioUrl) },
+                                            onStopClick = onStopAudio,
+                                            onDeleteClick = { wordId -> onDeleteCustomWord(wordId) },
+                                            onClick = {}
+                                        )
+                                    }
                                 }
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .alpha(hintAlpha)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(Color.Transparent, SoftGray)
+                                        )
+                                    ),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Icon(
+                                    imageVector = Icons.Filled.KeyboardArrowDown,
+                                    contentDescription = "کلمات بیشتر",
+                                    tint = MutedText,
+                                    modifier = Modifier.size(20.dp)
+                                )
                             }
                         }
                     }
@@ -680,7 +717,7 @@ private fun ProfileContent(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = "حالت کودک",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = DarkText
                         )

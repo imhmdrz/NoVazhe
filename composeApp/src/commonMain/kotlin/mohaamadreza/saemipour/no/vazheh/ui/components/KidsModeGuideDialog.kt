@@ -89,14 +89,14 @@ fun KidsModeGuideDialog(
                 // Header
                 Text(
                     text = "🔒",
-                    fontSize = 48.sp
+                    fontSize = 24.sp
                 )
                 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 
                 Text(
                     text = "حالت کودک",
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = DarkText
                 )
@@ -114,24 +114,15 @@ fun KidsModeGuideDialog(
                 if (showGuide) {
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    Text(
-                        text = "برای جلوگیری از خروج کودک از برنامه، مراحل زیر را انجام دهید:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MutedText,
-                        textAlign = TextAlign.Center
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
                     // Wrap the platform-specific guide in a single top-level dropdown
                     // so the dialog stays compact by default. The parent acts as
                     // "Show me the step-by-step guide" and the brand sub-cards are
                     // collapsed too — so first paint is just a stack of headers.
                     ParentGuideDropdown(
                         title = if (isAndroid) {
-                            "📱 اندروید - پین کردن صفحه (Screen Pinning / App Pin)"
+                            "📱 اندروید - پین کردن صفحه"
                         } else {
-                            "🍎 آیفون/آیپد - دسترسی هدایت‌شده (Guided Access)"
+                            "🍎 آیفون/آیپد - دسترسی هدایت‌شده"
                         }
                     ) {
                         if (isAndroid) {
@@ -258,8 +249,7 @@ private fun PinActionsSection(
                     requestAction(if (isPinned) PendingPinAction.Unpin else PendingPinAction.Pin)
                 },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
+                    .fillMaxWidth().padding(horizontal = 20.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = if (isPinned) {
                     ButtonDefaults.buttonColors(
@@ -279,20 +269,31 @@ private fun PinActionsSection(
                 )
             }
 
-            // PIN management link — set the PIN explicitly or change it later.
-            TextButton(
+            Button(
                 onClick = {
                     requestAction(
                         if (hasPin) PendingPinAction.ChangePin
                         else PendingPinAction.SetPin
                     )
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth().padding(horizontal = 20.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = if (isPinned) {
+                    ButtonDefaults.buttonColors(
+                        containerColor = Color.White,
+                        contentColor = TealPurple
+                    )
+                } else {
+                    ButtonDefaults.buttonColors(containerColor = TealPurple)
+                },
+                border = if (isPinned) BorderStroke(width = 1.5.dp, color = TealPurple) else null
             ) {
                 Text(
                     text = if (hasPin) "🔑 تغییر رمز" else "🔑 تعیین رمز ۴ رقمی",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TealPurple
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isPinned) TealPurple else Color.White
                 )
             }
         }
@@ -446,7 +447,7 @@ private fun AndroidGuide() {
         // screen pinning under a slightly different path, so each brand gets its own
         // collapsible section instead of a single generic guide.
         BrandGuide(
-            title = "🟦 پیکسل / اندروید استاندارد (Google Pixel, Android One)",
+            title = "🟦 پیکسل / اندروید استاندارد",
             steps = listOf(
                 "تنظیمات (Settings) را باز کنید",
                 "وارد بخش «امنیت و حریم خصوصی» (Security & privacy) شوید",
@@ -459,7 +460,7 @@ private fun AndroidGuide() {
         )
 
         BrandGuide(
-            title = "🟩 سامسونگ (Samsung - One UI)",
+            title = "🟩 سامسونگ",
             steps = listOf(
                 "تنظیمات (Settings) را باز کنید",
                 "وارد بخش «بیومتریک و امنیت» (Biometrics and security) شوید",
@@ -472,7 +473,7 @@ private fun AndroidGuide() {
         )
 
         BrandGuide(
-            title = "🟥 شیائومی / ردمی / پوکو (Xiaomi, Redmi, POCO - MIUI/HyperOS)",
+            title = "🟥 شیائومی / ردمی / پوکو",
             steps = listOf(
                 "تنظیمات (Settings) را باز کنید",
                 "وارد «رمز عبور و امنیت» (Passwords & security) شوید",
@@ -485,7 +486,7 @@ private fun AndroidGuide() {
         )
 
         BrandGuide(
-            title = "🟧 هواوی / آنر (Huawei, Honor - EMUI/MagicOS)",
+            title = "🟧 هواوی / آنر",
             steps = listOf(
                 "تنظیمات (Settings) را باز کنید",
                 "وارد بخش «امنیت» (Security) شوید",
@@ -498,7 +499,7 @@ private fun AndroidGuide() {
         )
 
         BrandGuide(
-            title = "🟨 اوپو / ریلمی / وان‌پلاس (Oppo, Realme, OnePlus - ColorOS/OxygenOS)",
+            title = "🟨 اوپو / ریلمی / وان‌پلاس",
             steps = listOf(
                 "تنظیمات (Settings) را باز کنید",
                 "وارد بخش «حریم خصوصی» (Privacy) شوید",
@@ -510,7 +511,7 @@ private fun AndroidGuide() {
         )
 
         BrandGuide(
-            title = "🟪 ویوو / آی‌کوو (Vivo, iQOO - FuntouchOS/OriginOS)",
+            title = "🟪 ویوو / آی‌کوو",
             steps = listOf(
                 "تنظیمات (Settings) را باز کنید",
                 "وارد بخش «اثرانگشت، چهره و رمز» یا «امنیت» شوید",

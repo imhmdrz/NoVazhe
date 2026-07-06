@@ -48,8 +48,17 @@ class OddOneOutViewModel(
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
+    /** برد: بیش از نیمی از دورها با اولین تلاش درست جواب داده شده باشد */
     var isWin by mutableStateOf(false)
         private set
+
+    /** باخت: بازی تمام شده ولی ستاره‌ی کافی جمع نشده */
+    var isLose by mutableStateOf(false)
+        private set
+
+    /** بازی تمام شده (برد یا باخت) */
+    val isGameOver: Boolean
+        get() = isWin || isLose
 
     /** کلمه‌ای که الان درست انتخاب شده تا صدایش پخش شود */
     var lastCorrectWord by mutableStateOf<WordDTO?>(null)
@@ -132,6 +141,7 @@ class OddOneOutViewModel(
         currentRound = 0
         stars = 0
         isWin = false
+        isLose = false
         lastCorrectWord = null
         showWrongFeedback = false
         wrongOptionId = null
@@ -143,7 +153,7 @@ class OddOneOutViewModel(
 
     private fun startNextRound() {
         if (currentRound >= totalRounds) {
-            isWin = true
+            finishGame()
             return
         }
 
@@ -153,7 +163,7 @@ class OddOneOutViewModel(
             .toList()
 
         if (eligibleMainIds.isEmpty()) {
-            isWin = true
+            finishGame()
             return
         }
 
@@ -166,7 +176,7 @@ class OddOneOutViewModel(
             .flatten()
 
         if (otherWordsPool.isEmpty()) {
-            isWin = true
+            finishGame()
             return
         }
 
@@ -204,6 +214,15 @@ class OddOneOutViewModel(
 
     fun advanceToNextRound() {
         startNextRound()
+    }
+
+    /** پایان بازی: برد فقط وقتی که بیش از نصف دورها ستاره گرفته شده باشد */
+    private fun finishGame() {
+        if (stars * 2 > totalRounds) {
+            isWin = true
+        } else {
+            isLose = true
+        }
     }
 
     fun clearLastCorrectWord() {

@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -41,8 +41,8 @@ fun AddWordHeader(
             color = headerText
         )
         Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = "بازگشت",
+            imageVector = Icons.Filled.Home,
+            contentDescription = "بازگشت به داشبورد",
             tint = headerText,
             modifier = Modifier.align(Alignment.CenterEnd).size(28.dp).clickable{onBackClick.invoke()}
         )

@@ -38,7 +38,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
@@ -50,7 +49,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -89,7 +87,9 @@ import mohaamadreza.saemipour.no.vazheh.data.RecentQuizAttemptDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
+import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
 import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationOverlay
+import mohaamadreza.saemipour.no.vazheh.ui.components.backToDashboard
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
@@ -227,7 +227,7 @@ fun QuizScreen(
                                 onBack = {
                                     player.pause()
                                     viewModel.resetQuiz()
-                                    navController.popBackStack()
+                                    navController.backToDashboard()
                                 }
                             )
                         }
@@ -829,15 +829,8 @@ private fun QuizContent(
 
             Spacer(Modifier.width(16.dp))
 
-            // Back button
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowBack,
-                    modifier = Modifier.rotate(180f),
-                    contentDescription = "بازگشت",
-                    tint = Purple40
-                )
-            }
+            // دکمه‌ی داشبورد (بازگشت به داشبورد)
+            DashboardButton(onClick = onBack, tint = Purple40)
         }
 
         Spacer(Modifier.height(32.dp))

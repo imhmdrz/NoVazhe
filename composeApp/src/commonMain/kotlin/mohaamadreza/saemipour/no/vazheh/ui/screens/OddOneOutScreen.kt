@@ -65,7 +65,9 @@ import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
+import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
 import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
+import mohaamadreza.saemipour.no.vazheh.ui.components.backToDashboard
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
@@ -144,7 +146,7 @@ fun OddOneOutScreen(
                     )
                     viewModel.options.isNotEmpty() -> OddOneOutContent(
                         viewModel = viewModel,
-                        onBack = { navController.popBackStack() },
+                        onBack = { navController.backToDashboard() },
                         onResetGame = { viewModel.resetGame() }
                     )
                 }
@@ -327,13 +329,7 @@ private fun Header(
                 }
                 Spacer(Modifier.width(8.dp))
             }
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "بازگشت",
-                    tint = OddOneOutAccent
-                )
-            }
+            DashboardButton(onClick = onBack, tint = OddOneOutAccent)
         }
     }
 }

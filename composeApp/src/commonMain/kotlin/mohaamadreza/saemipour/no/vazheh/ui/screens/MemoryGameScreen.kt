@@ -62,7 +62,9 @@ import coil3.request.crossfade
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
+import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
 import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
+import mohaamadreza.saemipour.no.vazheh.ui.components.backToDashboard
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
@@ -145,7 +147,7 @@ fun MemoryGameScreen(
                             totalPairs = viewModel.totalPairs,
                             onCardClick = { viewModel.onCardClick(it) },
                             onResetGame = { viewModel.resetGame() },
-                            onBack = { navController.popBackStack() }
+                            onBack = { navController.backToDashboard() }
                         )
                     }
                 }
@@ -258,13 +260,7 @@ private fun MemoryGameContent(
                 )
             }
             
-            IconButton(onClick = onBack) {
-                Icon(
-                    Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = "بازگشت",
-                    tint = Purple40
-                )
-            }
+            DashboardButton(onClick = onBack, tint = Purple40)
         }
 
         Spacer(Modifier.height(16.dp))

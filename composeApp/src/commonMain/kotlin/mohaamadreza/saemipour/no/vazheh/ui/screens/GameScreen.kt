@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
 import coil3.compose.LocalPlatformContext
 import coil3.compose.rememberAsyncImagePainter
 import coil3.request.CachePolicy
@@ -122,6 +123,17 @@ fun GameScreen(
             // Load this word's learning progress for a logged-in child
             if (uiState.hasChildId) {
                 currentWord?.let { viewModel.loadWordProgress(it.id) }
+            }
+        }
+
+        // اگر کودک کاری نکند (صدای کلمه پخش نشود)، بعد از چند ثانیه خودکار به کلمه بعد می‌رویم.
+        // هر بار پخش صدا (خودکار یا با لمس کودک) این شمارش را از نو شروع می‌کند.
+        LaunchedEffect(uiState.currentWordIndex, isPlaying) {
+            if (!isPlaying) {
+                delay(AUTO_ADVANCE_DELAY_MS)
+                if (viewModel.canGoNext()) {
+                    viewModel.nextWord()
+                }
             }
         }
 
@@ -437,6 +449,9 @@ private fun rememberShakeRotation(active: Boolean): Float {
  * Mirrors `LEARNED_THRESHOLD` in the server's QuizService — keep them in sync.
  */
 private const val LEARNED_THRESHOLD = 3
+
+/** مدت بی‌تحرکی (بعد از پایان صدا) تا رفتن خودکار به کلمه‌ی بعد */
+private const val AUTO_ADVANCE_DELAY_MS = 7_000L
 
 /**
  * Learning-progress indicator under the word: a segmented bar with one segment per

@@ -48,7 +48,9 @@ import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DragTarget
+import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
 import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
+import mohaamadreza.saemipour.no.vazheh.ui.components.backToDashboard
 import mohaamadreza.saemipour.no.vazheh.ui.components.DragbleScreen
 import mohaamadreza.saemipour.no.vazheh.ui.components.DropItem
 import novazheh.composeapp.generated.resources.Res
@@ -91,14 +93,27 @@ fun FaceGameScreen(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Title
-                Text(
-                    text = "چهره‌سازی",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF4A3728),
-                    modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                )
+                // Title + دکمه داشبورد (بالا سمت چپ)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, bottom = 8.dp)
+                ) {
+                    DashboardButton(
+                        onClick = { navController.backToDashboard() },
+                        tint = Color(0xFF4A3728),
+                        modifier = Modifier
+                            .align(Alignment.CenterStart)
+                            .padding(start = 12.dp)
+                    )
+                    Text(
+                        text = "چهره‌سازی",
+                        fontSize = 28.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF4A3728),
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
 
                 // Draggable items grid (2 rows / 3 columns) with bigger items
                 Box(

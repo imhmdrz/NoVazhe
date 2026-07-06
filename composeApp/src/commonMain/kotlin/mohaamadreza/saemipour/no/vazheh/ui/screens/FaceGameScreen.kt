@@ -48,7 +48,7 @@ import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DragTarget
-import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationDialog
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
 import mohaamadreza.saemipour.no.vazheh.ui.components.DragbleScreen
 import mohaamadreza.saemipour.no.vazheh.ui.components.DropItem
 import novazheh.composeapp.generated.resources.Res
@@ -301,49 +301,9 @@ fun FaceGameScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Win Dialog
+            // فقط انیمیشن برد؛ لمس صفحه = شروع دوباره بازی
             if (viewModel.isWin) {
-                WinCelebrationDialog(
-                    onDismissRequest = { },
-                    containerColor = Color(0xFF4CAF50),
-                    shape = RoundedCornerShape(20.dp),
-                    title = {
-                        Text(
-                            text = "🎉 تبریک! 🎉",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
-                    },
-                    text = {
-                        Text(
-                            text = "چهره کامل شد!",
-                            fontSize = 18.sp,
-                            color = Color.White,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.Center
-                        )
-                    },
-                    confirmButton = {
-                        Button(
-                            onClick = { viewModel.resetGame() },
-                            colors = ButtonDefaults.buttonColors().copy(
-                                containerColor = Color.White,
-                                contentColor = Color(0xFF4CAF50)
-                            ),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "بازی دوباره",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                )
+                WinCelebration(onTap = { viewModel.resetGame() })
             }
         }
     }

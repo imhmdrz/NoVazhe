@@ -66,7 +66,7 @@ import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
-import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationDialog
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
@@ -97,10 +97,12 @@ fun ShadowMatchScreen(
         }
     }
 
+    // پاسخ اشتباه: بعد از نمایش بازخورد، خودکار به دور بعد می‌رویم
     LaunchedEffect(viewModel.showWrongFeedback) {
         if (viewModel.showWrongFeedback) {
-            delay(700)
+            delay(1100)
             viewModel.clearWrongFeedback()
+            if (!viewModel.isWin) viewModel.advanceToNextRound()
         }
     }
 
@@ -110,13 +112,15 @@ fun ShadowMatchScreen(
         }
 
         // پخش صدای کلمه‌ی درست و رفتن به دور بعد بعد از یک مکث کوتاه
+        // نکته: پاک کردن lastCorrectWord باید «بعد» از delay باشد، وگرنه تغییر کلیدِ
+        // LaunchedEffect همین کوروتین را وسط delay لغو می‌کند و هرگز به دور بعد نمی‌رویم.
         LaunchedEffect(viewModel.lastCorrectWord) {
             viewModel.lastCorrectWord?.let { word ->
                 word.audioUrl?.let { url ->
                     if (url.isNotEmpty()) audioPlayer.play(url)
                 }
-                viewModel.clearLastCorrectWord()
                 delay(1100)
+                viewModel.clearLastCorrectWord()
                 if (!viewModel.isWin) viewModel.advanceToNextRound()
             }
         }
@@ -145,20 +149,13 @@ fun ShadowMatchScreen(
                     viewModel.currentTarget != null -> ShadowMatchContent(
                         viewModel = viewModel,
                         onBack = { navController.popBackStack() },
-                        onResetGame = { viewModel.resetGame() },
-                        onSkip = {
-                            if (!viewModel.isWin) viewModel.advanceToNextRound()
-                        }
+                        onResetGame = { viewModel.resetGame() }
                     )
                 }
 
                 if (viewModel.isWin) {
-                    WinDialog(
-                        stars = viewModel.stars,
-                        totalRounds = viewModel.totalRounds,
-                        onPlayAgain = { viewModel.resetGame() },
-                        onBack = { navController.popBackStack() }
-                    )
+                    // فقط انیمیشن برد؛ لمس صفحه = شروع دوباره بازی
+                    WinCelebration(onTap = { viewModel.resetGame() })
                 }
             }
         }
@@ -223,8 +220,7 @@ private fun ErrorContent(
 private fun ShadowMatchContent(
     viewModel: ShadowMatchViewModel,
     onBack: () -> Unit,
-    onResetGame: () -> Unit,
-    onSkip: () -> Unit
+    onResetGame: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -269,46 +265,21 @@ private fun ShadowMatchContent(
 
         Spacer(Modifier.height(12.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        Button(
+            onClick = onResetGame,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = ShadowAccent),
+            shape = RoundedCornerShape(16.dp)
         ) {
-            Button(
-                onClick = onSkip,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = ShadowAccent.copy(alpha = 0.15f),
-                    contentColor = ShadowAccent
-                ),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Text(text = "⏭", fontSize = 18.sp)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "بعدی",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Button(
-                onClick = onResetGame,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(50.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = ShadowAccent),
-                shape = RoundedCornerShape(16.dp)
-            ) {
-                Icon(Icons.Default.Refresh, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "شروع دوباره",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
+            Icon(Icons.Default.Refresh, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "شروع دوباره",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -560,84 +531,6 @@ private fun FeedbackBadge(emoji: String, background: Color) {
     ) {
         Text(text = emoji, fontSize = 18.sp)
     }
-}
-
-@Composable
-private fun WinDialog(
-    stars: Int,
-    totalRounds: Int,
-    onPlayAgain: () -> Unit,
-    onBack: () -> Unit
-) {
-    WinCelebrationDialog(
-        onDismissRequest = { },
-        containerColor = MintGreen,
-        shape = RoundedCornerShape(24.dp),
-        title = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "🎉", fontSize = 64.sp)
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "آفرین!",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    textAlign = TextAlign.Center
-                )
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "$stars از $totalRounds ستاره گرفتی!",
-                    fontSize = 18.sp,
-                    color = Color.White,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(Modifier.height(8.dp))
-                Row(horizontalArrangement = Arrangement.Center) {
-                    repeat(totalRounds) { index ->
-                        Text(
-                            text = if (index < stars) "⭐" else "☆",
-                            fontSize = 28.sp,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 2.dp)
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TextButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(text = "بازگشت", color = Color.White.copy(alpha = 0.8f))
-                }
-                Button(
-                    onClick = onPlayAgain,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = MintGreen
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(text = "بازی دوباره", fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    )
 }
 
 /** Re-export accent for ChildScreen card to keep colors in sync */

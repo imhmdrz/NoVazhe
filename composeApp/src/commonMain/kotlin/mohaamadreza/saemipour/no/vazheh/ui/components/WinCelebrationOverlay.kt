@@ -1,24 +1,17 @@
 package mohaamadreza.saemipour.no.vazheh.ui.components
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
@@ -92,56 +85,26 @@ fun WinCelebrationOverlay(
 }
 
 /**
- * A win dialog that shows the [WinCelebrationOverlay] *in front of* the dialog's dim scrim, so
- * the animation stays bright instead of being washed out behind the dimmed window. The centered
- * card mirrors a Material [androidx.compose.material3.AlertDialog] with [title]/[text]/[confirmButton]
- * slots, so existing win dialogs can be converted by simply renaming the call.
+ * Full-screen win celebration with no dialog card: only the animations are shown, and a tap
+ * anywhere on the screen restarts the game via [onTap].
  */
 @Composable
-fun WinCelebrationDialog(
-    onDismissRequest: () -> Unit,
-    confirmButton: @Composable () -> Unit,
-    modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surface,
-    shape: Shape = RoundedCornerShape(24.dp),
-    title: (@Composable () -> Unit)? = null,
-    text: (@Composable () -> Unit)? = null,
-) {
+fun WinCelebration(onTap: () -> Unit) {
     Dialog(
-        onDismissRequest = onDismissRequest,
+        onDismissRequest = onTap,
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = onTap
+                ),
             contentAlignment = Alignment.Center,
         ) {
-            // Bright celebration, rendered in front of the dialog window's dim scrim.
             WinCelebrationOverlay()
-
-            // The dialog card on top of the celebration.
-            Surface(
-                shape = shape,
-                color = containerColor,
-                tonalElevation = 6.dp,
-                modifier = modifier
-                    .padding(horizontal = 32.dp)
-                    .widthIn(min = 280.dp, max = 400.dp),
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    title?.let {
-                        it()
-                        Spacer(Modifier.height(16.dp))
-                    }
-                    text?.let {
-                        it()
-                        Spacer(Modifier.height(24.dp))
-                    }
-                    confirmButton()
-                }
-            }
         }
     }
 }

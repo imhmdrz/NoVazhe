@@ -64,7 +64,7 @@ import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
-import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationDialog
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
@@ -266,12 +266,9 @@ fun ColorSortingScreen(
                 WrongFeedbackOverlay()
             }
 
-            // Win dialog
+            // فقط انیمیشن برد؛ لمس صفحه = شروع دوباره بازی
             if (viewModel.isWin) {
-                WinDialog(
-                    onPlayAgain = { viewModel.resetGame() },
-                    onBack = { navController.popBackStack() }
-                )
+                WinCelebration(onTap = { viewModel.resetGame() })
             }
         }
     }
@@ -595,75 +592,6 @@ private fun WrongFeedbackOverlay() {
     }
 }
 
-@Composable
-private fun WinDialog(
-    onPlayAgain: () -> Unit,
-    onBack: () -> Unit
-) {
-    WinCelebrationDialog(
-        onDismissRequest = { },
-        containerColor = MintGreen,
-        shape = RoundedCornerShape(24.dp),
-        title = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "🌈",
-                    fontSize = 64.sp
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "آفرین! همه رنگ‌ها رو مرتب کردی!",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    textAlign = TextAlign.Center
-                )
-            }
-        },
-        text = {
-            Text(
-                text = "رنگ‌ها رو خوب یاد گرفتی! 🎨",
-                fontSize = 18.sp,
-                color = Color.White,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        },
-        confirmButton = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TextButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "بازگشت",
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                }
-                Button(
-                    onClick = onPlayAgain,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = MintGreen
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "بازی دوباره",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    )
-}
 
 private fun String.toPersianDigits(): String {
     val persianDigits = charArrayOf('۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹')

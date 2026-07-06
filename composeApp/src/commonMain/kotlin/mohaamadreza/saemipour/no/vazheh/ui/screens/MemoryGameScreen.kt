@@ -62,7 +62,7 @@ import coil3.request.crossfade
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
-import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationDialog
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
@@ -151,11 +151,8 @@ fun MemoryGameScreen(
                 }
 
                 if (viewModel.isWin) {
-                    WinDialog(
-                        moves = viewModel.moves,
-                        onPlayAgain = { viewModel.resetGame() },
-                        onBack = { navController.popBackStack() }
-                    )
+                    // فقط انیمیشن برد؛ لمس صفحه = شروع دوباره بازی
+                    WinCelebration(onTap = { viewModel.resetGame() })
                 }
             }
         }
@@ -461,73 +458,3 @@ private fun MemoryCardItem(
     }
 }
 
-@Composable
-private fun WinDialog(
-    moves: Int,
-    onPlayAgain: () -> Unit,
-    onBack: () -> Unit
-) {
-    WinCelebrationDialog(
-        onDismissRequest = { },
-        containerColor = MintGreen,
-        shape = RoundedCornerShape(24.dp),
-        title = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "🎉",
-                    fontSize = 64.sp
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "آفرین! بردی!",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    textAlign = TextAlign.Center
-                )
-            }
-        },
-        text = {
-            Text(
-                text = "همه جفت‌ها رو پیدا کردی!",
-                fontSize = 18.sp,
-                color = Color.White,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = TextAlign.Center
-            )
-        },
-        confirmButton = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                TextButton(
-                    onClick = onBack,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "بازگشت",
-                        color = Color.White.copy(alpha = 0.8f)
-                    )
-                }
-                Button(
-                    onClick = onPlayAgain,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = MintGreen
-                    ),
-                    shape = RoundedCornerShape(12.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = "بازی دوباره",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    )
-}

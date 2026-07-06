@@ -185,7 +185,8 @@ class OddOneOutViewModel(
     }
 
     fun onOptionSelected(option: WordDTO) {
-        if (correctOptionId != null) return
+        // هر دور فقط یک انتخاب: بعد از پاسخ (درست یا غلط) ورودی قفل می‌شود
+        if (correctOptionId != null || wrongOptionId != null) return
         val targetId = oddWordId ?: return
 
         if (option.id == targetId) {

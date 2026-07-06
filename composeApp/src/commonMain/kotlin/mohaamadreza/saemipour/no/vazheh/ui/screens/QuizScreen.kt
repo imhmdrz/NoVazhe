@@ -57,6 +57,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -81,6 +82,7 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.data.ChildProgressStatsDTO
 import mohaamadreza.saemipour.no.vazheh.data.QuizOptionDTO
 import mohaamadreza.saemipour.no.vazheh.data.RecentQuizAttemptDTO
@@ -120,6 +122,14 @@ fun QuizScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     var isPlaying by remember { mutableStateOf(false) }
+
+    // پس از ثبت پاسخ، بعد از یک مکث کوتاه به‌صورت خودکار به سوال بعدی می‌رویم
+    LaunchedEffect(uiState.isAnswerSubmitted, uiState.currentQuestionIndex) {
+        if (uiState.isAnswerSubmitted) {
+            delay(1600)
+            if (uiState.hasMoreQuestions) viewModel.nextQuestion() else viewModel.finishQuiz()
+        }
+    }
 
     val audioUpdates = remember {
         object : AudioUpdates {
@@ -201,10 +211,6 @@ fun QuizScreen(
                                 isAnswerSubmitted = uiState.isAnswerSubmitted,
                                 lastAnswerCorrect = uiState.lastAnswerCorrect,
                                 correctWordFa = uiState.correctWordFa,
-                                canSubmitAnswer = uiState.canSubmitAnswer,
-                                canGoToNextQuestion = uiState.canGoToNextQuestion,
-                                hasMoreQuestions = uiState.hasMoreQuestions,
-                                isSubmittingAnswer = uiState.isSubmittingAnswer,
                                 isPlaying = isPlaying,
                                 onPlayAudio = {
                                     val audioUrl = uiState.currentQuestion?.audioUrl
@@ -213,10 +219,11 @@ fun QuizScreen(
                                     }
                                 },
                                 onStopAudio = { player.pause() },
-                                onOptionSelected = { viewModel.selectOption(it) },
-                                onSubmitAnswer = { viewModel.submitAnswer() },
-                                onNextQuestion = { viewModel.nextQuestion() },
-                                onFinishQuiz = { viewModel.finishQuiz() },
+                                // انتخاب گزینه = ثبت فوری پاسخ (بدون دکمه تأیید)
+                                onOptionSelected = {
+                                    viewModel.selectOption(it)
+                                    viewModel.submitAnswer()
+                                },
                                 onBack = {
                                     player.pause()
                                     viewModel.resetQuiz()
@@ -783,17 +790,10 @@ private fun QuizContent(
     isAnswerSubmitted: Boolean,
     lastAnswerCorrect: Boolean?,
     correctWordFa: String?,
-    canSubmitAnswer: Boolean,
-    canGoToNextQuestion: Boolean,
-    hasMoreQuestions: Boolean,
-    isSubmittingAnswer: Boolean,
     isPlaying: Boolean,
     onPlayAudio: () -> Unit,
     onStopAudio: () -> Unit,
     onOptionSelected: (Int) -> Unit,
-    onSubmitAnswer: () -> Unit,
-    onNextQuestion: () -> Unit,
-    onFinishQuiz: () -> Unit,
     onBack: () -> Unit
 ) {
     Column(
@@ -896,65 +896,6 @@ private fun QuizContent(
         }
 
         Spacer(Modifier.height(16.dp))
-
-        // Action buttons
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            when {
-                isSubmittingAnswer -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(48.dp),
-                        color = Purple40
-                    )
-                }
-
-                canSubmitAnswer -> {
-                    Button(
-                        onClick = onSubmitAnswer,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Purple40
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Text(
-                            text = "تأیید پاسخ",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-
-                isAnswerSubmitted -> {
-                    Button(
-                        onClick = if (hasMoreQuestions) onNextQuestion else onFinishQuiz,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (hasMoreQuestions) SkyBlue else MintGreen
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Text(
-                            text = if (hasMoreQuestions) "سوال بعدی" else "پایان آزمون",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Spacer(Modifier.width(8.dp))
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            modifier = Modifier.rotate(180f),
-                            contentDescription = null
-                        )
-                    }
-                }
-            }
-        }
     }
 }
 

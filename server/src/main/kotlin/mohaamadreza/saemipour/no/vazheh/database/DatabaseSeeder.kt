@@ -38,8 +38,8 @@ object DatabaseSeeder {
         transaction {
             // Clear existing data first (Words must be deleted before Categories due to foreign key)
             println("🗑️ Clearing existing data...")
-//            Words.deleteAll()
-//            Categories.deleteAll()
+            Words.deleteAll()
+            Categories.deleteAll()
             
             println("🌱 Seeding database with fresh data...")
             

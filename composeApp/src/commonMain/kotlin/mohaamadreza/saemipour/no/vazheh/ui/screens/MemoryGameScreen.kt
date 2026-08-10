@@ -59,8 +59,10 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
+import mohaamadreza.saemipour.no.vazheh.player.GameSounds
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
 import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
@@ -103,15 +105,23 @@ fun MemoryGameScreen(
             }
         }
 
+        // جفت درست: اول جینگل درست، بعد صدای کلمه
         LaunchedEffect(viewModel.currentMatchedWord) {
             viewModel.currentMatchedWord?.let { word ->
+                audioPlayer.play(GameSounds.correct)
                 word.audioUrl?.let { url ->
                     if (url.isNotEmpty()) {
+                        delay(700)
                         audioPlayer.play(url)
                     }
                 }
                 viewModel.clearMatchedWord()
             }
+        }
+
+        // صدای برد در پایان بازی
+        LaunchedEffect(viewModel.isWin) {
+            if (viewModel.isWin) audioPlayer.play(GameSounds.win)
         }
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {

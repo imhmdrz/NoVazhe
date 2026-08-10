@@ -44,8 +44,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import androidx.navigation.NavController
+import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
+import mohaamadreza.saemipour.no.vazheh.player.GameSounds
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DragTarget
 import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
@@ -82,6 +84,11 @@ fun FaceGameScreen(
             onDispose {
                 audioPlayer.cleanUp()
             }
+        }
+
+        // صدای برد در پایان بازی
+        LaunchedEffect(viewModel.isWin) {
+            if (viewModel.isWin) audioPlayer.play(GameSounds.win)
         }
 
         DragbleScreen(
@@ -269,9 +276,11 @@ fun FaceGameScreen(
                                         if (droppedItem != null && droppedItem.id == facePartItem.id) {
                                             LaunchedEffect(droppedItem) {
                                                 viewModel.addPlacedPart(droppedItem)
-                                                // Play audio when part is placed
+                                                // Correct-answer jingle, then the part's audio
+                                                audioPlayer.play(GameSounds.correct)
                                                 droppedItem.audioUrl?.let { url ->
                                                     if (url.isNotEmpty()) {
+                                                        delay(700)
                                                         audioPlayer.play(url)
                                                     }
                                                 }

@@ -86,6 +86,7 @@ import mohaamadreza.saemipour.no.vazheh.data.QuizOptionDTO
 import mohaamadreza.saemipour.no.vazheh.data.RecentQuizAttemptDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
+import mohaamadreza.saemipour.no.vazheh.player.GameSounds
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
 import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationOverlay
@@ -145,6 +146,22 @@ fun QuizScreen(
     }
 
     AudioProvider(audioUpdates) { player ->
+
+        // صدای بازخورد پاسخ: درست یا اشتباه
+        LaunchedEffect(uiState.lastAnswerCorrect, uiState.currentQuestionIndex) {
+            when (uiState.lastAnswerCorrect) {
+                true -> player.play(GameSounds.correct)
+                false -> player.play(GameSounds.wrong)
+                null -> {}
+            }
+        }
+
+        // پایان آزمون: برد برای نمره‌ی بالا، وگرنه صدای اشتباه (باخت)
+        LaunchedEffect(uiState.isQuizCompleted) {
+            if (uiState.isQuizCompleted) {
+                player.play(if (uiState.scorePercent >= 80) GameSounds.win else GameSounds.wrong)
+            }
+        }
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             Box(

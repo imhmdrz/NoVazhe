@@ -23,7 +23,6 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,7 +30,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -65,6 +63,7 @@ import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
+import mohaamadreza.saemipour.no.vazheh.player.GameSounds
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
 import mohaamadreza.saemipour.no.vazheh.ui.components.LoseOverlay
@@ -100,32 +99,45 @@ fun ShadowMatchScreen(
         }
     }
 
-    // پاسخ اشتباه: بعد از نمایش بازخورد، خودکار به دور بعد می‌رویم
-    LaunchedEffect(viewModel.showWrongFeedback) {
-        if (viewModel.showWrongFeedback) {
-            delay(1100)
-            viewModel.clearWrongFeedback()
-            if (!viewModel.isGameOver) viewModel.advanceToNextRound()
-        }
-    }
-
     AudioProvider(audioUpdates = audioUpdates) { audioPlayer ->
         DisposableEffect(Unit) {
             onDispose { audioPlayer.cleanUp() }
         }
 
-        // پخش صدای کلمه‌ی درست و رفتن به دور بعد بعد از یک مکث کوتاه
+        // پاسخ اشتباه: صدای اشتباه، سپس بعد از نمایش بازخورد خودکار به دور بعد می‌رویم
+        LaunchedEffect(viewModel.showWrongFeedback) {
+            if (viewModel.showWrongFeedback) {
+                audioPlayer.play(GameSounds.wrong)
+                delay(1100)
+                viewModel.clearWrongFeedback()
+                if (!viewModel.isGameOver) viewModel.advanceToNextRound()
+            }
+        }
+
+        // پاسخ صحیح: اول جینگل درست، بعد صدای کلمه، سپس رفتن به دور بعد
         // نکته: پاک کردن lastCorrectWord باید «بعد» از delay باشد، وگرنه تغییر کلیدِ
         // LaunchedEffect همین کوروتین را وسط delay لغو می‌کند و هرگز به دور بعد نمی‌رویم.
         LaunchedEffect(viewModel.lastCorrectWord) {
             viewModel.lastCorrectWord?.let { word ->
+                audioPlayer.play(GameSounds.correct)
                 word.audioUrl?.let { url ->
-                    if (url.isNotEmpty()) audioPlayer.play(url)
+                    if (url.isNotEmpty()) {
+                        delay(700)
+                        audioPlayer.play(url)
+                    }
                 }
                 delay(1100)
                 viewModel.clearLastCorrectWord()
                 if (!viewModel.isGameOver) viewModel.advanceToNextRound()
             }
+        }
+
+        // صدای برد / باخت (برای باخت همان صدای پاسخ اشتباه پخش می‌شود)
+        LaunchedEffect(viewModel.isWin) {
+            if (viewModel.isWin) audioPlayer.play(GameSounds.win)
+        }
+        LaunchedEffect(viewModel.isLose) {
+            if (viewModel.isLose) audioPlayer.play(GameSounds.wrong)
         }
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {

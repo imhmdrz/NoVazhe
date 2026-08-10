@@ -73,6 +73,7 @@ import androidx.navigation.NavController
 import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
+import mohaamadreza.saemipour.no.vazheh.player.GameSounds
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
 import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
@@ -108,13 +109,6 @@ fun ColorSortingScreen(
         }
     }
 
-    LaunchedEffect(viewModel.showWrongFeedback) {
-        if (viewModel.showWrongFeedback) {
-            delay(800)
-            viewModel.clearWrongFeedback()
-        }
-    }
-
     AudioProvider(audioUpdates = audioUpdates) { audioPlayer ->
         DisposableEffect(Unit) {
             onDispose {
@@ -122,14 +116,30 @@ fun ColorSortingScreen(
             }
         }
 
-        // پخش صدای رنگ هنگامی که آیتم به درستی در باکس قرار می‌گیرد
+        // جای‌گذاری اشتباه: صدای اشتباه همراه با بازخورد تصویری
+        LaunchedEffect(viewModel.showWrongFeedback) {
+            if (viewModel.showWrongFeedback) {
+                audioPlayer.play(GameSounds.wrong)
+                delay(800)
+                viewModel.clearWrongFeedback()
+            }
+        }
+
+        // جای‌گذاری درست: اول جینگل درست، بعد صدای رنگ
         LaunchedEffect(viewModel.currentSoundUrl) {
             viewModel.currentSoundUrl?.let { url ->
+                audioPlayer.play(GameSounds.correct)
                 if (url.isNotEmpty()) {
+                    delay(700)
                     audioPlayer.play(url)
                 }
                 viewModel.clearCurrentSound()
             }
+        }
+
+        // صدای برد در پایان بازی
+        LaunchedEffect(viewModel.isWin) {
+            if (viewModel.isWin) audioPlayer.play(GameSounds.win)
         }
 
         CompositionLocalProvider(LocalColorDragInfo provides dragState) {

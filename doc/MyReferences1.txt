@@ -1,0 +1,89 @@
+@inproceedings{yang2010scsr,
+  title={Image Super-Resolution via Sparse Representation},
+  author={Yang, Jianchao and Wright, John and Huang, Thomas S. and Ma, Yi},
+  booktitle={IEEE Transactions on Image Processing},
+  volume={19},
+  number={11},
+  pages={2861--2873},
+  year={2010},
+  publisher={IEEE}
+}
+
+@article{shocher2018zssr,
+  title={Zero-Shot Super-Resolution using Deep Internal Learning},
+  author={Shocher, Assaf and Cohen, Nadav and Irani, Michal},
+  journal={Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition (CVPR)},
+  year={2018}
+}
+
+@article{wang2021realesrgan,
+  title={Real-ESRGAN: Training Real-World Blind Super-Resolution with Pure Synthetic Data},
+  author={Wang, Xintao and Xie, Liangbin and Dong, Chao and Shan, Ying},
+  journal={Proceedings of the IEEE International Conference on Computer Vision Workshops (ICCVW)},
+  year={2021}
+}
+
+@inproceedings{wang2018esrgan,
+  title={ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks},
+  author={Wang, Xintao and Yu, Ke and Wu, Shixiang and Gu, Jinjin and Liu, Yihao and Dong, Chao and Qiao, Yu and Change Loy, Chen},
+  booktitle={European Conference on Computer Vision Workshops (ECCVW)},
+  year={2018}
+}
+
+@misc{wang2018esrganenhancedsuperresolutiongenerative,
+      title={ESRGAN: Enhanced Super-Resolution Generative Adversarial Networks}, 
+      author={Xintao Wang and Ke Yu and Shixiang Wu and Jinjin Gu and Yihao Liu and Chao Dong and Chen Change Loy and Yu Qiao and Xiaoou Tang},
+      year={2018},
+      eprint={1809.00219},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/1809.00219}, 
+}
+
+@inproceedings{lim2017edsr,
+  title={Enhanced Deep Residual Networks for Single Image Super-Resolution},
+  author={Lim, Bee and Son, Sanghyun and Kim, Heewon and Nah, Seungjun and Mu Lee, Kyoung},
+  booktitle={CVPR Workshops},
+  year={2017}
+}
+
+@inproceedings{dong2014srcnn,
+  title={Learning a Deep Convolutional Network for Image Super-Resolution},
+  author={Dong, Chao and Loy, Chen Change and He, Kaiming and Tang, Xiaoou},
+  booktitle={European Conference on Computer Vision (ECCV)},
+  year={2014}
+}
+
+@article{wang2004ssim,
+  title={Image Quality Assessment: From Error Visibility to Structural Similarity},
+  author={Wang, Zhou and Bovik, Alan C. and Sheikh, Hamid R. and Simoncelli, Eero P.},
+  journal={IEEE Transactions on Image Processing},
+  volume={13},
+  number={4},
+  pages={600--612},
+  year={2004}
+}
+
+@article{mittal2013niqe,
+  title={Making a “Completely Blind” Image Quality Analyzer},
+  author={Mittal, Anish and Soundararajan, Rajiv and Bovik, Alan C.},
+  journal={IEEE Signal Processing Letters},
+  volume={20},
+  number={3},
+  pages={209--212},
+  year={2013}
+}
+
+@inproceedings{goodfellow2014gan,
+  title={Generative Adversarial Nets},
+  author={Goodfellow, Ian and Pouget-Abadie, Jean and Mirza, Mehdi and Xu, Bing and Warde-Farley, David and Ozair, Sherjil and Courville, Aaron and Bengio, Yoshua},
+  booktitle={Advances in Neural Information Processing Systems (NeurIPS)},
+  year={2014}
+}
+
+@inproceedings{glasner2009sr,
+  title={Super-Resolution from a Single Image},
+  author={Glasner, Daniel and Bagon, Shai and Irani, Michal},
+  booktitle={International Conference on Computer Vision (ICCV)},
+  year={2009}
+}

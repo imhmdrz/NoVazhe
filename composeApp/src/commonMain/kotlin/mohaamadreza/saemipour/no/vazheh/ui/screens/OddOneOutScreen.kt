@@ -64,6 +64,7 @@ import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
+import mohaamadreza.saemipour.no.vazheh.player.GameSounds
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
 import mohaamadreza.saemipour.no.vazheh.ui.components.LoseOverlay
@@ -96,32 +97,45 @@ fun OddOneOutScreen(
         }
     }
 
-    // پاسخ اشتباه: بعد از نمایش بازخورد، خودکار به دور بعد می‌رویم
-    LaunchedEffect(viewModel.showWrongFeedback) {
-        if (viewModel.showWrongFeedback) {
-            delay(1100)
-            viewModel.clearWrongFeedback()
-            if (!viewModel.isGameOver) viewModel.advanceToNextRound()
-        }
-    }
-
     AudioProvider(audioUpdates = audioUpdates) { audioPlayer ->
         DisposableEffect(Unit) {
             onDispose { audioPlayer.cleanUp() }
         }
 
-        // پخش صدای کلمه‌ی متفاوت در صورت پاسخ صحیح، سپس رفتن به دور بعد
+        // پاسخ اشتباه: صدای اشتباه، سپس بعد از نمایش بازخورد خودکار به دور بعد می‌رویم
+        LaunchedEffect(viewModel.showWrongFeedback) {
+            if (viewModel.showWrongFeedback) {
+                audioPlayer.play(GameSounds.wrong)
+                delay(1100)
+                viewModel.clearWrongFeedback()
+                if (!viewModel.isGameOver) viewModel.advanceToNextRound()
+            }
+        }
+
+        // پاسخ صحیح: اول جینگل درست، بعد صدای کلمه‌ی متفاوت، سپس رفتن به دور بعد
         // نکته: پاک کردن lastCorrectWord باید «بعد» از delay باشد، وگرنه تغییر کلیدِ
         // LaunchedEffect همین کوروتین را وسط delay لغو می‌کند و هرگز به دور بعد نمی‌رویم.
         LaunchedEffect(viewModel.lastCorrectWord) {
             viewModel.lastCorrectWord?.let { word ->
+                audioPlayer.play(GameSounds.correct)
                 word.audioUrl?.let { url ->
-                    if (url.isNotEmpty()) audioPlayer.play(url)
+                    if (url.isNotEmpty()) {
+                        delay(700)
+                        audioPlayer.play(url)
+                    }
                 }
                 delay(1100)
                 viewModel.clearLastCorrectWord()
                 if (!viewModel.isGameOver) viewModel.advanceToNextRound()
             }
+        }
+
+        // صدای برد / باخت (برای باخت همان صدای پاسخ اشتباه پخش می‌شود)
+        LaunchedEffect(viewModel.isWin) {
+            if (viewModel.isWin) audioPlayer.play(GameSounds.win)
+        }
+        LaunchedEffect(viewModel.isLose) {
+            if (viewModel.isLose) audioPlayer.play(GameSounds.wrong)
         }
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {

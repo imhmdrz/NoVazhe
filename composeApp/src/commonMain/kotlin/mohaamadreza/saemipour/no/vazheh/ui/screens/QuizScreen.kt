@@ -89,7 +89,7 @@ import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.GameSounds
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
-import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebrationOverlay
+import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
 import mohaamadreza.saemipour.no.vazheh.ui.components.backToDashboard
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
@@ -110,6 +110,9 @@ private fun String.toPersianDigits(): String {
 }
 
 private fun Int.toPersianDigits(): String = this.toString().toPersianDigits()
+
+/** کمترین درصد امتیاز که آزمون «برد» حساب می‌شود */
+private const val WIN_SCORE_PERCENT = 80
 
 /**
  * Quiz Screen - صفحه آزمون
@@ -159,7 +162,7 @@ fun QuizScreen(
         // پایان آزمون: برد برای نمره‌ی بالا، وگرنه صدای اشتباه (باخت)
         LaunchedEffect(uiState.isQuizCompleted) {
             if (uiState.isQuizCompleted) {
-                player.play(if (uiState.scorePercent >= 80) GameSounds.win else GameSounds.wrong)
+                player.play(if (uiState.scorePercent >= WIN_SCORE_PERCENT) GameSounds.win else GameSounds.wrong)
             }
         }
 
@@ -188,6 +191,12 @@ fun QuizScreen(
                             onRetry = { viewModel.retry() },
                             onBack = { navController.popBackStack() }
                         )
+                    }
+
+                    // برد: مثل بقیه‌ی بازی‌ها فقط انیمیشن تشویق نشان داده می‌شود (بدون
+                    // کارت نتیجه و آمار)؛ لمس صفحه = آزمون دوباره.
+                    uiState.isQuizCompleted && uiState.scorePercent >= WIN_SCORE_PERCENT -> {
+                        WinCelebration(onTap = { viewModel.retry() })
                     }
 
                     uiState.isQuizCompleted -> {
@@ -421,11 +430,6 @@ private fun QuizCompletedContent(
             ),
         contentAlignment = Alignment.Center
     ) {
-        // Celebration animation behind the result, only for winning scores
-        if (scorePercent >= 80) {
-            WinCelebrationOverlay()
-        }
-
         // Decorative rotating background circle
         Box(
             modifier = Modifier

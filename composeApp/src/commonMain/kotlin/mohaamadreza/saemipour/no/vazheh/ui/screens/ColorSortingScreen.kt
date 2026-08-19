@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.GameSounds
@@ -84,6 +85,15 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SkyBlue
 
 private val LocalColorDragInfo = compositionLocalOf { ColorDragInfo() }
+
+/** فاصله‌ی بین جینگل «درست» و پخش صدای نام رنگ */
+private const val COLOR_SOUND_DELAY_MS = 700L
+
+/** حداکثر انتظار برای شروع پخش صدای رنگ (اگر رنگ صدا نداشته باشد) */
+private const val WAIT_FOR_SOUND_START_MS = 2_000L
+
+/** حداکثر انتظار برای پایان صدای رنگ، تا در صورت خطای پخش گیر نکنیم */
+private const val WAIT_FOR_SOUND_END_MS = 8_000L
 
 private class ColorDragInfo {
     var isDragging: Boolean by mutableStateOf(false)
@@ -100,12 +110,18 @@ fun ColorSortingScreen(
 ) {
     val dragState = remember { ColorDragInfo() }
 
+    var isPlaying by remember { mutableStateOf(false) }
+
     // Audio callbacks
     val audioUpdates = remember {
         object : AudioUpdates {
-            override fun onProgressUpdate(state: PlayerState) {}
+            override fun onProgressUpdate(state: PlayerState) {
+                isPlaying = state.isPlaying
+            }
             override fun onReady() {}
-            override fun onError(exception: Exception) {}
+            override fun onError(exception: Exception) {
+                isPlaying = false
+            }
         }
     }
 
@@ -130,16 +146,27 @@ fun ColorSortingScreen(
             viewModel.currentSoundUrl?.let { url ->
                 audioPlayer.play(GameSounds.correct)
                 if (url.isNotEmpty()) {
-                    delay(700)
+                    delay(COLOR_SOUND_DELAY_MS)
                     audioPlayer.play(url)
                 }
                 viewModel.clearCurrentSound()
             }
         }
 
-        // صدای برد در پایان بازی
+        // تشویق پایان بازی: اول صدای آخرین رنگ تا آخر پخش می‌شود و تنها بعد از آن
+        // صدای برد و انیمیشن تشویق می‌آید، تا روی صدای رنگ نیفتد.
+        var showWin by remember { mutableStateOf(false) }
         LaunchedEffect(viewModel.isWin) {
-            if (viewModel.isWin) audioPlayer.play(GameSounds.win)
+            if (!viewModel.isWin) {
+                showWin = false
+                return@LaunchedEffect
+            }
+            delay(COLOR_SOUND_DELAY_MS + 200)
+            withTimeoutOrNull(WAIT_FOR_SOUND_START_MS) { while (!isPlaying) delay(50) }
+            withTimeoutOrNull(WAIT_FOR_SOUND_END_MS) { while (isPlaying) delay(50) }
+            delay(400)
+            audioPlayer.play(GameSounds.win)
+            showWin = true
         }
 
         CompositionLocalProvider(LocalColorDragInfo provides dragState) {
@@ -286,7 +313,7 @@ fun ColorSortingScreen(
             }
 
             // فقط انیمیشن برد؛ لمس صفحه = شروع دوباره بازی
-            if (viewModel.isWin) {
+            if (showWin) {
                 WinCelebration(onTap = { viewModel.resetGame() })
             }
         }
@@ -346,7 +373,7 @@ private fun ItemsArea(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "🎉 آفرین! همه رو مرتب کردی!",
+                    text = "🎉 آفرین! همه رو مرتب کردی",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = MintGreen

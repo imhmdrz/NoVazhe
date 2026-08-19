@@ -13,10 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -41,7 +38,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -449,77 +445,77 @@ private fun AndroidGuide() {
         BrandGuide(
             title = "🟦 پیکسل / اندروید استاندارد",
             steps = listOf(
-                "تنظیمات (Settings) را باز کنید",
-                "وارد بخش «امنیت و حریم خصوصی» (Security & privacy) شوید",
-                "روی «تنظیمات بیشتر امنیت» (More security settings) بزنید",
-                "گزینه «پین کردن برنامه» (App pinning) را فعال کنید",
-                "این برنامه را باز کنید و دکمه Overview (مربع) را بزنید",
-                "روی آیکون برنامه بالای کارت بزنید و گزینه Pin را انتخاب کنید"
+                "تنظیمات (Settings) را باز کنید.",
+                "«امنیت و حریم خصوصی» (Security & privacy).",
+                "«تنظیمات بیشتر امنیت» (More security).",
+                "«پین کردن برنامه» (App pinning) را روشن کنید.",
+                "این برنامه را باز و Overview (مربع) را بزنید.",
+                "آیکون برنامه بالای کارت ← Pin."
             ),
-            exitHint = "خروج: دکمه‌های Back و Overview را همزمان نگه دارید"
+            exitHint = "خروج: Back و Overview را همزمان نگه دارید."
         )
 
         BrandGuide(
             title = "🟩 سامسونگ",
             steps = listOf(
-                "تنظیمات (Settings) را باز کنید",
-                "وارد بخش «بیومتریک و امنیت» (Biometrics and security) شوید",
-                "روی «تنظیمات بیشتر امنیت» (Other security settings) بزنید",
-                "گزینه «پین کردن صفحه» (Pin windows) را فعال کنید",
-                "این برنامه را باز کنید و دکمه Recent (تَب‌های اخیر) را بزنید",
-                "روی آیکون برنامه بالای کارت بزنید و Pin this app را انتخاب کنید"
+                "تنظیمات (Settings) را باز کنید.",
+                "«بیومتریک و امنیت» (Biometrics and security).",
+                "«سایر تنظیمات امنیتی» (Other security).",
+                "«پین کردن صفحه» (Pin windows) را روشن کنید.",
+                "این برنامه را باز و Recent (اخیر) را بزنید.",
+                "آیکون برنامه بالای کارت ← Pin this app."
             ),
-            exitHint = "خروج: دکمه‌های Back و Recent را همزمان نگه دارید (یا با ژست انگشت از پایین به بالا بکشید و نگه دارید)"
+            exitHint = "خروج: Back و Recent را همزمان نگه دارید (در ژست انگشتی: از پایین به بالا بکشید و نگه دارید)."
         )
 
         BrandGuide(
             title = "🟥 شیائومی / ردمی / پوکو",
             steps = listOf(
-                "تنظیمات (Settings) را باز کنید",
-                "وارد «رمز عبور و امنیت» (Passwords & security) شوید",
-                "روی «حریم خصوصی» (Privacy) سپس «دسترسی ویژه» (Special permissions) بزنید",
-                "گزینه «پین کردن برنامه» (Pinned apps / App pinning) را فعال کنید",
-                "این برنامه را باز کنید و دکمه Recent (مربع) را بزنید",
-                "روی کارت برنامه فشار طولانی دهید و آیکون قفل (🔒 / Pin) را بزنید"
+                "تنظیمات (Settings) را باز کنید.",
+                "«رمز عبور و امنیت» (Passwords & security).",
+                "«حریم خصوصی» ← «دسترسی ویژه» (Special permissions).",
+                "«پین کردن برنامه» (App pinning) را روشن کنید.",
+                "این برنامه را باز و Recent (مربع) را بزنید.",
+                "روی کارت برنامه فشار طولانی ← قفل (🔒 / Pin)."
             ),
-            exitHint = "خروج: دکمه‌های Home و Back را همزمان نگه دارید (در ژست انگشتی، از پایین به بالا بکشید و نگه دارید)"
+            exitHint = "خروج: Home و Back را همزمان نگه دارید (در ژست انگشتی: از پایین به بالا بکشید و نگه دارید)."
         )
 
         BrandGuide(
             title = "🟧 هواوی / آنر",
             steps = listOf(
-                "تنظیمات (Settings) را باز کنید",
-                "وارد بخش «امنیت» (Security) شوید",
-                "روی «تنظیمات بیشتر» (More settings) بزنید",
-                "گزینه «پین کردن صفحه» (Screen pinning) را فعال کنید",
-                "این برنامه را باز کنید و دکمه Recent (مربع) را بزنید",
-                "روی آیکون قفل (📌) بالای کارت برنامه بزنید"
+                "تنظیمات (Settings) را باز کنید.",
+                "«امنیت» (Security).",
+                "«تنظیمات بیشتر» (More settings).",
+                "«پین کردن صفحه» (Screen pinning) را روشن کنید.",
+                "این برنامه را باز و Recent (مربع) را بزنید.",
+                "آیکون قفل (📌) بالای کارت را بزنید."
             ),
-            exitHint = "خروج: دکمه‌های Back و Recent را همزمان نگه دارید"
+            exitHint = "خروج: Back و Recent را همزمان نگه دارید."
         )
 
         BrandGuide(
             title = "🟨 اوپو / ریلمی / وان‌پلاس",
             steps = listOf(
-                "تنظیمات (Settings) را باز کنید",
-                "وارد بخش «حریم خصوصی» (Privacy) شوید",
-                "روی «پین کردن صفحه» (Pin current screen / App pinning) بزنید و آن را فعال کنید",
-                "این برنامه را باز کنید و دکمه Recent را بزنید",
-                "روی آیکون برنامه بالای کارت بزنید و Pin / Lock را انتخاب کنید"
+                "تنظیمات (Settings) را باز کنید.",
+                "«حریم خصوصی» (Privacy).",
+                "«پین کردن صفحه» (App pinning) را روشن کنید.",
+                "این برنامه را باز و Recent را بزنید.",
+                "آیکون برنامه بالای کارت ← Pin / Lock."
             ),
-            exitHint = "خروج: دکمه‌های Back و Recent را همزمان نگه دارید (یا از پایین به بالا بکشید و نگه دارید)"
+            exitHint = "خروج: Back و Recent را همزمان نگه دارید (یا از پایین به بالا بکشید و نگه دارید)."
         )
 
         BrandGuide(
             title = "🟪 ویوو / آی‌کوو",
             steps = listOf(
-                "تنظیمات (Settings) را باز کنید",
-                "وارد بخش «اثرانگشت، چهره و رمز» یا «امنیت» شوید",
-                "گزینه «پین کردن صفحه» (Screen pinning) را فعال کنید",
-                "این برنامه را باز کنید و دکمه Recent را بزنید",
-                "روی آیکون قفل (📌) بالای کارت برنامه بزنید"
+                "تنظیمات (Settings) را باز کنید.",
+                "«اثرانگشت، چهره و رمز» یا «امنیت».",
+                "«پین کردن صفحه» (Screen pinning) را روشن کنید.",
+                "این برنامه را باز و Recent را بزنید.",
+                "آیکون قفل (📌) بالای کارت را بزنید."
             ),
-            exitHint = "خروج: دکمه‌های Back و Recent را همزمان نگه دارید"
+            exitHint = "خروج: Back و Recent را همزمان نگه دارید."
         )
 
         Spacer(modifier = Modifier.height(4.dp))
@@ -628,7 +624,7 @@ private fun BrandGuide(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { expanded = !expanded }
-                .padding(horizontal = 12.dp, vertical = 12.dp),
+                .padding(horizontal = 4.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
@@ -649,7 +645,7 @@ private fun BrandGuide(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                    .padding(start = 6.dp, end = 6.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 steps.forEachIndexed { index, step ->
@@ -729,24 +725,9 @@ private fun GuideStep(
         verticalAlignment = Alignment.Top,
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Number badge
         Text(
-            text = "$number",
+            text = "$number $text",
             style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier
-                .size(24.dp)
-                .background(TealPurple, CircleShape)
-                .padding(4.dp),
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.width(12.dp))
-        
-        Text(
-            text = text,
-            style = MaterialTheme.typography.bodyMedium,
             color = DarkText,
             modifier = Modifier.weight(1f)
         )

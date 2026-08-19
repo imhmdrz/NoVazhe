@@ -59,7 +59,8 @@ import mohaamadreza.saemipour.no.vazheh.data.WordProgressDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
-import mohaamadreza.saemipour.no.vazheh.ui.animation.sharedElementKey
+import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
+import mohaamadreza.saemipour.no.vazheh.ui.components.backToDashboard
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
@@ -158,40 +159,40 @@ fun GameScreen(
                 // Always-present category hero pill (top-center). Its image is the landing spot
                 // for the shared-element morph from the dashboard category tile, and it tells the
                 // child which category they're in. کارت دسته‌بندی — مقصد انیمیشن مشترک
-                uiState.selectedCategory?.let { category ->
-                    Row(
-                        modifier = Modifier
-                            .align(Alignment.TopCenter)
-                            .padding(top = 12.dp)
-                            .zIndex(10f)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color.White.copy(alpha = 0.85f))
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
-                            .sharedElementKey("category-img-${category.id}"),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Image(
-                            painter = rememberAsyncImagePainter(
-                                model = ImageRequest.Builder(LocalPlatformContext.current)
-                                    .data(category.iconUrl)
-                                    .crossfade(true)
-                                    .build()
-                            ),
-                            contentDescription = null,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                        )
-                        Text(
-                            text = category.nameFa,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.Black
-                        )
-                    }
-                }
+//                uiState.selectedCategory?.let { category ->
+//                    Row(
+//                        modifier = Modifier
+//                            .align(Alignment.TopCenter)
+//                            .padding(top = 12.dp)
+//                            .zIndex(10f)
+//                            .clip(RoundedCornerShape(20.dp))
+//                            .background(Color.White.copy(alpha = 0.85f))
+//                            .padding(horizontal = 10.dp, vertical = 6.dp)
+//                            .sharedElementKey("category-img-${category.id}"),
+//                        verticalAlignment = Alignment.CenterVertically,
+//                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+//                    ) {
+//                        Image(
+//                            painter = rememberAsyncImagePainter(
+//                                model = ImageRequest.Builder(LocalPlatformContext.current)
+//                                    .data(category.iconUrl)
+//                                    .crossfade(true)
+//                                    .build()
+//                            ),
+//                            contentDescription = null,
+//                            contentScale = ContentScale.Crop,
+//                            modifier = Modifier
+//                                .size(36.dp)
+//                                .clip(RoundedCornerShape(12.dp))
+//                        )
+//                        Text(
+//                            text = category.nameFa,
+//                            style = MaterialTheme.typography.titleSmall,
+//                            fontWeight = FontWeight.Bold,
+//                            color = Color.Black
+//                        )
+//                    }
+//                }
 
                 // Category learning progress (logged-in child only), top-end corner
                 if (uiState.hasChildId) {
@@ -216,26 +217,45 @@ fun GameScreen(
                     }
                 }
 
-                // Timer display at top-right corner
-                if (uiState.isTimerEnabled) {
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopStart)
-                            .padding(16.dp)
-                            .background(
-                                color = if (uiState.remainingTimeSeconds <= 60) CoralRed else Color.Black.copy(alpha = 0.7f),
-                                shape = RoundedCornerShape(12.dp)
+                // دکمه‌ی داشبورد و تایمر، کنار هم در گوشه‌ی بالای صفحه
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(16.dp)
+                        .zIndex(10f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    DashboardButton(
+                        onClick = {
+                            player.pause()
+                            viewModel.stopTimer()
+                            navController.backToDashboard()
+                        },
+                        modifier = Modifier.background(
+                            Color.White.copy(alpha = 0.85f),
+                            CircleShape
+                        ),
+                        tint = Purple40
+                    )
+
+                    if (uiState.isTimerEnabled) {
+                        Box(
+                            modifier = Modifier
+                                .background(
+                                    color = if (uiState.remainingTimeSeconds <= 60) CoralRed else Color.Black.copy(alpha = 0.7f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Text(
+                                text = "⏱️ ${uiState.formattedRemainingTime}",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                fontSize = 18.sp
                             )
-                            .padding(horizontal = 16.dp, vertical = 8.dp)
-                            .zIndex(10f)
-                    ) {
-                        Text(
-                            text = "⏱️ ${uiState.formattedRemainingTime}",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            fontSize = 18.sp
-                        )
+                        }
                     }
                 }
 

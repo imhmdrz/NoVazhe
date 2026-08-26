@@ -24,5 +24,5 @@ val sharedModule = module {
     single { ContentRepository(get(), get()) }
     single { ChildRepository(get(), get()) }
     single { QuizRepository(get(), get()) }
-    single { ProgressRepository(get(), get()) }
+    single { ProgressRepository(get(), get(), get()) }
 }

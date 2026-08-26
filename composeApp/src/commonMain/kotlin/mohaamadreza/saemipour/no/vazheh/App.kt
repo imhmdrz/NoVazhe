@@ -244,6 +244,7 @@ fun App() {
                                 MemoryGameScreen(
                                     navController = navController,
                                     viewModel = viewModel,
+                                    childViewModel = childViewModel,
                                     categoryId = categoryId
                                 )
                             }

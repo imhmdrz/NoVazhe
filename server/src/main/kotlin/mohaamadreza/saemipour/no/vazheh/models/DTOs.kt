@@ -214,6 +214,17 @@ data class RecentQuizAttemptDTO(
         val attemptedAt: String
 )
 
+// ==================== Memory Progress DTOs - پیشرفت بازی حافظه ====================
+
+@Serializable
+data class MemoryProgressDTO(
+        val dimensionIndex: Int,   // جایگاه در نردبان ابعاد (۰ = 2x2 … 3 = 4x4)
+        val successfulGames: Int   // برد‌های موفق در ابعاد فعلی (۰ تا ۳)
+)
+
+@Serializable
+data class CompleteMemoryGameRequest(val dimensionIndex: Int)
+
 // ==================== Generic Response DTOs ====================
 
 @Serializable

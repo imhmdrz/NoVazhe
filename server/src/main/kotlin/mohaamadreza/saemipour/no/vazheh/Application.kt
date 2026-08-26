@@ -31,6 +31,7 @@ import mohaamadreza.saemipour.no.vazheh.models.MessageResponse
 import mohaamadreza.saemipour.no.vazheh.routes.authRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.childRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.contentRoutes
+import mohaamadreza.saemipour.no.vazheh.routes.memoryRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.progressRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.quizRoutes
 import mohaamadreza.saemipour.no.vazheh.security.JwtConfig
@@ -197,5 +198,6 @@ fun Application.configureRouting() {
         contentRoutes()     // /api/categories/*, /api/words/*, /api/custom-words/*
         quizRoutes()        // /api/quiz/*
         progressRoutes()    // /api/progress/*
+        memoryRoutes()      // /api/memory/*
     }
 }

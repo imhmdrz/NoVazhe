@@ -94,3 +94,18 @@ object ChildProgress : IntIdTable("child_progress") {
         uniqueIndex(childId, wordId)
     }
 }
+
+/**
+ * Memory Progress table - پیشرفت بازی حافظه به‌ازای هر فرزند؛ یک رکورد برای کل بازی
+ * ابعاد برد (dimension_index) و تعداد برد‌های موفق در آن ابعاد (successful_games)
+ */
+object MemoryProgress : IntIdTable("memory_progress") {
+    val childId = reference("child_id", Children, onDelete = ReferenceOption.CASCADE)
+    val dimensionIndex = integer("dimension_index").default(0) // جایگاه در نردبان ابعاد (۲x۲ تا ۴x۴)
+    val successfulGames = integer("successful_games").default(0) // برد‌های موفق در ابعاد فعلی (۰ تا ۳)
+    val updatedAt = datetime("updated_at").default(LocalDateTime.now())
+
+    init {
+        uniqueIndex(childId) // یک رکورد برای هر فرزند
+    }
+}

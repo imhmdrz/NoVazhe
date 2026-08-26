@@ -34,6 +34,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -72,6 +73,7 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple40
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SkyBlue
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 
 /** Sentinel categoryId indicating a combined (cross-category) memory game */
 const val COMBINED_CATEGORY_ID: Int = -1
@@ -80,6 +82,7 @@ const val COMBINED_CATEGORY_ID: Int = -1
 fun MemoryGameScreen(
     navController: NavController,
     viewModel: MemoryGameViewModel,
+    childViewModel: ChildViewModel,
     categoryId: Int
 ) {
     val audioUpdates = remember {
@@ -90,11 +93,13 @@ fun MemoryGameScreen(
         }
     }
 
+    val childUiState by childViewModel.uiState.collectAsState()
+
     LaunchedEffect(categoryId) {
         if (categoryId == COMBINED_CATEGORY_ID) {
-            viewModel.loadCombinedWords(pairCount = 6)
+            viewModel.loadCombinedWords(childUiState.selectedChild?.id)
         } else {
-            viewModel.loadWords(categoryId, pairCount = 6)
+            viewModel.loadWords(categoryId, childUiState.selectedChild?.id)
         }
     }
 
@@ -149,12 +154,21 @@ fun MemoryGameScreen(
                             onBack = { navController.popBackStack() }
                         )
                     }
+                    // A timed-out game shows a final state — no card input, no win celebration.
+                    viewModel.hasTimedOut -> {
+                        TimeoutContent(
+                            onRetry = { viewModel.resetGame() },
+                            onBack = { navController.backToDashboard() }
+                        )
+                    }
                     viewModel.cards.isNotEmpty() -> {
                         MemoryGameContent(
                             cards = viewModel.cards,
                             moves = viewModel.moves,
                             matchedPairs = viewModel.matchedPairs,
                             totalPairs = viewModel.totalPairs,
+                            timeRemainingSeconds = viewModel.timeRemainingSeconds,
+                            gridColumns = MEMORY_DIMENSION_LADDER[viewModel.dimensionIndex].columns,
                             onCardClick = { viewModel.onCardClick(it) },
                             onResetGame = { viewModel.resetGame() },
                             onBack = { navController.backToDashboard() }
@@ -236,11 +250,53 @@ private fun ErrorContent(
 }
 
 @Composable
+private fun TimeoutContent(
+    onRetry: () -> Unit,
+    onBack: () -> Unit
+) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier.padding(32.dp)
+        ) {
+            Text(
+                text = "⏰",
+                fontSize = 64.sp
+            )
+            Text(
+                text = "وقت تمام شد! دوباره تلاش کن.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = CoralRed,
+                textAlign = TextAlign.Center
+            )
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                TextButton(onClick = onBack) {
+                    Text("بازگشت")
+                }
+                Button(onClick = onRetry) {
+                    Icon(Icons.Default.Refresh, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("شروع دوباره")
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun MemoryGameContent(
     cards: List<MemoryCard>,
     moves: Int,
     matchedPairs: Int,
     totalPairs: Int,
+    timeRemainingSeconds: Int,
+    gridColumns: Int,
     onCardClick: (MemoryCard) -> Unit,
     onResetGame: () -> Unit,
     onBack: () -> Unit
@@ -270,6 +326,13 @@ private fun MemoryGameContent(
                 )
             }
             
+            Text(
+                text = "زمان: $timeRemainingSeconds",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Purple40
+            )
+
             DashboardButton(onClick = onBack, tint = Purple40)
         }
 
@@ -284,7 +347,7 @@ private fun MemoryGameContent(
         Spacer(Modifier.height(16.dp))
 
         LazyVerticalGrid(
-            columns = GridCells.Fixed(3),
+            columns = GridCells.Fixed(gridColumns),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.weight(1f)

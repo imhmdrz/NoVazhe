@@ -33,6 +33,8 @@ tags:
     description: آزمون
   - name: Progress
     description: پیشرفت فرزند
+  - name: Memory
+    description: پیشرفت بازی حافظه (نردبان ابعاد)
 
 paths:
   # ==================== Auth ====================
@@ -410,6 +412,55 @@ paths:
       responses:
         '200':
           description: موفق
+
+  # ==================== Memory ====================
+  /api/memory/progress/{childId}:
+    get:
+      tags: [Memory]
+      summary: پیشرفت فعلی بازی حافظه فرزند
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: childId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: موفق (اگر رکوردی نباشد، حالت پیش‌فرض 0/0)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryProgressResponse'
+
+  /api/memory/progress/{childId}/complete:
+    post:
+      tags: [Memory]
+      summary: ثبت یک برد موفق بازی حافظه در ابعاد گزارش‌شده
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: childId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteMemoryGameRequest'
+      responses:
+        '200':
+          description: موفق - وضعیت جدید پیشرفت (بعد از ثبت)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryProgressResponse'
+        '400':
+          description: شاخص ابعاد نامعتبر یا ابعاد منقضی‌شده
 
 components:
   securitySchemes:
@@ -799,6 +850,34 @@ components:
           type: string
         data:
           $ref: '#/components/schemas/ProgressStats'
+
+    MemoryProgress:
+      type: object
+      properties:
+        dimensionIndex:
+          type: integer
+          example: 2
+        successfulGames:
+          type: integer
+          example: 1
+
+    CompleteMemoryGameRequest:
+      type: object
+      required: [dimensionIndex]
+      properties:
+        dimensionIndex:
+          type: integer
+          example: 2
+
+    MemoryProgressResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/MemoryProgress'
 
     # Generic
     MessageResponse:

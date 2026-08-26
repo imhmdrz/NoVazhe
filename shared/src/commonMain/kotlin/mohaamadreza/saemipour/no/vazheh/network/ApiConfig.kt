@@ -32,4 +32,7 @@ object ApiConfig {
 
     // Progress endpoints (base: /api/progress/child/{childId})
     const val PROGRESS_CHILD = "/api/progress/child"
+
+    // Memory Game progression endpoints (base: /api/memory/progress/{childId})
+    const val MEMORY_PROGRESS = "/api/memory/progress"
 }

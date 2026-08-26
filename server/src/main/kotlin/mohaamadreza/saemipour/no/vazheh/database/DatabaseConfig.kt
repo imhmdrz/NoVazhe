@@ -35,7 +35,8 @@ object DatabaseConfig {
                 Words,
                 CustomWords,
                 QuizAttempts,
-                ChildProgress
+                ChildProgress,
+                MemoryProgress
             )
         }
         

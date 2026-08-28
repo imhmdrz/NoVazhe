@@ -1,6 +1,11 @@
 package mohaamadreza.saemipour.no.vazheh.pinning
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalWindowInfo
 
 /**
  * Result of attempting to enter screen pinning (Lock Task Mode "pinned" state).
@@ -66,3 +71,32 @@ interface AppPinner {
  */
 @Composable
 expect fun rememberAppPinner(): AppPinner
+
+/**
+ * The pin state the UI should display, kept in sync with the REAL OS state - وضعیت واقعی پین
+ *
+ * [AppPinner.isPinned] always queries the OS, but Android gives apps no callback when the
+ * pin state changes externally: the user can pin the app from the system Recents screen,
+ * leave with the OS unpin gesture, or confirm the OEM consent dialog AFTER
+ * [AppPinner.pinAndAwait] already timed out. A one-shot
+ * `remember { mutableStateOf(pinner.isPinned()) }` therefore drifts out of sync in both
+ * directions (UI says pinned while free, or unpinned while locked).
+ *
+ * Every one of those transitions passes through the window losing and regaining focus
+ * (system UI temporarily takes focus), so this re-reads the real OS state whenever focus
+ * returns — no polling, no arbitrary delays. The returned state can still be written
+ * directly (e.g. right after the app's own pin/unpin action), exactly like a plain
+ * `remember { mutableStateOf(...) }`. On iOS this is a harmless no-op: the stub pinner
+ * always reports unpinned.
+ */
+@Composable
+fun rememberAppPinState(pinner: AppPinner): MutableState<Boolean> {
+    val isPinned = remember(pinner) { mutableStateOf(pinner.isPinned()) }
+
+    val isWindowFocused = LocalWindowInfo.current.isWindowFocused
+    LaunchedEffect(pinner, isWindowFocused) {
+        if (isWindowFocused) isPinned.value = pinner.isPinned()
+    }
+
+    return isPinned
+}

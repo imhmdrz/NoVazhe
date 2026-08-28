@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
+import android.util.Log
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -63,13 +64,17 @@ private class AndroidAppPinner(
 
         // Kick off the request. startLockTask() returns immediately — on OEMs that show the
         // "OK / Got it" consent dialog we are NOT pinned yet at this point.
+        Log.d(TAG, "pinAndAwait: startLockTask() (state before=${lockTaskStateName()})")
         try {
             act.startLockTask()
         } catch (_: IllegalStateException) {
+            Log.d(TAG, "pinAndAwait: IllegalStateException → NotAvailable")
             return AppPinningResult.NotAvailable
         } catch (_: SecurityException) {
+            Log.d(TAG, "pinAndAwait: SecurityException → NotAvailable")
             return AppPinningResult.NotAvailable
-        } catch (_: Throwable) {
+        } catch (t: Throwable) {
+            Log.d(TAG, "pinAndAwait: ${t.javaClass.simpleName} → Failed")
             return AppPinningResult.Failed
         }
 
@@ -83,15 +88,22 @@ private class AndroidAppPinner(
             true
         } ?: false
 
-        return if (pinned) AppPinningResult.Pinned else AppPinningResult.NotAvailable
+        val result = if (pinned) AppPinningResult.Pinned else AppPinningResult.NotAvailable
+        Log.d(TAG, "pinAndAwait: result=$result (state after=${lockTaskStateName()})")
+        return result
     }
 
     override fun unpin(): Boolean {
         val act = activity ?: return false
         return try {
             act.stopLockTask()
-            true
-        } catch (_: Throwable) {
+            // stopLockTask() is a silent no-op (no exception) when the app was never pinned,
+            // so a clean return proves nothing — confirm against the real OS state.
+            val stillPinned = isPinned()
+            Log.d(TAG, "stopLockTask() → stillPinned=$stillPinned (state=${lockTaskStateName()})")
+            !stillPinned
+        } catch (t: Throwable) {
+            Log.d(TAG, "stopLockTask() threw ${t.javaClass.simpleName}")
             false
         }
     }
@@ -107,5 +119,26 @@ private class AndroidAppPinner(
             @Suppress("DEPRECATION")
             am.isInLockTaskMode
         }
+    }
+
+    /** Human-readable OS lock-task state, for the diagnostic logs above. */
+    private fun lockTaskStateName(): String {
+        val act = activity ?: return "no-activity"
+        val am = act.getSystemService(Context.ACTIVITY_SERVICE) as? ActivityManager ?: return "no-am"
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            @Suppress("DEPRECATION")
+            return if (am.isInLockTaskMode) "PINNED/LOCKED(legacy)" else "NONE(legacy)"
+        }
+        return when (am.lockTaskModeState) {
+            ActivityManager.LOCK_TASK_MODE_NONE -> "NONE"
+            ActivityManager.LOCK_TASK_MODE_LOCKED -> "LOCKED"
+            ActivityManager.LOCK_TASK_MODE_PINNED -> "PINNED"
+            else -> "UNKNOWN"
+        }
+    }
+
+    private companion object {
+        /** Diagnostic tag — filter logcat with `tag:AppPinning`. Safe to keep. */
+        const val TAG = "AppPinning"
     }
 }

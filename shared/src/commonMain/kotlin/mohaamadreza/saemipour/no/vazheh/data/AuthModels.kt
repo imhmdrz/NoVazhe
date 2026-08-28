@@ -9,6 +9,12 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RegisterRequest(val username: String, val password: String, val displayName: String)
 
+/**
+ * Verify the account password of the already logged-in parent - تأیید رمز عبور حساب
+ * The parent is identified by the JWT, so only the password travels in the body.
+ */
+@Serializable data class VerifyPasswordRequest(val password: String)
+
 @Serializable
 data class AuthResponse(
         val success: Boolean,

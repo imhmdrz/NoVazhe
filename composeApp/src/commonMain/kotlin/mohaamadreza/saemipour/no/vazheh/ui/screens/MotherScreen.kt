@@ -80,6 +80,7 @@ import mohaamadreza.saemipour.no.vazheh.ui.components.EmptyChildrenContent
 import mohaamadreza.saemipour.no.vazheh.ui.components.ErrorContent
 import mohaamadreza.saemipour.no.vazheh.ui.components.KidsModeGuideDialog
 import mohaamadreza.saemipour.no.vazheh.ui.components.LoadingContent
+import mohaamadreza.saemipour.no.vazheh.ui.components.PasswordPromptDialog
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
@@ -173,6 +174,7 @@ fun MotherScreen(
                         selectedTab = uiState.selectedTab,
                         isLoggedIn = uiState.isLoggedIn,
                         onTabSelected = viewModel::onTabSelected,
+                        onRequestSettingsAccess = viewModel::requestSettingsAccess,
                         onRequireLogin = { navController.navigate("auth") }
                     )
                 }
@@ -196,53 +198,65 @@ fun MotherScreen(
                             bottomPadding = bottomBarPadding
                         )
 
-                        MotherTab.PROFILE -> if (uiState.isLoggedIn) ProfileContent(
-                            bottomPadding = bottomBarPadding,
-                            username = uiState.username,
-                            displayName = uiState.displayName,
-                            timerDurationMinutes = childUiState.timerDurationMinutes,
-                            onTimerDurationChange = { minutes ->
-                                childViewModel.setTimerDuration(minutes)
-                            },
-                            onLogout = {
-                                // Stay in the app as a guest; the Profile tab re-locks.
-                                viewModel.logout()
-                            },
-                            childrenState = uiState.childrenState,
-                            customWordsState = uiState.customWordsState,
-                            onChildClick = { child ->
-                                viewModel.selectChild(child)
-                                childViewModel.setSelectedChild(child)
-                                viewModel.onTabSelected(MotherTab.DASHBOARD)
-                            },
-                            onAddChildClick = { viewModel.showAddChildDialog() },
-                            onRetry = { viewModel.retry() },
-                            canAddChild = uiState.canAddChild,
-                            onAddWordClick = { navController.navigate("add-word") },
-                            currentPlayingAudioUrl =
-                                if (isAudioPlaying) currentPlayingAudioUrl else null,
-                            onPlayAudio = { audioUrl ->
-                                if (currentPlayingAudioUrl != null &&
-                                    currentPlayingAudioUrl != audioUrl
-                                ) {
-                                    audioPlayer.pause()
-                                }
-                                currentPlayingAudioUrl = audioUrl
-                                wasPlaying = false
-                                audioPlayer.play(audioUrl)
-                            },
-                            onStopAudio = {
-                                audioPlayer.pause()
-                                currentPlayingAudioUrl = null
-                                isAudioPlaying = false
-                                wasPlaying = false
-                            },
-                            onDeleteCustomWord = { wordId ->
-                                viewModel.deleteCustomWord(wordId)
+                        MotherTab.PROFILE ->
+                            when {
+                                uiState.isLoggedIn && uiState.settingsUnlocked -> ProfileContent(
+                                    bottomPadding = bottomBarPadding,
+                                    username = uiState.username,
+                                    displayName = uiState.displayName,
+                                    timerDurationMinutes = childUiState.timerDurationMinutes,
+                                    onTimerDurationChange = { minutes ->
+                                        childViewModel.setTimerDuration(minutes)
+                                    },
+                                    onLogout = {
+                                        // Stay in the app as a guest; the Profile tab re-locks.
+                                        viewModel.logout()
+                                    },
+                                    childrenState = uiState.childrenState,
+                                    customWordsState = uiState.customWordsState,
+                                    onChildClick = { child ->
+                                        viewModel.selectChild(child)
+                                        childViewModel.setSelectedChild(child)
+                                        viewModel.onTabSelected(MotherTab.DASHBOARD)
+                                    },
+                                    onAddChildClick = { viewModel.showAddChildDialog() },
+                                    onRetry = { viewModel.retry() },
+                                    canAddChild = uiState.canAddChild,
+                                    onAddWordClick = { navController.navigate("add-word") },
+                                    currentPlayingAudioUrl =
+                                        if (isAudioPlaying) currentPlayingAudioUrl else null,
+                                    onPlayAudio = { audioUrl ->
+                                        if (currentPlayingAudioUrl != null &&
+                                            currentPlayingAudioUrl != audioUrl
+                                        ) {
+                                            audioPlayer.pause()
+                                        }
+                                        currentPlayingAudioUrl = audioUrl
+                                        wasPlaying = false
+                                        audioPlayer.play(audioUrl)
+                                    },
+                                    onStopAudio = {
+                                        audioPlayer.pause()
+                                        currentPlayingAudioUrl = null
+                                        isAudioPlaying = false
+                                        wasPlaying = false
+                                    },
+                                    onDeleteCustomWord = { wordId ->
+                                        viewModel.deleteCustomWord(wordId)
+                                    }
+                                )
+
+                                !uiState.isLoggedIn -> GuestProfilePrompt(
+                                    onLogin = { navController.navigate("auth") }
+                                )
+
+                                else -> ChildScreen(
+                                    navController = navController,
+                                    viewModel = childViewModel,
+                                    quizViewModel = quizViewModel,
+                                    bottomPadding = bottomBarPadding
+                                )
                             }
-                        ) else GuestProfilePrompt(
-                            onLogin = { navController.navigate("auth") }
-                        )
                     }
                 }
             }
@@ -258,6 +272,17 @@ fun MotherScreen(
                     onClearError = { viewModel.clearCreateChildError() }
                 )
             }
+
+            if (uiState.showSettingsPasswordPrompt) {
+                PasswordPromptDialog(
+                    isLoading = uiState.isVerifyingSettingsPassword,
+                    errorMessage = uiState.settingsPasswordError,
+                    onDismiss = { viewModel.dismissSettingsPasswordPrompt() },
+                    onConfirm = { password ->
+                        viewModel.verifySettingsPassword(password)
+                    }
+                )
+            }
         }
     }
 }
@@ -268,6 +293,7 @@ private fun MotherBottomNavigation(
     selectedTab: MotherTab,
     isLoggedIn: Boolean,
     onTabSelected: (MotherTab) -> Unit,
+    onRequestSettingsAccess: () -> Unit,
     onRequireLogin: () -> Unit
 ) {
     val barShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
@@ -319,7 +345,11 @@ private fun MotherBottomNavigation(
             selected = selectedTab == MotherTab.PROFILE && isLoggedIn,
             // Guests must log in before reaching settings — tapping it opens the login screen.
             onClick = {
-                if (isLoggedIn) onTabSelected(MotherTab.PROFILE) else onRequireLogin()
+                when {
+                    !isLoggedIn -> onRequireLogin()
+                    selectedTab == MotherTab.PROFILE -> onTabSelected(MotherTab.PROFILE)
+                    else -> onRequestSettingsAccess()
+                }
             },
             icon = {
                 Icon(
@@ -716,7 +746,7 @@ private fun ProfileContent(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "حالت کودک",
+                            text = "فعال سازی حالت کودک",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = DarkText

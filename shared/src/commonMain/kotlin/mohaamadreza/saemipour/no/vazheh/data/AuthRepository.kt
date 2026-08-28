@@ -102,6 +102,43 @@ class AuthRepository(
         }
     }
 
+    /**
+     * Verify the account password of the currently logged-in parent - تأیید رمز عبور حساب
+     * Gates sensitive areas (e.g. entering Settings) without a full re-login.
+     *
+     * Pure verification: no token is saved or replaced and no auth state changes.
+     * Result.success(false) means the server explicitly rejected the password;
+     * transport/other failures stay Result.failure so the UI can tell a wrong
+     * password apart from a failed request. A 401 (invalid/expired JWT) flows
+     * through the shared 401 handling exactly like every other authenticated call.
+     */
+    suspend fun verifyPassword(password: String): Result<Boolean> {
+        return try {
+            val token =
+                    tokenStorage.getToken() ?: return Result.failure(Exception("No token found"))
+
+            val response: ApiResponse<Boolean> =
+                    httpClient
+                            .post("${ApiConfig.BASE_URL}${ApiConfig.AUTH_VERIFY_PASSWORD}") {
+                                contentType(ContentType.Application.Json)
+                                header(HttpHeaders.Authorization, "Bearer $token")
+                                setBody(VerifyPasswordRequest(password))
+                            }
+                            .body()
+
+            val data = response.data
+            when {
+                // Server explicitly confirmed / rejected the password.
+                response.success && data == true -> Result.success(true)
+                !response.success && data == false -> Result.success(false)
+                // Unexpected response (e.g. a 500 body): a failed request, not a wrong password.
+                else -> Result.failure(Exception(response.message))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     /** Check if user is logged in */
     fun isLoggedIn(): Boolean {
         return tokenStorage.isLoggedIn()

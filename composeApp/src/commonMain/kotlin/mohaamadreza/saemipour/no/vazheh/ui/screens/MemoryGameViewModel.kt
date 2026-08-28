@@ -10,6 +10,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import mohaamadreza.saemipour.no.vazheh.data.ContentRepository
+import mohaamadreza.saemipour.no.vazheh.data.MemoryProgressDTO
 import mohaamadreza.saemipour.no.vazheh.data.ProgressRepository
 import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 
@@ -95,13 +96,36 @@ class MemoryGameViewModel(
 
     private var firstFlippedCard: MemoryCard? = null
     private var isProcessing by mutableStateOf(false)
-    
+
     var currentMatchedWord by mutableStateOf<WordDTO?>(null)
         private set
 
     private var lastMode: LoadMode = LoadMode.None
 
+    /**
+     * Identity of the current board - شناسه‌ی نسخه‌ی فعلی صفحه‌ی بازی
+     *
+     * Incremented every time a board is replaced (setupGame) or abandoned (reset/retry/entry).
+     * Every coroutine that outlives a user interaction (pair resolution, win submission)
+     * captures the generation it started on and must re-check it after each suspension point
+     * before touching board state. Because card/pair ids restart from 0 on every board, a
+     * stale coroutine would otherwise find "valid-looking" cards on the NEW board and corrupt
+     * it (unflipping cards, bumping matchedPairs, killing the new timer, or even submitting a
+     * phantom completion).
+     */
+    private var gameGeneration = 0
+
+    /**
+     * The currently running win-submission pipeline, if any - ثبت برد در حال انجام
+     *
+     * Completions are strictly serialized: a new game's submission joins the previous one
+     * before reading dimensionIndex/successfulGames, so it always reports against fresh,
+     * authoritative state and an older response can never overwrite a newer game's result.
+     */
+    private var completionInFlight: Job? = null
+
     fun loadWords(categoryId: Int, childId: Int? = null) {
+        gameGeneration++ // entering the game invalidates anything left over from a previous session
         lastMode = LoadMode.Single(categoryId)
         this.childId = childId
         isLoading = true
@@ -126,6 +150,7 @@ class MemoryGameViewModel(
      * بارگذاری کلمات از همه دسته‌بندی‌ها برای بازی حافظه ترکیبی
      */
     fun loadCombinedWords(childId: Int? = null) {
+        gameGeneration++ // entering the game invalidates anything left over from a previous session
         lastMode = LoadMode.Combined
         this.childId = childId
         isLoading = true
@@ -269,6 +294,11 @@ class MemoryGameViewModel(
     }
 
     private fun setupGame(words: List<WordDTO>) {
+        // A new board gets a new identity: every coroutine still working for a previous board
+        // becomes stale at this exact moment and will bail at its next resume point.
+        gameGeneration++
+        log("setupGame gen=$gameGeneration pairs=${words.size}")
+
         cards.clear()
         isWin = false
         moves = 0
@@ -280,7 +310,7 @@ class MemoryGameViewModel(
 
         var cardId = 0
         val newCards = mutableListOf<MemoryCard>()
-        
+
         words.forEachIndexed { index, word ->
             newCards.add(MemoryCard(id = cardId++, word = word, pairId = index))
             newCards.add(MemoryCard(id = cardId++, word = word, pairId = index))
@@ -308,9 +338,15 @@ class MemoryGameViewModel(
         } else {
             moves++
             isProcessing = true
+            val generation = gameGeneration
 
             viewModelScope.launch {
                 delay(800)
+
+                // A reset/reload while this pair was being evaluated replaced the board. This
+                // coroutine's captured indices and card references belong to the OLD board —
+                // touching live state now would corrupt the new one.
+                if (generation != gameGeneration) return@launch
 
                 // The countdown may have expired while this pair was being evaluated; a
                 // timeout is final — never count a match or declare a win after it.
@@ -336,13 +372,29 @@ class MemoryGameViewModel(
                         // Final pair matched — freeze the countdown immediately so a timeout
                         // can never be declared for an already completed game.
                         stopTimer()
+                        log("final match gen=$generation")
+
+                        // The board is fully matched, so the input lock is released BEFORE the
+                        // async completion pipeline. Otherwise this coroutine's tail would
+                        // still clear firstFlippedCard/isProcessing AFTER a reset rebuilt the
+                        // board — silently eating the first tap of the new game.
+                        firstFlippedCard = null
+                        isProcessing = false
+
+                        // Cosmetic pause so the player sees the final match flip over before
+                        // any celebration. The win itself is already committed at this point:
+                        // even if the player resets during the pause, the completion is still
+                        // submitted exactly once (only the celebration is generation-gated).
                         delay(500)
-                        // Ignore a reset that happened during the delay. Completion is handled
-                        // inline in this coroutine (no nested launch) and only celebrates once
-                        // the server confirms the dimension was finished.
-                        if (matchedPairs == totalPairs) {
-                            completeSuccessfulGame()
+
+                        // Serialize submissions: join the previous game's pipeline so this one
+                        // reads progression state that already includes its confirmed result.
+                        val previous = completionInFlight
+                        completionInFlight = viewModelScope.launch {
+                            previous?.join()
+                            completeSuccessfulGame(generation)
                         }
+                        return@launch
                     }
                 } else {
                     val firstIndex = cards.indexOfFirst { it.id == firstCard.id }
@@ -370,21 +422,46 @@ class MemoryGameViewModel(
      * finished the current dimension (dimension advanced, or third success at the final one).
      * Network failures leave ProgressRepository's pending-retry mechanism in charge: no state
      * change and no celebration until the server confirms.
+     *
+     * [generation] identifies the board that earned this completion. The submission itself is
+     * unconditional (the game was genuinely completed), but the celebration is only shown if
+     * that board is still the current one — a response must never pop a celebration over a
+     * newer game the player has already moved on to.
      */
-    private suspend fun completeSuccessfulGame() {
+    private suspend fun completeSuccessfulGame(generation: Int) {
         val currentChildId = childId
         if (currentChildId == null) {
             // Guest — unchanged behavior: celebrate each successful game, nothing persisted.
-            isWin = true
+            if (generation == gameGeneration) isWin = true
             return
         }
 
-        val completedDimension = dimensionIndex
-        val gamesBefore = successfulGames
+        // Submissions are serialized by the caller (completionInFlight), so the state read
+        // here already includes every earlier game's confirmed server result.
+        submitCompletion(currentChildId, generation, dimensionIndex, successfulGames, isResubmission = false)
+    }
+
+    /**
+     * Submit one completed game and apply the authoritative response - ارسال نتیجه و اعمال پاسخ سرور
+     *
+     * If the server rejects the submission (e.g. a stored pending win was retried inside the
+     * repository and advanced the server past our dimension first, or the server's progress
+     * row was wiped), the client re-syncs from the authoritative GET endpoint and resubmits
+     * this win exactly once against the fresh state. A second rejection is accepted as final:
+     * the win is not recorded (no guessing), and the next progression GET restores the true state.
+     */
+    private suspend fun submitCompletion(
+        childId: Int,
+        generation: Int,
+        completedDimension: Int,
+        gamesBefore: Int,
+        isResubmission: Boolean
+    ) {
+        log("submit gen=$generation dim=$completedDimension gamesBefore=$gamesBefore resubmission=$isResubmission")
 
         progressRepository
             .recordMemoryGameComplete(
-                childId = currentChildId,
+                childId = childId,
                 dimensionIndex = completedDimension,
                 successfulGamesBefore = gamesBefore
             )
@@ -392,27 +469,69 @@ class MemoryGameViewModel(
                 onSuccess = { response ->
                     val progress = response.data
                     if (response.success && progress != null) {
-                        val returnedDimension = progress.dimensionIndex.coerceIn(0, MEMORY_DIMENSION_LADDER.lastIndex)
-                        dimensionIndex = returnedDimension
-                        successfulGames = progress.successfulGames.coerceIn(0, 3)
-
-                        // Dimension completion is detected from the authoritative response —
-                        // never from local counters:
-                        // - advancement happened (returned index greater than completed one), or
-                        // - final dimension: this was exactly its third success (the server caps
-                        //   the counter there at 3, so [gamesBefore] == 2 identifies it).
-                        val finishedCurrentDimension =
-                            returnedDimension > completedDimension ||
-                                (completedDimension == MEMORY_DIMENSION_LADDER.lastIndex &&
-                                    gamesBefore == 2 && progress.successfulGames >= 3)
-
-                        if (finishedCurrentDimension) {
-                            isWin = true
+                        applyProgressResponse(generation, completedDimension, gamesBefore, progress)
+                    } else if (!isResubmission) {
+                        log("submit rejected gen=$generation — re-syncing before one resubmission")
+                        // Re-sync from the authoritative server, then resubmit exactly once.
+                        // On GET failure keep the current state and drop the resubmission —
+                        // no state is guessed.
+                        val fresh = progressRepository.getMemoryProgress(childId).getOrNull()
+                            ?.takeIf { it.success }?.data
+                        if (fresh != null) {
+                            dimensionIndex = fresh.dimensionIndex.coerceIn(0, MEMORY_DIMENSION_LADDER.lastIndex)
+                            successfulGames = fresh.successfulGames.coerceIn(0, 3)
+                            submitCompletion(childId, generation, dimensionIndex, successfulGames, isResubmission = true)
                         }
+                    } else {
+                        log("resubmission rejected gen=$generation — win left to the next progression sync")
                     }
                 },
                 onFailure = { /* pending retry is owned by ProgressRepository — no advancement assumed */ }
             )
+    }
+
+    /**
+     * Apply the server's authoritative progression after a confirmed completion.
+     *
+     * dimensionIndex/successfulGames are GLOBAL progression state (not per-board state), so
+     * they are synced from every confirmed response, even if the board that earned it has
+     * already been replaced. The celebration, however, belongs to the board that earned it:
+     * it is shown only when that board is still current. A confirmed game that did NOT finish
+     * its dimension instead deals the next board right away (same generation gate), so the
+     * player never sits on a fully matched board waiting for a button.
+     */
+    private fun applyProgressResponse(
+        generation: Int,
+        completedDimension: Int,
+        gamesBefore: Int,
+        progress: MemoryProgressDTO
+    ) {
+        val returnedDimension = progress.dimensionIndex.coerceIn(0, MEMORY_DIMENSION_LADDER.lastIndex)
+        dimensionIndex = returnedDimension
+        successfulGames = progress.successfulGames.coerceIn(0, 3)
+        log("response gen=$generation dim=$returnedDimension games=${progress.successfulGames}")
+
+        // Dimension completion is detected from the authoritative response — never from local
+        // counters:
+        // - advancement happened (returned index greater than completed one), or
+        // - final dimension: this was exactly its third success (the server caps the counter
+        //   there at 3, so [gamesBefore] == 2 identifies it).
+        val finishedCurrentDimension =
+            returnedDimension > completedDimension ||
+                (completedDimension == MEMORY_DIMENSION_LADDER.lastIndex &&
+                    gamesBefore == 2 && progress.successfulGames >= 3)
+
+        if (finishedCurrentDimension && generation == gameGeneration) {
+            isWin = true
+            log("dimension completed gen=$generation → celebration")
+        } else if (!finishedCurrentDimension && generation == gameGeneration) {
+            // Plain successful game (counter advanced, dimension unchanged): no celebration —
+            // deal the next board immediately so the player never waits on a fully matched
+            // board. resetGame() builds it at the current authoritative dimension and its
+            // generation bump retires any stale async work from this board.
+            log("game completed gen=$generation → next board at dim=$dimensionIndex")
+            resetGame()
+        }
     }
 
     fun clearMatchedWord() {
@@ -420,9 +539,19 @@ class MemoryGameViewModel(
     }
 
     fun resetGame() {
+        // Abandon the current board immediately: any in-flight pair-resolution or win pipeline
+        // becomes stale now (not only once the replacement board is ready), so it can never
+        // mutate the next game. A genuinely completed game's submission still finishes — only
+        // its celebration is suppressed (see completeSuccessfulGame).
+        gameGeneration++
+        log("resetGame gen=$gameGeneration")
+
         // Cancel any running countdown first so rebuilding/loading consumes no game time;
         // setupGame starts a fresh timer once the new board is playable.
         stopTimer()
+
+        // Dismiss any visible celebration now, not only once the new board is ready.
+        isWin = false
 
         // Restart at the CURRENT dimension — progression is never reset by a restart.
         val pairCount = MEMORY_DIMENSION_LADDER[dimensionIndex].pairCount
@@ -444,6 +573,7 @@ class MemoryGameViewModel(
     }
 
     fun retry() {
+        gameGeneration++ // same invalidation rule as resetGame
         stopTimer()
         errorMessage = null
         val pairCount = MEMORY_DIMENSION_LADDER[dimensionIndex].pairCount
@@ -452,5 +582,18 @@ class MemoryGameViewModel(
             is LoadMode.Single -> viewModelScope.launch { loadSingleBoard(mode.categoryId, pairCount) }
             LoadMode.None -> { /* nothing to retry */ }
         }
+    }
+
+    /**
+     * Focused diagnostic logging for the completion/reset/timer ordering - لاگ تشخیصی
+     * Temporary: safe to keep (one line per state transition), or strip once the flow is
+     * verified on device. Filter logcat by the tag to observe ordering.
+     */
+    private fun log(message: String) {
+        println("MemoryGame[$LOG_TAG] $message")
+    }
+
+    private companion object {
+        const val LOG_TAG = "flow"
     }
 }

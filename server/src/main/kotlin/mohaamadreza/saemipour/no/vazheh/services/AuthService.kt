@@ -75,6 +75,32 @@ object AuthService {
         }
     }
 
+    /**
+     * Verify the account password of an already authenticated parent - تأیید رمز عبور حساب
+     * Gates sensitive areas (e.g. entering Settings) without a full re-login.
+     * Follows the same account rules as [login]: unknown or inactive parent → false.
+     * Never returns/stores the plaintext password and never issues a token.
+     */
+    fun verifyPassword(parentId: Int, password: String): Boolean {
+        return transaction {
+            val parentRow =
+                    Parents.selectAll()
+                            .where { Parents.id eq parentId }
+                            .singleOrNull()
+                            ?: return@transaction false
+
+            if (!PasswordUtils.verifyPassword(password, parentRow[Parents.passwordHash])) {
+                return@transaction false
+            }
+
+            if (!parentRow[Parents.isActive]) {
+                return@transaction false
+            }
+
+            true
+        }
+    }
+
     /** Get parent by ID */
     fun getParentById(parentId: Int): ParentDTO? {
         return transaction {

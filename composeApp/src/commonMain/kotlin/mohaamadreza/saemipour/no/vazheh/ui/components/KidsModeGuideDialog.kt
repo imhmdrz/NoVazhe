@@ -45,6 +45,7 @@ import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
 import mohaamadreza.saemipour.no.vazheh.data.TokenStorage
 import mohaamadreza.saemipour.no.vazheh.pinning.AppPinningResult
+import mohaamadreza.saemipour.no.vazheh.pinning.rememberAppPinState
 import mohaamadreza.saemipour.no.vazheh.pinning.rememberAppPinner
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
@@ -172,7 +173,9 @@ private fun PinActionsSection(
     var status by remember { mutableStateOf<PinActionStatus?>(null) }
 
     // Drives the single toggle button: "unlock" when the app is pinned, "lock" otherwise.
-    var isPinned by remember { mutableStateOf(pinner.isPinned()) }
+    // Mirrors the REAL OS pin state and self-heals when it changes externally (system
+    // Recents pin, OS unpin gesture, consent confirmed after pinAndAwait timed out).
+    var isPinned by rememberAppPinState(pinner)
 
     // Re-read on each composition pass so the "تغییر رمز" label flips after
     // the user sets a PIN for the first time.

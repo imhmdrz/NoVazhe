@@ -108,6 +108,38 @@ fun Route.authRoutes() {
                     )
                 }
             }
+
+            /**
+             * POST /api/auth/verify-password Verify the account password of the logged-in parent
+             * تأیید رمز عبور حساب برای ورود به بخش‌های حساس (مثل تنظیمات)
+             *
+             * A wrong password is a normal 200 response with success=false/data=false —
+             * never 401. 401 stays reserved for an invalid/expired/missing JWT (produced by
+             * the auth plugin before this handler runs), because the app force-logs-out on
+             * any 401 and a mistyped password must not end the session.
+             */
+            post("/verify-password") {
+                try {
+                    val principal = call.principal<JWTPrincipal>()!!
+                    val parentId = principal.payload.getClaim("parentId").asInt()
+                    val request = call.receive<VerifyPasswordRequest>()
+
+                    val verified = AuthService.verifyPassword(parentId, request.password)
+                    call.respond(
+                            HttpStatusCode.OK,
+                            ApiResponse(
+                                    verified,
+                                    if (verified) "رمز عبور تأیید شد" else "رمز عبور اشتباه است",
+                                    verified
+                            )
+                    )
+                } catch (e: Exception) {
+                    call.respond(
+                            HttpStatusCode.InternalServerError,
+                            ApiResponse<Boolean>(false, "خطا: ${e.message}", null)
+                    )
+                }
+            }
         }
     }
 }

@@ -840,6 +840,16 @@
     }
   }
 };
+            defs["CompleteMemoryGameRequest"] = {
+  "required" : [ "dimensionIndex" ],
+  "type" : "object",
+  "properties" : {
+    "dimensionIndex" : {
+      "type" : "integer",
+      "example" : 2
+    }
+  }
+};
             defs["CreateChildRequest"] = {
   "required" : [ "age", "name" ],
   "type" : "object",
@@ -938,6 +948,33 @@
     },
     "password" : {
       "type" : "string"
+    }
+  }
+};
+            defs["MemoryProgress"] = {
+  "type" : "object",
+  "properties" : {
+    "dimensionIndex" : {
+      "type" : "integer",
+      "example" : 2
+    },
+    "successfulGames" : {
+      "type" : "integer",
+      "example" : 1
+    }
+  }
+};
+            defs["MemoryProgressResponse"] = {
+  "type" : "object",
+  "properties" : {
+    "success" : {
+      "type" : "boolean"
+    },
+    "message" : {
+      "type" : "string"
+    },
+    "data" : {
+      "$ref" : "#/components/schemas/MemoryProgress"
     }
   }
 };
@@ -1167,6 +1204,30 @@
     }
   }
 };
+            defs["VerifyPasswordRequest"] = {
+  "required" : [ "password" ],
+  "type" : "object",
+  "properties" : {
+    "password" : {
+      "type" : "string"
+    }
+  }
+};
+            defs["VerifyPasswordResponse"] = {
+  "type" : "object",
+  "properties" : {
+    "success" : {
+      "type" : "boolean"
+    },
+    "message" : {
+      "type" : "string"
+    },
+    "data" : {
+      "type" : "boolean",
+      "description" : "true فقط وقتی رمز عبور درست است"
+    }
+  }
+};
             defs["Word"] = {
   "type" : "object",
   "properties" : {
@@ -1250,6 +1311,9 @@
                     <li data-group="Auth" data-name="apiAuthRegisterPost" class="">
                       <a href="#api-Auth-apiAuthRegisterPost">apiAuthRegisterPost</a>
                     </li>
+                    <li data-group="Auth" data-name="apiAuthVerifyPasswordPost" class="">
+                      <a href="#api-Auth-apiAuthVerifyPasswordPost">apiAuthVerifyPasswordPost</a>
+                    </li>
                   <li class="nav-header" data-group="Categories"><a href="#api-Categories">API Methods - Categories</a></li>
                     <li data-group="Categories" data-name="apiCategoriesGet" class="">
                       <a href="#api-Categories-apiCategoriesGet">apiCategoriesGet</a>
@@ -1282,6 +1346,13 @@
                     </li>
                     <li data-group="CustomWords" data-name="apiCustomWordsPost" class="">
                       <a href="#api-CustomWords-apiCustomWordsPost">apiCustomWordsPost</a>
+                    </li>
+                  <li class="nav-header" data-group="Memory"><a href="#api-Memory">API Methods - Memory</a></li>
+                    <li data-group="Memory" data-name="apiMemoryProgressChildIdCompletePost" class="">
+                      <a href="#api-Memory-apiMemoryProgressChildIdCompletePost">apiMemoryProgressChildIdCompletePost</a>
+                    </li>
+                    <li data-group="Memory" data-name="apiMemoryProgressChildIdGet" class="">
+                      <a href="#api-Memory-apiMemoryProgressChildIdGet">apiMemoryProgressChildIdGet</a>
                     </li>
                   <li class="nav-header" data-group="Progress"><a href="#api-Progress">API Methods - Progress</a></li>
                     <li data-group="Progress" data-name="apiProgressChildChildIdGet" class="">
@@ -2233,6 +2304,339 @@ except ApiException as e:
                             </div>
 
                             <h3> Status: 400 - خطا در اعتبارسنجی </h3>
+
+                            <ul class="nav nav-tabs nav-tabs-examples" >
+                            </ul>
+
+                            <div class="tab-content" style='margin-bottom: 10px;'>
+                            </div>
+
+                        </article>
+                      </div>
+                      <hr>
+                    <div id="api-Auth-apiAuthVerifyPasswordPost">
+                      <article id="api-Auth-apiAuthVerifyPasswordPost-0" data-group="User" data-name="apiAuthVerifyPasswordPost" data-version="0">
+                        <div class="pull-left">
+                          <h1>apiAuthVerifyPasswordPost</h1>
+                          <p>تأیید رمز عبور حساب</p>
+                        </div>
+                        <div class="pull-right"></div>
+                        <div class="clearfix"></div>
+                        <p></p>
+                        <p class="marked">تأیید رمز عبور حساب مادرِ واردشده — برای ورود به بخش‌های حساس مانند تنظیمات.
+حساب از روی JWT شناسایی می‌شود؛ فقط رمز عبور در بدنه ارسال می‌شود.
+رمز اشتباه پاسخ 200 با success&#x3D;false و data&#x3D;false برمی‌گرداند.
+401 فقط برای JWT نامعتبر/منقضی/غایب است.
+</p>
+                        <p></p>
+                        <br />
+                        <pre class="prettyprint language-html prettyprinted" data-type="post"><code><span class="pln">/api/auth/verify-password</span></code></pre>
+                        <p>
+                          <h3>Usage and SDK Samples</h3>
+                        </p>
+                        <ul class="nav nav-tabs nav-tabs-examples">
+                          <li class="active"><a href="#examples-Auth-apiAuthVerifyPasswordPost-0-curl">Curl</a></li>
+                          <li class=""><a href="#examples-Auth-apiAuthVerifyPasswordPost-0-java">Java</a></li>
+                          <li class=""><a href="#examples-Auth-apiAuthVerifyPasswordPost-0-android">Android</a></li>
+                          <!--<li class=""><a href="#examples-Auth-apiAuthVerifyPasswordPost-0-groovy">Groovy</a></li>-->
+                          <li class=""><a href="#examples-Auth-apiAuthVerifyPasswordPost-0-objc">Obj-C</a></li>
+                          <li class=""><a href="#examples-Auth-apiAuthVerifyPasswordPost-0-javascript">JavaScript</a></li>
+                          <!--<li class=""><a href="#examples-Auth-apiAuthVerifyPasswordPost-0-angular">Angular</a></li>-->
+                          <li class=""><a href="#examples-Auth-apiAuthVerifyPasswordPost-0-csharp">C#</a></li>
+                          <li class=""><a href="#examples-Auth-apiAuthVerifyPasswordPost-0-php">PHP</a></li>
+                          <li class=""><a href="#examples-Auth-apiAuthVerifyPasswordPost-0-perl">Perl</a></li>
+                          <li class=""><a href="#examples-Auth-apiAuthVerifyPasswordPost-0-python">Python</a></li>
+                        </ul>
+
+                        <div class="tab-content">
+                          <div class="tab-pane active" id="examples-Auth-apiAuthVerifyPasswordPost-0-curl">
+                           <pre class="prettyprint"><code class="language-bsh">curl -X POST\
+ -H "Authorization: Bearer [[accessToken]]"\
+-H "Accept: application/json"\
+-H "Content-Type: application/json"\
+"http://localhost:8080/api/auth/verify-password"</code></pre>
+                          </div>
+                          <div class="tab-pane" id="examples-Auth-apiAuthVerifyPasswordPost-0-java">
+                            <pre class="prettyprint"><code class="language-java">import io.swagger.client.*;
+import io.swagger.client.auth.*;
+import io.swagger.client.model.*;
+import io.swagger.client.api.AuthApi;
+
+import java.io.File;
+import java.util.*;
+
+public class AuthApiExample {
+
+    public static void main(String[] args) {
+        ApiClient defaultClient = Configuration.getDefaultApiClient();
+
+
+        AuthApi apiInstance = new AuthApi();
+        VerifyPasswordRequest body = ; // VerifyPasswordRequest | 
+        try {
+            VerifyPasswordResponse result = apiInstance.apiAuthVerifyPasswordPost(body);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling AuthApi#apiAuthVerifyPasswordPost");
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                          </div>
+
+                          <div class="tab-pane" id="examples-Auth-apiAuthVerifyPasswordPost-0-android">
+                            <pre class="prettyprint"><code class="language-java">import io.swagger.client.api.AuthApi;
+
+public class AuthApiExample {
+
+    public static void main(String[] args) {
+        AuthApi apiInstance = new AuthApi();
+        VerifyPasswordRequest body = ; // VerifyPasswordRequest | 
+        try {
+            VerifyPasswordResponse result = apiInstance.apiAuthVerifyPasswordPost(body);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling AuthApi#apiAuthVerifyPasswordPost");
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                          </div>
+  <!--
+  <div class="tab-pane" id="examples-Auth-apiAuthVerifyPasswordPost-0-groovy">
+  <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
+  </div> -->
+                            <div class="tab-pane" id="examples-Auth-apiAuthVerifyPasswordPost-0-objc">
+                              <pre class="prettyprint"><code class="language-cpp">Configuration *apiConfig = [Configuration sharedConfig];
+VerifyPasswordRequest *body = ; // 
+
+AuthApi *apiInstance = [[AuthApi alloc] init];
+
+// تأیید رمز عبور حساب
+[apiInstance apiAuthVerifyPasswordPostWith:body
+              completionHandler: ^(VerifyPasswordResponse output, NSError* error) {
+                            if (output) {
+                                NSLog(@"%@", output);
+                            }
+                            if (error) {
+                                NSLog(@"Error: %@", error);
+                            }
+                        }];
+</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Auth-apiAuthVerifyPasswordPost-0-javascript">
+                              <pre class="prettyprint"><code class="language-js">var NovazhehSpeechTherapyApi = require('___novazheh_speech_therapy_api');
+var defaultClient = NovazhehSpeechTherapyApi.ApiClient.instance;
+
+
+var api = new NovazhehSpeechTherapyApi.AuthApi()
+var body = ; // {{VerifyPasswordRequest}} 
+
+var callback = function(error, data, response) {
+  if (error) {
+    console.error(error);
+  } else {
+    console.log('API called successfully. Returned data: ' + data);
+  }
+};
+api.apiAuthVerifyPasswordPost(body, callback);
+</code></pre>
+                            </div>
+
+                            <!--<div class="tab-pane" id="examples-Auth-apiAuthVerifyPasswordPost-0-angular">
+              <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
+            </div>-->
+                            <div class="tab-pane" id="examples-Auth-apiAuthVerifyPasswordPost-0-csharp">
+                              <pre class="prettyprint"><code class="language-cs">using System;
+using System.Diagnostics;
+using IO.Swagger.Api;
+using IO.Swagger.Client;
+using IO.Swagger.Model;
+
+namespace Example
+{
+    public class apiAuthVerifyPasswordPostExample
+    {
+        public void main()
+        {
+
+
+            var apiInstance = new AuthApi();
+            var body = new VerifyPasswordRequest(); // VerifyPasswordRequest | 
+
+            try
+            {
+                // تأیید رمز عبور حساب
+                VerifyPasswordResponse result = apiInstance.apiAuthVerifyPasswordPost(body);
+                Debug.WriteLine(result);
+            }
+            catch (Exception e)
+            {
+                Debug.Print("Exception when calling AuthApi.apiAuthVerifyPasswordPost: " + e.Message );
+            }
+        }
+    }
+}
+</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Auth-apiAuthVerifyPasswordPost-0-php">
+                              <pre class="prettyprint"><code class="language-php"><&#63;php
+require_once(__DIR__ . '/vendor/autoload.php');
+
+
+$api_instance = new Swagger\Client\ApiAuthApi();
+$body = ; // VerifyPasswordRequest | 
+
+try {
+    $result = $api_instance->apiAuthVerifyPasswordPost($body);
+    print_r($result);
+} catch (Exception $e) {
+    echo 'Exception when calling AuthApi->apiAuthVerifyPasswordPost: ', $e->getMessage(), PHP_EOL;
+}
+?></code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Auth-apiAuthVerifyPasswordPost-0-perl">
+                              <pre class="prettyprint"><code class="language-perl">use Data::Dumper;
+use WWW::SwaggerClient::Configuration;
+use WWW::SwaggerClient::AuthApi;
+
+
+my $api_instance = WWW::SwaggerClient::AuthApi->new();
+my $body = WWW::SwaggerClient::Object::VerifyPasswordRequest->new(); # VerifyPasswordRequest | 
+
+eval { 
+    my $result = $api_instance->apiAuthVerifyPasswordPost(body => $body);
+    print Dumper($result);
+};
+if ($@) {
+    warn "Exception when calling AuthApi->apiAuthVerifyPasswordPost: $@\n";
+}</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Auth-apiAuthVerifyPasswordPost-0-python">
+                              <pre class="prettyprint"><code class="language-python">from __future__ import print_statement
+import time
+import swagger_client
+from swagger_client.rest import ApiException
+from pprint import pprint
+
+
+# create an instance of the API class
+api_instance = swagger_client.AuthApi()
+body =  # VerifyPasswordRequest | 
+
+try: 
+    # تأیید رمز عبور حساب
+    api_response = api_instance.api_auth_verify_password_post(body)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling AuthApi->apiAuthVerifyPasswordPost: %s\n" % e)</code></pre>
+                            </div>
+                          </div>
+
+                          <h2>Parameters</h2>
+
+
+
+                            <div class="methodsubtabletitle">Body parameters</div>
+                            <table id="methodsubtable">
+                              <tr>
+                                <th width="150px">Name</th>
+                                <th>Description</th>
+                              </tr>
+                                <tr><td style="width:150px;">body <span style="color:red;">*</span></td>
+                                <td>
+                                
+                                
+                                <script>
+                                $(document).ready(function() {
+                                  var schemaWrapper = {
+  "content" : {
+    "application/json" : {
+      "schema" : {
+        "$ref" : "#/components/schemas/VerifyPasswordRequest"
+      }
+    }
+  },
+  "required" : true
+};
+                                  var schema = schemaWrapper.content["application/json"].schema;
+                                  if (schema.$ref != null) {
+                                    schema = defsParser.$refs.get(schema.$ref);
+                                  } else {
+                                    schemaWrapper.components = {};
+                                    schemaWrapper.components.schemas = Object.assign({}, defs);
+                                    $RefParser.dereference(schemaWrapper).catch(function(err) {
+                                      console.log(err);
+                                    });
+                                  }
+                                
+                                  var view = new JSONSchemaView(schema,2,{isBodyParam: true});
+                                  var result = $('#d2e199_apiAuthVerifyPasswordPost_body');
+                                  result.empty();
+                                  result.append(view.render());
+                                });
+                                </script>
+                                <div id="d2e199_apiAuthVerifyPasswordPost_body"></div>
+                                </td>
+                                </tr>
+                            </table>
+
+
+
+                          <h2>Responses</h2>
+                            <h3> Status: 200 - نتیجه تأیید — رمز درست success&#x3D;true/data&#x3D;true، رمز اشتباه success&#x3D;false/data&#x3D;false </h3>
+
+                            <ul class="nav nav-tabs nav-tabs-examples" >
+                                <li class="active">
+                                  <a data-toggle="tab" href="#responses-apiAuthVerifyPasswordPost-200-schema">Schema</a>
+                                </li>
+
+                            </ul>
+
+                            <div class="tab-content" style='margin-bottom: 10px;'>
+                                <div class="tab-pane active" id="responses-apiAuthVerifyPasswordPost-200-schema">
+                                  <div id='responses-apiAuthVerifyPasswordPost-200-schema-200' style="padding: 30px; border-left: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee;">
+                                    <script>
+                                      $(document).ready(function() {
+                                        var schemaWrapper = {
+  "description" : "نتیجه تأیید — رمز درست success=true/data=true، رمز اشتباه success=false/data=false",
+  "content" : {
+    "application/json" : {
+      "schema" : {
+        "$ref" : "#/components/schemas/VerifyPasswordResponse"
+      }
+    }
+  }
+};
+                                        var schema = schemaWrapper.content["application/json"].schema;
+                                        if (schema.$ref != null) {
+                                          schema = defsParser.$refs.get(schema.$ref);
+                                        } else {
+                                          schemaWrapper.components = {};
+                                          schemaWrapper.components.schemas = Object.assign({}, defs);
+                                          $RefParser.dereference(schemaWrapper).catch(function(err) {
+                                            console.log(err);
+                                          });
+                                        }
+
+                                        //console.log(JSON.stringify(schema));
+                                        var view = new JSONSchemaView(schema, 3);
+                                        $('#responses-apiAuthVerifyPasswordPost-200-schema-data').val(stringify(schema));
+                                        var result = $('#responses-apiAuthVerifyPasswordPost-200-schema-200');
+                                        result.empty();
+                                        result.append(view.render());
+                                      });
+                                    </script>
+                                  </div>
+                                  <input id='responses-apiAuthVerifyPasswordPost-200-schema-data' type='hidden' value=''></input>
+                                </div>
+                            </div>
+
+                            <h3> Status: 401 - توکن JWT نامعتبر یا منقضی </h3>
 
                             <ul class="nav nav-tabs nav-tabs-examples" >
                             </ul>
@@ -5049,6 +5453,676 @@ except ApiException as e:
                             </ul>
 
                             <div class="tab-content" style='margin-bottom: 10px;'>
+                            </div>
+
+                        </article>
+                      </div>
+                      <hr>
+                  </section>
+                <section id="api-Memory">
+                  <h1>Memory</h1>
+                    <div id="api-Memory-apiMemoryProgressChildIdCompletePost">
+                      <article id="api-Memory-apiMemoryProgressChildIdCompletePost-0" data-group="User" data-name="apiMemoryProgressChildIdCompletePost" data-version="0">
+                        <div class="pull-left">
+                          <h1>apiMemoryProgressChildIdCompletePost</h1>
+                          <p>ثبت یک برد موفق بازی حافظه در ابعاد گزارش‌شده</p>
+                        </div>
+                        <div class="pull-right"></div>
+                        <div class="clearfix"></div>
+                        <p></p>
+                        <p class="marked"></p>
+                        <p></p>
+                        <br />
+                        <pre class="prettyprint language-html prettyprinted" data-type="post"><code><span class="pln">/api/memory/progress/{childId}/complete</span></code></pre>
+                        <p>
+                          <h3>Usage and SDK Samples</h3>
+                        </p>
+                        <ul class="nav nav-tabs nav-tabs-examples">
+                          <li class="active"><a href="#examples-Memory-apiMemoryProgressChildIdCompletePost-0-curl">Curl</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdCompletePost-0-java">Java</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdCompletePost-0-android">Android</a></li>
+                          <!--<li class=""><a href="#examples-Memory-apiMemoryProgressChildIdCompletePost-0-groovy">Groovy</a></li>-->
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdCompletePost-0-objc">Obj-C</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdCompletePost-0-javascript">JavaScript</a></li>
+                          <!--<li class=""><a href="#examples-Memory-apiMemoryProgressChildIdCompletePost-0-angular">Angular</a></li>-->
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdCompletePost-0-csharp">C#</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdCompletePost-0-php">PHP</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdCompletePost-0-perl">Perl</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdCompletePost-0-python">Python</a></li>
+                        </ul>
+
+                        <div class="tab-content">
+                          <div class="tab-pane active" id="examples-Memory-apiMemoryProgressChildIdCompletePost-0-curl">
+                           <pre class="prettyprint"><code class="language-bsh">curl -X POST\
+ -H "Authorization: Bearer [[accessToken]]"\
+-H "Accept: application/json"\
+-H "Content-Type: application/json"\
+"http://localhost:8080/api/memory/progress/{childId}/complete"</code></pre>
+                          </div>
+                          <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdCompletePost-0-java">
+                            <pre class="prettyprint"><code class="language-java">import io.swagger.client.*;
+import io.swagger.client.auth.*;
+import io.swagger.client.model.*;
+import io.swagger.client.api.MemoryApi;
+
+import java.io.File;
+import java.util.*;
+
+public class MemoryApiExample {
+
+    public static void main(String[] args) {
+        ApiClient defaultClient = Configuration.getDefaultApiClient();
+
+
+        MemoryApi apiInstance = new MemoryApi();
+        CompleteMemoryGameRequest body = ; // CompleteMemoryGameRequest | 
+        Integer childId = 56; // Integer | 
+        try {
+            MemoryProgressResponse result = apiInstance.apiMemoryProgressChildIdCompletePost(body, childId);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling MemoryApi#apiMemoryProgressChildIdCompletePost");
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                          </div>
+
+                          <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdCompletePost-0-android">
+                            <pre class="prettyprint"><code class="language-java">import io.swagger.client.api.MemoryApi;
+
+public class MemoryApiExample {
+
+    public static void main(String[] args) {
+        MemoryApi apiInstance = new MemoryApi();
+        CompleteMemoryGameRequest body = ; // CompleteMemoryGameRequest | 
+        Integer childId = 56; // Integer | 
+        try {
+            MemoryProgressResponse result = apiInstance.apiMemoryProgressChildIdCompletePost(body, childId);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling MemoryApi#apiMemoryProgressChildIdCompletePost");
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                          </div>
+  <!--
+  <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdCompletePost-0-groovy">
+  <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
+  </div> -->
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdCompletePost-0-objc">
+                              <pre class="prettyprint"><code class="language-cpp">Configuration *apiConfig = [Configuration sharedConfig];
+CompleteMemoryGameRequest *body = ; // 
+Integer *childId = 56; // 
+
+MemoryApi *apiInstance = [[MemoryApi alloc] init];
+
+// ثبت یک برد موفق بازی حافظه در ابعاد گزارش‌شده
+[apiInstance apiMemoryProgressChildIdCompletePostWith:body
+    childId:childId
+              completionHandler: ^(MemoryProgressResponse output, NSError* error) {
+                            if (output) {
+                                NSLog(@"%@", output);
+                            }
+                            if (error) {
+                                NSLog(@"Error: %@", error);
+                            }
+                        }];
+</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdCompletePost-0-javascript">
+                              <pre class="prettyprint"><code class="language-js">var NovazhehSpeechTherapyApi = require('___novazheh_speech_therapy_api');
+var defaultClient = NovazhehSpeechTherapyApi.ApiClient.instance;
+
+
+var api = new NovazhehSpeechTherapyApi.MemoryApi()
+var body = ; // {{CompleteMemoryGameRequest}} 
+var childId = 56; // {{Integer}} 
+
+var callback = function(error, data, response) {
+  if (error) {
+    console.error(error);
+  } else {
+    console.log('API called successfully. Returned data: ' + data);
+  }
+};
+api.apiMemoryProgressChildIdCompletePost(bodychildId, callback);
+</code></pre>
+                            </div>
+
+                            <!--<div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdCompletePost-0-angular">
+              <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
+            </div>-->
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdCompletePost-0-csharp">
+                              <pre class="prettyprint"><code class="language-cs">using System;
+using System.Diagnostics;
+using IO.Swagger.Api;
+using IO.Swagger.Client;
+using IO.Swagger.Model;
+
+namespace Example
+{
+    public class apiMemoryProgressChildIdCompletePostExample
+    {
+        public void main()
+        {
+
+
+            var apiInstance = new MemoryApi();
+            var body = new CompleteMemoryGameRequest(); // CompleteMemoryGameRequest | 
+            var childId = 56;  // Integer | 
+
+            try
+            {
+                // ثبت یک برد موفق بازی حافظه در ابعاد گزارش‌شده
+                MemoryProgressResponse result = apiInstance.apiMemoryProgressChildIdCompletePost(body, childId);
+                Debug.WriteLine(result);
+            }
+            catch (Exception e)
+            {
+                Debug.Print("Exception when calling MemoryApi.apiMemoryProgressChildIdCompletePost: " + e.Message );
+            }
+        }
+    }
+}
+</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdCompletePost-0-php">
+                              <pre class="prettyprint"><code class="language-php"><&#63;php
+require_once(__DIR__ . '/vendor/autoload.php');
+
+
+$api_instance = new Swagger\Client\ApiMemoryApi();
+$body = ; // CompleteMemoryGameRequest | 
+$childId = 56; // Integer | 
+
+try {
+    $result = $api_instance->apiMemoryProgressChildIdCompletePost($body, $childId);
+    print_r($result);
+} catch (Exception $e) {
+    echo 'Exception when calling MemoryApi->apiMemoryProgressChildIdCompletePost: ', $e->getMessage(), PHP_EOL;
+}
+?></code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdCompletePost-0-perl">
+                              <pre class="prettyprint"><code class="language-perl">use Data::Dumper;
+use WWW::SwaggerClient::Configuration;
+use WWW::SwaggerClient::MemoryApi;
+
+
+my $api_instance = WWW::SwaggerClient::MemoryApi->new();
+my $body = WWW::SwaggerClient::Object::CompleteMemoryGameRequest->new(); # CompleteMemoryGameRequest | 
+my $childId = 56; # Integer | 
+
+eval { 
+    my $result = $api_instance->apiMemoryProgressChildIdCompletePost(body => $body, childId => $childId);
+    print Dumper($result);
+};
+if ($@) {
+    warn "Exception when calling MemoryApi->apiMemoryProgressChildIdCompletePost: $@\n";
+}</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdCompletePost-0-python">
+                              <pre class="prettyprint"><code class="language-python">from __future__ import print_statement
+import time
+import swagger_client
+from swagger_client.rest import ApiException
+from pprint import pprint
+
+
+# create an instance of the API class
+api_instance = swagger_client.MemoryApi()
+body =  # CompleteMemoryGameRequest | 
+childId = 56 # Integer | 
+
+try: 
+    # ثبت یک برد موفق بازی حافظه در ابعاد گزارش‌شده
+    api_response = api_instance.api_memory_progress_child_id_complete_post(body, childId)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling MemoryApi->apiMemoryProgressChildIdCompletePost: %s\n" % e)</code></pre>
+                            </div>
+                          </div>
+
+                          <h2>Parameters</h2>
+
+                            <div class="methodsubtabletitle">Path parameters</div>
+                            <table id="methodsubtable">
+                                <tr>
+                                  <th width="150px">Name</th>
+                                  <th>Description</th>
+                                </tr>
+                                  <tr><td style="width:150px;">childId*</td>
+                                  <td>
+                                  
+                                  
+                                      <div id="d2e199_apiMemoryProgressChildIdCompletePost_childId">
+                                          <div class="json-schema-view">
+                                              <div class="primitive">
+                                                  <span class="type">
+                                                      Integer
+                                                  </span>
+                                  
+                                              </div>
+                                                  <div class="inner required">
+                                                      Required
+                                                  </div>
+                                          </div>
+                                      </div>
+                                  </td>
+                                  </tr>
+                            </table>
+
+
+                            <div class="methodsubtabletitle">Body parameters</div>
+                            <table id="methodsubtable">
+                              <tr>
+                                <th width="150px">Name</th>
+                                <th>Description</th>
+                              </tr>
+                                <tr><td style="width:150px;">body <span style="color:red;">*</span></td>
+                                <td>
+                                
+                                
+                                <script>
+                                $(document).ready(function() {
+                                  var schemaWrapper = {
+  "content" : {
+    "application/json" : {
+      "schema" : {
+        "$ref" : "#/components/schemas/CompleteMemoryGameRequest"
+      }
+    }
+  },
+  "required" : true
+};
+                                  var schema = schemaWrapper.content["application/json"].schema;
+                                  if (schema.$ref != null) {
+                                    schema = defsParser.$refs.get(schema.$ref);
+                                  } else {
+                                    schemaWrapper.components = {};
+                                    schemaWrapper.components.schemas = Object.assign({}, defs);
+                                    $RefParser.dereference(schemaWrapper).catch(function(err) {
+                                      console.log(err);
+                                    });
+                                  }
+                                
+                                  var view = new JSONSchemaView(schema,2,{isBodyParam: true});
+                                  var result = $('#d2e199_apiMemoryProgressChildIdCompletePost_body');
+                                  result.empty();
+                                  result.append(view.render());
+                                });
+                                </script>
+                                <div id="d2e199_apiMemoryProgressChildIdCompletePost_body"></div>
+                                </td>
+                                </tr>
+                            </table>
+
+
+
+                          <h2>Responses</h2>
+                            <h3> Status: 200 - موفق - وضعیت جدید پیشرفت (بعد از ثبت) </h3>
+
+                            <ul class="nav nav-tabs nav-tabs-examples" >
+                                <li class="active">
+                                  <a data-toggle="tab" href="#responses-apiMemoryProgressChildIdCompletePost-200-schema">Schema</a>
+                                </li>
+
+                            </ul>
+
+                            <div class="tab-content" style='margin-bottom: 10px;'>
+                                <div class="tab-pane active" id="responses-apiMemoryProgressChildIdCompletePost-200-schema">
+                                  <div id='responses-apiMemoryProgressChildIdCompletePost-200-schema-200' style="padding: 30px; border-left: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee;">
+                                    <script>
+                                      $(document).ready(function() {
+                                        var schemaWrapper = {
+  "description" : "موفق - وضعیت جدید پیشرفت (بعد از ثبت)",
+  "content" : {
+    "application/json" : {
+      "schema" : {
+        "$ref" : "#/components/schemas/MemoryProgressResponse"
+      }
+    }
+  }
+};
+                                        var schema = schemaWrapper.content["application/json"].schema;
+                                        if (schema.$ref != null) {
+                                          schema = defsParser.$refs.get(schema.$ref);
+                                        } else {
+                                          schemaWrapper.components = {};
+                                          schemaWrapper.components.schemas = Object.assign({}, defs);
+                                          $RefParser.dereference(schemaWrapper).catch(function(err) {
+                                            console.log(err);
+                                          });
+                                        }
+
+                                        //console.log(JSON.stringify(schema));
+                                        var view = new JSONSchemaView(schema, 3);
+                                        $('#responses-apiMemoryProgressChildIdCompletePost-200-schema-data').val(stringify(schema));
+                                        var result = $('#responses-apiMemoryProgressChildIdCompletePost-200-schema-200');
+                                        result.empty();
+                                        result.append(view.render());
+                                      });
+                                    </script>
+                                  </div>
+                                  <input id='responses-apiMemoryProgressChildIdCompletePost-200-schema-data' type='hidden' value=''></input>
+                                </div>
+                            </div>
+
+                            <h3> Status: 400 - شاخص ابعاد نامعتبر یا ابعاد منقضی‌شده </h3>
+
+                            <ul class="nav nav-tabs nav-tabs-examples" >
+                            </ul>
+
+                            <div class="tab-content" style='margin-bottom: 10px;'>
+                            </div>
+
+                        </article>
+                      </div>
+                      <hr>
+                    <div id="api-Memory-apiMemoryProgressChildIdGet">
+                      <article id="api-Memory-apiMemoryProgressChildIdGet-0" data-group="User" data-name="apiMemoryProgressChildIdGet" data-version="0">
+                        <div class="pull-left">
+                          <h1>apiMemoryProgressChildIdGet</h1>
+                          <p>پیشرفت فعلی بازی حافظه فرزند</p>
+                        </div>
+                        <div class="pull-right"></div>
+                        <div class="clearfix"></div>
+                        <p></p>
+                        <p class="marked"></p>
+                        <p></p>
+                        <br />
+                        <pre class="prettyprint language-html prettyprinted" data-type="get"><code><span class="pln">/api/memory/progress/{childId}</span></code></pre>
+                        <p>
+                          <h3>Usage and SDK Samples</h3>
+                        </p>
+                        <ul class="nav nav-tabs nav-tabs-examples">
+                          <li class="active"><a href="#examples-Memory-apiMemoryProgressChildIdGet-0-curl">Curl</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdGet-0-java">Java</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdGet-0-android">Android</a></li>
+                          <!--<li class=""><a href="#examples-Memory-apiMemoryProgressChildIdGet-0-groovy">Groovy</a></li>-->
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdGet-0-objc">Obj-C</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdGet-0-javascript">JavaScript</a></li>
+                          <!--<li class=""><a href="#examples-Memory-apiMemoryProgressChildIdGet-0-angular">Angular</a></li>-->
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdGet-0-csharp">C#</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdGet-0-php">PHP</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdGet-0-perl">Perl</a></li>
+                          <li class=""><a href="#examples-Memory-apiMemoryProgressChildIdGet-0-python">Python</a></li>
+                        </ul>
+
+                        <div class="tab-content">
+                          <div class="tab-pane active" id="examples-Memory-apiMemoryProgressChildIdGet-0-curl">
+                           <pre class="prettyprint"><code class="language-bsh">curl -X GET\
+ -H "Authorization: Bearer [[accessToken]]"\
+-H "Accept: application/json"\
+"http://localhost:8080/api/memory/progress/{childId}"</code></pre>
+                          </div>
+                          <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdGet-0-java">
+                            <pre class="prettyprint"><code class="language-java">import io.swagger.client.*;
+import io.swagger.client.auth.*;
+import io.swagger.client.model.*;
+import io.swagger.client.api.MemoryApi;
+
+import java.io.File;
+import java.util.*;
+
+public class MemoryApiExample {
+
+    public static void main(String[] args) {
+        ApiClient defaultClient = Configuration.getDefaultApiClient();
+
+
+        MemoryApi apiInstance = new MemoryApi();
+        Integer childId = 56; // Integer | 
+        try {
+            MemoryProgressResponse result = apiInstance.apiMemoryProgressChildIdGet(childId);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling MemoryApi#apiMemoryProgressChildIdGet");
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                          </div>
+
+                          <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdGet-0-android">
+                            <pre class="prettyprint"><code class="language-java">import io.swagger.client.api.MemoryApi;
+
+public class MemoryApiExample {
+
+    public static void main(String[] args) {
+        MemoryApi apiInstance = new MemoryApi();
+        Integer childId = 56; // Integer | 
+        try {
+            MemoryProgressResponse result = apiInstance.apiMemoryProgressChildIdGet(childId);
+            System.out.println(result);
+        } catch (ApiException e) {
+            System.err.println("Exception when calling MemoryApi#apiMemoryProgressChildIdGet");
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                          </div>
+  <!--
+  <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdGet-0-groovy">
+  <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
+  </div> -->
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdGet-0-objc">
+                              <pre class="prettyprint"><code class="language-cpp">Configuration *apiConfig = [Configuration sharedConfig];
+Integer *childId = 56; // 
+
+MemoryApi *apiInstance = [[MemoryApi alloc] init];
+
+// پیشرفت فعلی بازی حافظه فرزند
+[apiInstance apiMemoryProgressChildIdGetWith:childId
+              completionHandler: ^(MemoryProgressResponse output, NSError* error) {
+                            if (output) {
+                                NSLog(@"%@", output);
+                            }
+                            if (error) {
+                                NSLog(@"Error: %@", error);
+                            }
+                        }];
+</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdGet-0-javascript">
+                              <pre class="prettyprint"><code class="language-js">var NovazhehSpeechTherapyApi = require('___novazheh_speech_therapy_api');
+var defaultClient = NovazhehSpeechTherapyApi.ApiClient.instance;
+
+
+var api = new NovazhehSpeechTherapyApi.MemoryApi()
+var childId = 56; // {{Integer}} 
+
+var callback = function(error, data, response) {
+  if (error) {
+    console.error(error);
+  } else {
+    console.log('API called successfully. Returned data: ' + data);
+  }
+};
+api.apiMemoryProgressChildIdGet(childId, callback);
+</code></pre>
+                            </div>
+
+                            <!--<div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdGet-0-angular">
+              <pre class="prettyprint language-json prettyprinted" data-type="json"><code>Coming Soon!</code></pre>
+            </div>-->
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdGet-0-csharp">
+                              <pre class="prettyprint"><code class="language-cs">using System;
+using System.Diagnostics;
+using IO.Swagger.Api;
+using IO.Swagger.Client;
+using IO.Swagger.Model;
+
+namespace Example
+{
+    public class apiMemoryProgressChildIdGetExample
+    {
+        public void main()
+        {
+
+
+            var apiInstance = new MemoryApi();
+            var childId = 56;  // Integer | 
+
+            try
+            {
+                // پیشرفت فعلی بازی حافظه فرزند
+                MemoryProgressResponse result = apiInstance.apiMemoryProgressChildIdGet(childId);
+                Debug.WriteLine(result);
+            }
+            catch (Exception e)
+            {
+                Debug.Print("Exception when calling MemoryApi.apiMemoryProgressChildIdGet: " + e.Message );
+            }
+        }
+    }
+}
+</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdGet-0-php">
+                              <pre class="prettyprint"><code class="language-php"><&#63;php
+require_once(__DIR__ . '/vendor/autoload.php');
+
+
+$api_instance = new Swagger\Client\ApiMemoryApi();
+$childId = 56; // Integer | 
+
+try {
+    $result = $api_instance->apiMemoryProgressChildIdGet($childId);
+    print_r($result);
+} catch (Exception $e) {
+    echo 'Exception when calling MemoryApi->apiMemoryProgressChildIdGet: ', $e->getMessage(), PHP_EOL;
+}
+?></code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdGet-0-perl">
+                              <pre class="prettyprint"><code class="language-perl">use Data::Dumper;
+use WWW::SwaggerClient::Configuration;
+use WWW::SwaggerClient::MemoryApi;
+
+
+my $api_instance = WWW::SwaggerClient::MemoryApi->new();
+my $childId = 56; # Integer | 
+
+eval { 
+    my $result = $api_instance->apiMemoryProgressChildIdGet(childId => $childId);
+    print Dumper($result);
+};
+if ($@) {
+    warn "Exception when calling MemoryApi->apiMemoryProgressChildIdGet: $@\n";
+}</code></pre>
+                            </div>
+
+                            <div class="tab-pane" id="examples-Memory-apiMemoryProgressChildIdGet-0-python">
+                              <pre class="prettyprint"><code class="language-python">from __future__ import print_statement
+import time
+import swagger_client
+from swagger_client.rest import ApiException
+from pprint import pprint
+
+
+# create an instance of the API class
+api_instance = swagger_client.MemoryApi()
+childId = 56 # Integer | 
+
+try: 
+    # پیشرفت فعلی بازی حافظه فرزند
+    api_response = api_instance.api_memory_progress_child_id_get(childId)
+    pprint(api_response)
+except ApiException as e:
+    print("Exception when calling MemoryApi->apiMemoryProgressChildIdGet: %s\n" % e)</code></pre>
+                            </div>
+                          </div>
+
+                          <h2>Parameters</h2>
+
+                            <div class="methodsubtabletitle">Path parameters</div>
+                            <table id="methodsubtable">
+                                <tr>
+                                  <th width="150px">Name</th>
+                                  <th>Description</th>
+                                </tr>
+                                  <tr><td style="width:150px;">childId*</td>
+                                  <td>
+                                  
+                                  
+                                      <div id="d2e199_apiMemoryProgressChildIdGet_childId">
+                                          <div class="json-schema-view">
+                                              <div class="primitive">
+                                                  <span class="type">
+                                                      Integer
+                                                  </span>
+                                  
+                                              </div>
+                                                  <div class="inner required">
+                                                      Required
+                                                  </div>
+                                          </div>
+                                      </div>
+                                  </td>
+                                  </tr>
+                            </table>
+
+
+
+
+
+                          <h2>Responses</h2>
+                            <h3> Status: 200 - موفق (اگر رکوردی نباشد، حالت پیش‌فرض 0/0) </h3>
+
+                            <ul class="nav nav-tabs nav-tabs-examples" >
+                                <li class="active">
+                                  <a data-toggle="tab" href="#responses-apiMemoryProgressChildIdGet-200-schema">Schema</a>
+                                </li>
+
+                            </ul>
+
+                            <div class="tab-content" style='margin-bottom: 10px;'>
+                                <div class="tab-pane active" id="responses-apiMemoryProgressChildIdGet-200-schema">
+                                  <div id='responses-apiMemoryProgressChildIdGet-200-schema-200' style="padding: 30px; border-left: 1px solid #eee; border-right: 1px solid #eee; border-bottom: 1px solid #eee;">
+                                    <script>
+                                      $(document).ready(function() {
+                                        var schemaWrapper = {
+  "description" : "موفق (اگر رکوردی نباشد، حالت پیش‌فرض 0/0)",
+  "content" : {
+    "application/json" : {
+      "schema" : {
+        "$ref" : "#/components/schemas/MemoryProgressResponse"
+      }
+    }
+  }
+};
+                                        var schema = schemaWrapper.content["application/json"].schema;
+                                        if (schema.$ref != null) {
+                                          schema = defsParser.$refs.get(schema.$ref);
+                                        } else {
+                                          schemaWrapper.components = {};
+                                          schemaWrapper.components.schemas = Object.assign({}, defs);
+                                          $RefParser.dereference(schemaWrapper).catch(function(err) {
+                                            console.log(err);
+                                          });
+                                        }
+
+                                        //console.log(JSON.stringify(schema));
+                                        var view = new JSONSchemaView(schema, 3);
+                                        $('#responses-apiMemoryProgressChildIdGet-200-schema-data').val(stringify(schema));
+                                        var result = $('#responses-apiMemoryProgressChildIdGet-200-schema-200');
+                                        result.empty();
+                                        result.append(view.render());
+                                      });
+                                    </script>
+                                  </div>
+                                  <input id='responses-apiMemoryProgressChildIdGet-200-schema-data' type='hidden' value=''></input>
+                                </div>
                             </div>
 
                         </article>

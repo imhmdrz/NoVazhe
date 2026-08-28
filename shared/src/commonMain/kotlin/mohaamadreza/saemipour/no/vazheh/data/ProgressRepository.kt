@@ -134,12 +134,12 @@ class ProgressRepository(
         val token = tokenStorage.getToken()
             ?: return Result.failure(Exception("No token found"))
 
-        try {
+        return try {
             val response: ApiResponse<MemoryProgressDTO> =
                 httpClient
                     .post("${ApiConfig.BASE_URL}${ApiConfig.MEMORY_PROGRESS}/$childId/complete") {
                         header(HttpHeaders.Authorization, "Bearer $token")
-                        contentType(ContentType.Application.Json)
+                        header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                         setBody(CompleteMemoryGameRequest(dimensionIndex))
                     }
                     .body()
@@ -192,7 +192,7 @@ class ProgressRepository(
                 httpClient
                     .post("${ApiConfig.BASE_URL}${ApiConfig.MEMORY_PROGRESS}/$childId/complete") {
                         header(HttpHeaders.Authorization, "Bearer $token")
-                        contentType(ContentType.Application.Json)
+                        header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                         setBody(CompleteMemoryGameRequest(dimensionIndex))
                     }
                     .body()

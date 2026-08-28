@@ -50,7 +50,16 @@ class MotherViewModel(
      */
     fun refresh() {
         val loggedIn = authRepository.isLoggedIn()
-        _uiState.update { it.copy(isLoggedIn = loggedIn) }
+        _uiState.update {
+            it.copy(
+                isLoggedIn = loggedIn,
+                settingsUnlocked = if (loggedIn) it.settingsUnlocked else false,
+                showSettingsPasswordPrompt = if (loggedIn) it.showSettingsPasswordPrompt else false,
+                isVerifyingSettingsPassword =
+                    if (loggedIn) it.isVerifyingSettingsPassword else false,
+                settingsPasswordError = if (loggedIn) it.settingsPasswordError else null
+            )
+        }
         loadUserInfo()
         loadCategories()
         if (loggedIn) {
@@ -80,7 +89,94 @@ class MotherViewModel(
     }
 
     fun onTabSelected(tab: MotherTab) {
-        _uiState.update { it.copy(selectedTab = tab) }
+        val currentState = _uiState.value
+
+        if (tab == MotherTab.PROFILE && currentState.isLoggedIn && !currentState.settingsUnlocked) {
+            requestSettingsAccess()
+            return
+        }
+
+        _uiState.update {
+            it.copy(
+                selectedTab = tab,
+                settingsUnlocked =
+                    if (it.selectedTab == MotherTab.PROFILE && tab != MotherTab.PROFILE) false
+                    else it.settingsUnlocked
+            )
+        }
+    }
+
+    fun requestSettingsAccess() {
+        if (!_uiState.value.isLoggedIn) return
+
+        _uiState.update {
+            it.copy(
+                showSettingsPasswordPrompt = true,
+                settingsPasswordError = null,
+                isVerifyingSettingsPassword = false
+            )
+        }
+    }
+
+    fun verifySettingsPassword(password: String) {
+        _uiState.update {
+            it.copy(
+                isVerifyingSettingsPassword = true,
+                settingsPasswordError = null
+            )
+        }
+
+        viewModelScope.launch {
+            authRepository.verifyPassword(password).fold(
+                onSuccess = { verified ->
+                    if (verified) {
+                        _uiState.update {
+                            it.copy(
+                                settingsUnlocked = true,
+                                showSettingsPasswordPrompt = false,
+                                isVerifyingSettingsPassword = false,
+                                settingsPasswordError = null,
+                                selectedTab = MotherTab.PROFILE
+                            )
+                        }
+                    } else {
+                        _uiState.update {
+                            it.copy(
+                                settingsUnlocked = false,
+                                showSettingsPasswordPrompt = true,
+                                isVerifyingSettingsPassword = false,
+                                settingsPasswordError = "رمز عبور اشتباه است"
+                            )
+                        }
+                    }
+                },
+                onFailure = { exception ->
+                    AppLogger.d(
+                        "MotherViewModel",
+                        "Error verifying settings password: ${exception.message}"
+                    )
+                    _uiState.update {
+                        it.copy(
+                            settingsUnlocked = false,
+                            showSettingsPasswordPrompt = true,
+                            isVerifyingSettingsPassword = false,
+                            settingsPasswordError =
+                                "خطا در اتصال: ${exception.message ?: "خطای نامشخص"}"
+                        )
+                    }
+                }
+            )
+        }
+    }
+
+    fun dismissSettingsPasswordPrompt() {
+        _uiState.update {
+            it.copy(
+                showSettingsPasswordPrompt = false,
+                settingsPasswordError = null,
+                isVerifyingSettingsPassword = false
+            )
+        }
     }
 
     fun logout() {
@@ -92,6 +188,10 @@ class MotherViewModel(
                 selectedTab = MotherTab.DASHBOARD,
                 username = "",
                 displayName = "",
+                settingsUnlocked = false,
+                showSettingsPasswordPrompt = false,
+                isVerifyingSettingsPassword = false,
+                settingsPasswordError = null,
                 childrenState = ChildrenState.Idle,
                 customWordsState = CustomWordsState.Idle,
                 selectedChild = null

@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import mohaamadreza.saemipour.no.vazheh.data.TokenStorage
+import mohaamadreza.saemipour.no.vazheh.pinning.rememberAppPinState
 import mohaamadreza.saemipour.no.vazheh.pinning.rememberAppPinner
 import org.koin.compose.koinInject
 
@@ -45,7 +46,8 @@ fun AppPinToggle(
     val scope = rememberCoroutineScope()
     val tokenStorage = koinInject<TokenStorage>()
 
-    var isPinned by remember { mutableStateOf(pinner.isPinned()) }
+    // Kept in sync with the real OS pin state — see rememberAppPinState.
+    var isPinned by rememberAppPinState(pinner)
     var showPinDialog by remember { mutableStateOf(false) }
     var pinDialogMode by remember { mutableStateOf<PinCodeMode>(PinCodeMode.Create) }
     // True when the create flow should be followed by an actual pin (i.e. the user

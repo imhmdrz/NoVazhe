@@ -14,6 +14,10 @@ data class MotherUiState(
     // can use the dashboard/games but must log in to reach Profile/settings.
     val isLoggedIn: Boolean = false,
     val selectedTab: MotherTab = MotherTab.DASHBOARD,
+    val settingsUnlocked: Boolean = false,
+    val showSettingsPasswordPrompt: Boolean = false,
+    val isVerifyingSettingsPassword: Boolean = false,
+    val settingsPasswordError: String? = null,
     
     // Children states using sealed classes
     val childrenState: ChildrenState = ChildrenState.Idle,

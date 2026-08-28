@@ -94,6 +94,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/ParentResponse'
 
+  /api/auth/verify-password:
+    post:
+      tags: [Auth]
+      summary: تأیید رمز عبور حساب
+      description: |
+        تأیید رمز عبور حساب مادرِ واردشده — برای ورود به بخش‌های حساس مانند تنظیمات.
+        حساب از روی JWT شناسایی می‌شود؛ فقط رمز عبور در بدنه ارسال می‌شود.
+        رمز اشتباه پاسخ 200 با success=false و data=false برمی‌گرداند.
+        401 فقط برای JWT نامعتبر/منقضی/غایب است.
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyPasswordRequest'
+      responses:
+        '200':
+          description: نتیجه تأیید — رمز درست success=true/data=true، رمز اشتباه success=false/data=false
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyPasswordResponse'
+        '401':
+          description: توکن JWT نامعتبر یا منقضی
+
   # ==================== Children ====================
   /api/children:
     get:
@@ -495,6 +522,24 @@ components:
           example: maryam123
         password:
           type: string
+
+    VerifyPasswordRequest:
+      type: object
+      required: [password]
+      properties:
+        password:
+          type: string
+
+    VerifyPasswordResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: boolean
+          description: true فقط وقتی رمز عبور درست است
 
     AuthResponse:
       type: object

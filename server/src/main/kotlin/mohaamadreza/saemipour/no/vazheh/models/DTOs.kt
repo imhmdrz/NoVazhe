@@ -9,6 +9,13 @@ data class RegisterRequest(val username: String, val password: String, val displ
 
 @Serializable data class LoginRequest(val username: String, val password: String)
 
+/**
+ * Verify the account password of the already authenticated parent - تأیید رمز عبور حساب
+ * Used to gate sensitive areas (e.g. entering Settings) without a full re-login.
+ * The parent is identified by the JWT, so only the password travels in the body.
+ */
+@Serializable data class VerifyPasswordRequest(val password: String)
+
 @Serializable
 data class AuthResponse(
         val success: Boolean,

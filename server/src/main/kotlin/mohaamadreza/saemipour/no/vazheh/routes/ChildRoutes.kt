@@ -60,7 +60,7 @@ fun Route.childRoutes() {
             /**
              * POST /api/children
              * Create a new child (max 2)
-             * ایجاد فرزند جدید (حداکثر ۲ فرزند)
+             * ایجاد فرزند جدید
              */
             post {
                 try {
@@ -133,7 +133,6 @@ fun Route.childRoutes() {
         }
     }
 }
-
 
 
 

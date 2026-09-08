@@ -30,6 +30,7 @@ import mohaamadreza.saemipour.no.vazheh.database.DatabaseConfig
 import mohaamadreza.saemipour.no.vazheh.models.MessageResponse
 import mohaamadreza.saemipour.no.vazheh.routes.authRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.childRoutes
+import mohaamadreza.saemipour.no.vazheh.routes.colorSortingRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.contentRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.memoryRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.progressRoutes
@@ -145,10 +146,12 @@ fun Application.configureStatusPages() {
         }
         
         status(HttpStatusCode.Unauthorized) { call, _ ->
-            call.respond(
-                HttpStatusCode.Unauthorized,
-                MessageResponse(false, "احراز هویت الزامی است")
-            )
+            if (call.request.path() != "/api/auth/login") {
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    MessageResponse(false, "احراز هویت الزامی است")
+                )
+            }
         }
     }
 }
@@ -199,5 +202,6 @@ fun Application.configureRouting() {
         quizRoutes()        // /api/quiz/*
         progressRoutes()    // /api/progress/*
         memoryRoutes()      // /api/memory/*
+        colorSortingRoutes() // /api/color-sorting/*
     }
 }

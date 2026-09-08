@@ -25,7 +25,6 @@ fun ChildrenListContent(
     onChildClick: (ChildDTO) -> Unit,
     onAddChildClick: () -> Unit,
     onAddWordClick: () -> Unit,
-    canAddChild: Boolean,
     customWordsState: CustomWordsState,
     onRetry: () -> Unit,
     currentPlayingAudioUrl: String? = null,
@@ -51,14 +50,12 @@ fun ChildrenListContent(
                     color = DarkText
                 )
 
-                if (canAddChild) {
-                    Text(
-                        "+  افزودن فرزند",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = TealPurple,
-                        modifier = Modifier.clickable(onClick = onAddChildClick)
-                    )
-                }
+                Text(
+                    "+  افزودن فرزند",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = TealPurple,
+                    modifier = Modifier.clickable(onClick = onAddChildClick)
+                )
             }
         }
 
@@ -66,7 +63,7 @@ fun ChildrenListContent(
         if (children.isEmpty()) {
             item {
                 EmptyChildrenContent(
-                    onAddChildClick = onAddChildClick, canAddChild = canAddChild
+                    onAddChildClick = onAddChildClick
                 )
             }
 

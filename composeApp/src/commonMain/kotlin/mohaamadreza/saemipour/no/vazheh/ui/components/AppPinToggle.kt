@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,107 +19,82 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import mohaamadreza.saemipour.no.vazheh.data.TokenStorage
+import mohaamadreza.saemipour.no.vazheh.data.AuthRepository
 import mohaamadreza.saemipour.no.vazheh.pinning.rememberAppPinState
 import mohaamadreza.saemipour.no.vazheh.pinning.rememberAppPinner
 import org.koin.compose.koinInject
 
-/**
- * Small floating padlock that locks / unlocks Kids Mode app pinning from anywhere
- * in the app. Shows 🔒 while the app is pinned and 🔓 while it isn't; tapping toggles.
- *
- * Unlocking always requires the parent's 4-digit PIN (otherwise a child could just
- * tap to exit). Locking is free, but when no PIN exists yet we run the create flow
- * first so there is always a PIN available to unlock with later.
- *
- * @param refreshKey re-reads the real OS pin state whenever this value changes
- *   (pass the current route) so the icon stays in sync after pinning/unpinning
- *   from elsewhere (e.g. the KidsModeGuideDialog or a system gesture).
- */
 @Composable
-fun AppPinToggle(
-    modifier: Modifier = Modifier,
-    refreshKey: Any? = null,
-) {
+fun AppPinToggle(modifier: Modifier = Modifier) {
     val pinner = rememberAppPinner()
+    val authRepository = koinInject<AuthRepository>()
     val scope = rememberCoroutineScope()
-    val tokenStorage = koinInject<TokenStorage>()
-
-    // Kept in sync with the real OS pin state — see rememberAppPinState.
     var isPinned by rememberAppPinState(pinner)
-    var showPinDialog by remember { mutableStateOf(false) }
-    var pinDialogMode by remember { mutableStateOf<PinCodeMode>(PinCodeMode.Create) }
-    // True when the create flow should be followed by an actual pin (i.e. the user
-    // tapped "lock" but had no PIN yet); false when we're just verifying to unlock.
-    var pinAfterCreate by remember { mutableStateOf(false) }
-
-    // Keep the icon in sync with the real OS state across navigations.
-    LaunchedEffect(refreshKey) { isPinned = pinner.isPinned() }
-
-    fun pin() {
-        scope.launch {
-            pinner.pinAndAwait()
-            isPinned = pinner.isPinned()
-        }
-    }
-
-    fun unpin() {
-        pinner.unpin()
-        isPinned = pinner.isPinned()
-    }
-
-    fun onToggle() {
-        val existingPin = tokenStorage.getKidsPin()
-        if (isPinned) {
-            // Unlock — must verify the parent's PIN first.
-            if (existingPin == null) {
-                unpin()
-            } else {
-                pinDialogMode = PinCodeMode.Verify(existingPin)
-                pinAfterCreate = false
-                showPinDialog = true
-            }
-        } else {
-            // Lock — free, but make sure a PIN exists so it can be unlocked later.
-            if (existingPin == null) {
-                pinDialogMode = PinCodeMode.Create
-                pinAfterCreate = true
-                showPinDialog = true
-            } else {
-                pin()
-            }
-        }
-    }
+    var showUnlockPrompt by remember { mutableStateOf(false) }
+    var isVerifyingPassword by remember { mutableStateOf(false) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
 
     Box(
         modifier = modifier
             .size(40.dp)
-            .background(Color.White.copy(alpha = 0.90f), CircleShape)
+            .background(Color.White.copy(alpha = 0.9f), CircleShape)
             .border(1.dp, Color.Black, CircleShape)
-            .clickable { onToggle() },
-        contentAlignment = Alignment.Center,
+            .clickable(enabled = !isVerifyingPassword) {
+                if (isPinned) {
+                    passwordError = null
+                    showUnlockPrompt = true
+                } else if (!isPinned) {
+                    scope.launch {
+                        pinner.pinAndAwait()
+                        isPinned = pinner.isPinned()
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center
     ) {
         Text(
             text = if (isPinned) "🔒" else "🔓",
-            fontSize = 20.sp,
+            fontSize = 20.sp
         )
     }
 
-    if (showPinDialog) {
-        PinCodeDialog(
-            mode = pinDialogMode,
-            onDismiss = { showPinDialog = false },
-            onSuccess = { enteredPin ->
-                showPinDialog = false
-                when (pinDialogMode) {
-                    PinCodeMode.Create -> {
-                        tokenStorage.saveKidsPin(enteredPin)
-                        if (pinAfterCreate) pin()
-                    }
-                    is PinCodeMode.Verify -> unpin()
-                    is PinCodeMode.Change -> Unit
+    if (showUnlockPrompt) {
+        PasswordPromptDialog(
+            isLoading = isVerifyingPassword,
+            errorMessage = passwordError,
+            title = "باز کردن قفل",
+            description = "برای باز کردن قفل، رمز عبور حساب خود را وارد کنید.",
+            onDismiss = {
+                if (!isVerifyingPassword) {
+                    showUnlockPrompt = false
+                    passwordError = null
                 }
             },
+            onConfirm = { password ->
+                if (!isVerifyingPassword) {
+                    isVerifyingPassword = true
+                    passwordError = null
+                    scope.launch {
+                        authRepository.verifyPassword(password).fold(
+                            onSuccess = { verified ->
+                                if (verified) {
+                                    showUnlockPrompt = false
+                                    isVerifyingPassword = false
+                                    pinner.unpin()
+                                    isPinned = pinner.isPinned()
+                                } else {
+                                    isVerifyingPassword = false
+                                    passwordError = "رمز عبور اشتباه است"
+                                }
+                            },
+                            onFailure = { exception ->
+                                isVerifyingPassword = false
+                                passwordError = "خطا در اتصال: ${exception.message ?: "خطای نامشخص"}"
+                            }
+                        )
+                    }
+                }
+            }
         )
     }
 }

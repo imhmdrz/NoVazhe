@@ -40,7 +40,9 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,11 +63,13 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.GameSounds
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
+import mohaamadreza.saemipour.no.vazheh.ui.components.LevelUpCelebration
 import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
 import mohaamadreza.saemipour.no.vazheh.ui.components.backToDashboard
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
@@ -78,6 +82,23 @@ import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 /** Sentinel categoryId indicating a combined (cross-category) memory game */
 const val COMBINED_CATEGORY_ID: Int = -1
 
+/** فاصله‌ی بین جینگل «درست» و پخش صدای کلمه */
+private const val MEMORY_SOUND_DELAY_MS = 700L
+
+/** حداکثر انتظار برای شروع پخش صدای کلمه‌ی نهایی */
+private const val WAIT_FOR_SOUND_START_MS = 2_000L
+
+/** حداکثر انتظار برای پایان صدای کلمه‌ی نهایی */
+private const val WAIT_FOR_SOUND_END_MS = 8_000L
+
+private const val LEVEL_UP_NORMAL_CELEBRATION_MS = 2_250L
+
+private enum class MemoryCelebrationStage {
+    None,
+    Normal,
+    LevelUp,
+}
+
 @Composable
 fun MemoryGameScreen(
     navController: NavController,
@@ -85,21 +106,28 @@ fun MemoryGameScreen(
     childViewModel: ChildViewModel,
     categoryId: Int
 ) {
+    var isPlaying by remember { mutableStateOf(false) }
+
     val audioUpdates = remember {
         object : AudioUpdates {
-            override fun onProgressUpdate(state: PlayerState) {}
+            override fun onProgressUpdate(state: PlayerState) {
+                isPlaying = state.isPlaying
+            }
             override fun onReady() {}
-            override fun onError(exception: Exception) {}
+            override fun onError(exception: Exception) {
+                isPlaying = false
+            }
         }
     }
 
     val childUiState by childViewModel.uiState.collectAsState()
+    val selectedChildId = childUiState.selectedChild?.id
 
-    LaunchedEffect(categoryId) {
+    LaunchedEffect(categoryId, selectedChildId) {
         if (categoryId == COMBINED_CATEGORY_ID) {
-            viewModel.loadCombinedWords(childUiState.selectedChild?.id)
+            viewModel.loadCombinedWords(selectedChildId)
         } else {
-            viewModel.loadWords(categoryId, childUiState.selectedChild?.id)
+            viewModel.loadWords(categoryId, selectedChildId)
         }
     }
 
@@ -116,7 +144,7 @@ fun MemoryGameScreen(
                 audioPlayer.play(GameSounds.correct)
                 word.audioUrl?.let { url ->
                     if (url.isNotEmpty()) {
-                        delay(700)
+                        delay(MEMORY_SOUND_DELAY_MS)
                         audioPlayer.play(url)
                     }
                 }
@@ -124,12 +152,29 @@ fun MemoryGameScreen(
             }
         }
 
-        // صدای برد در پایان بازی
+        // تشویق پایان بازی: مثل بازی رنگ، اول اجازه می‌دهیم زنجیره‌ی «درست → صدای کلمه»
+        // واقعاً اجرا و تمام شود، بعد صدای برد و خود جشن را نشان می‌دهیم.
+        var showWin by remember { mutableStateOf(false) }
+        var celebrationStage by remember { mutableStateOf(MemoryCelebrationStage.None) }
         LaunchedEffect(viewModel.isWin) {
-            if (viewModel.isWin) audioPlayer.play(GameSounds.win)
+            if (!viewModel.isWin) {
+                showWin = false
+                celebrationStage = MemoryCelebrationStage.None
+                return@LaunchedEffect
+            }
+            delay(MEMORY_SOUND_DELAY_MS + 200)
+            withTimeoutOrNull(WAIT_FOR_SOUND_START_MS) { while (!isPlaying) delay(50) }
+            withTimeoutOrNull(WAIT_FOR_SOUND_END_MS) { while (isPlaying) delay(50) }
+            delay(400)
+            audioPlayer.play(GameSounds.win)
+            celebrationStage = MemoryCelebrationStage.Normal
+            showWin = true
         }
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+            val celebrationActive =
+                viewModel.isWin || showWin || celebrationStage != MemoryCelebrationStage.None
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -161,12 +206,12 @@ fun MemoryGameScreen(
                             onBack = { navController.backToDashboard() }
                         )
                     }
-                    viewModel.cards.isNotEmpty() -> {
+                    !celebrationActive && viewModel.cards.isNotEmpty() -> {
                         MemoryGameContent(
                             cards = viewModel.cards,
                             moves = viewModel.moves,
-                            matchedPairs = viewModel.matchedPairs,
-                            totalPairs = viewModel.totalPairs,
+                            showProgressStars = childUiState.selectedChild != null,
+                            earnedStars = viewModel.celebrationStarsOverride ?: viewModel.successfulGames,
                             timeRemainingSeconds = viewModel.timeRemainingSeconds,
                             gridColumns = MEMORY_DIMENSION_LADDER[viewModel.dimensionIndex].columns,
                             onCardClick = { viewModel.onCardClick(it) },
@@ -176,9 +221,31 @@ fun MemoryGameScreen(
                     }
                 }
 
-                if (viewModel.isWin) {
-                    // فقط انیمیشن برد؛ لمس صفحه = شروع دوباره بازی
-                    WinCelebration(onTap = { viewModel.resetGame() })
+                if (showWin) {
+                    when (celebrationStage) {
+                        MemoryCelebrationStage.Normal -> {
+                            WinCelebration(
+                                timeoutMillis = if (viewModel.isLevelUpWin) {
+                                    LEVEL_UP_NORMAL_CELEBRATION_MS
+                                } else {
+                                    8_000L
+                                },
+                                onTap = {
+                                    if (viewModel.isLevelUpWin) {
+                                        celebrationStage = MemoryCelebrationStage.LevelUp
+                                    } else {
+                                        viewModel.resetGame()
+                                    }
+                                }
+                            )
+                        }
+                        MemoryCelebrationStage.LevelUp -> {
+                            LevelUpCelebration(
+                                onTap = { viewModel.resetGame() }
+                            )
+                        }
+                        MemoryCelebrationStage.None -> Unit
+                    }
                 }
             }
         }
@@ -293,8 +360,8 @@ private fun TimeoutContent(
 private fun MemoryGameContent(
     cards: List<MemoryCard>,
     moves: Int,
-    matchedPairs: Int,
-    totalPairs: Int,
+    showProgressStars: Boolean,
+    earnedStars: Int,
     timeRemainingSeconds: Int,
     gridColumns: Int,
     onCardClick: (MemoryCard) -> Unit,
@@ -338,13 +405,10 @@ private fun MemoryGameContent(
 
         Spacer(Modifier.height(16.dp))
 
-        // ستاره طلایی برای هر جفت صحیح
-        StarsRow(
-            matchedPairs = matchedPairs,
-            totalPairs = totalPairs
-        )
-
-        Spacer(Modifier.height(16.dp))
+        if (showProgressStars) {
+            StarsRow(earnedStars = earnedStars)
+            Spacer(Modifier.height(16.dp))
+        }
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(gridColumns),
@@ -385,10 +449,10 @@ private fun MemoryGameContent(
 
 @Composable
 private fun StarsRow(
-    matchedPairs: Int,
-    totalPairs: Int
+    earnedStars: Int
 ) {
     val goldColor = Color(0xFFFFC107)
+    val displayedStars = earnedStars.coerceIn(0, 3)
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
@@ -413,8 +477,8 @@ private fun StarsRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
             ) {
-                repeat(totalPairs) { index ->
-                    val isEarned = index < matchedPairs
+                repeat(3) { index ->
+                    val isEarned = index < displayedStars
                     val starScale by animateFloatAsState(
                         targetValue = if (isEarned) 1f else 0.75f,
                         animationSpec = tween(durationMillis = 350),
@@ -498,15 +562,7 @@ private fun MemoryCardItem(
                                 .weight(1f)
                                 .clip(RoundedCornerShape(8.dp))
                         )
-                        Spacer(Modifier.height(4.dp))
                     }
-                    Text(
-                        text = card.word.wordFa,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        maxLines = 1
-                    )
                 }
             } else {
                 Box(
@@ -526,4 +582,3 @@ private fun MemoryCardItem(
         }
     }
 }
-

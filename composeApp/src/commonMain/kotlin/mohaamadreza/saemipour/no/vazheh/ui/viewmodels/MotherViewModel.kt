@@ -252,13 +252,6 @@ class MotherViewModel(
             }
             return
         }
-        if (!_uiState.value.canAddChild) {
-            _uiState.update { 
-                it.copy(createChildState = CreateChildState.Error("حداکثر ۲ فرزند می‌توانید اضافه کنید")) 
-            }
-            return
-        }
-
         AppLogger.d("mhmdrz", "Creating child...")
         _uiState.update { it.copy(createChildState = CreateChildState.Loading) }
 

@@ -232,6 +232,15 @@ data class MemoryProgressDTO(
 @Serializable
 data class CompleteMemoryGameRequest(val dimensionIndex: Int)
 
+@Serializable
+data class ColorSortingProgressDTO(
+        val levelIndex: Int,
+        val successfulGames: Int
+)
+
+@Serializable
+data class CompleteColorSortingGameRequest(val levelIndex: Int)
+
 // ==================== Generic Response DTOs ====================
 
 @Serializable

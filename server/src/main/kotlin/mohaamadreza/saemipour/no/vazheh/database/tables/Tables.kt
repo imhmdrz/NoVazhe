@@ -15,7 +15,7 @@ object Parents : IntIdTable("parents") {
     val updatedAt = datetime("updated_at").default(LocalDateTime.now())
 }
 
-/** Children table - فرزندان (بدون لاگین) مادر فرزند را اضافه می‌کند حداکثر ۲ فرزند برای هر مادر */
+/** Children table - فرزندان حساب والد */
 object Children : IntIdTable("children") {
     val parentId = reference("parent_id", Parents, onDelete = ReferenceOption.CASCADE)
     val name = varchar("name", 100) // اسم فرزند
@@ -107,5 +107,20 @@ object MemoryProgress : IntIdTable("memory_progress") {
 
     init {
         uniqueIndex(childId) // یک رکورد برای هر فرزند
+    }
+}
+
+/**
+ * Color Sorting Progress table - پیشرفت بازی رنگ‌ها به‌ازای هر فرزند؛ یک رکورد برای کل بازی
+ * level_index تعداد رنگ‌های فعال را تعیین می‌کند (۰=۳ رنگ، ۱=۴ رنگ، ۲=۵ رنگ)
+ */
+object ColorSortingProgress : IntIdTable("color_sorting_progress") {
+    val childId = reference("child_id", Children, onDelete = ReferenceOption.CASCADE)
+    val levelIndex = integer("level_index").default(0)
+    val successfulGames = integer("successful_games").default(0)
+    val updatedAt = datetime("updated_at").default(LocalDateTime.now())
+
+    init {
+        uniqueIndex(childId)
     }
 }

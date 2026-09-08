@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.launch
-import mohaamadreza.saemipour.no.vazheh.data.TokenStorage
 import mohaamadreza.saemipour.no.vazheh.pinning.AppPinningResult
 import mohaamadreza.saemipour.no.vazheh.pinning.rememberAppPinState
 import mohaamadreza.saemipour.no.vazheh.pinning.rememberAppPinner
@@ -53,7 +52,6 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SoftGray
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
-import org.koin.compose.koinInject
 
 /**
  * Dialog showing parents how to enable screen lock for kids mode
@@ -157,10 +155,8 @@ fun KidsModeGuideDialog(
  * the most recent action. On iOS both buttons are hidden because there's no
  * public Guided Access API — the user gets a one-time informational banner.
  *
- * Both pin and unpin actions are gated behind a 4-digit PIN. If no PIN is set
- * yet, the first time the parent taps either button we walk them through
- * creating one. A "🔑 تغییر رمز" link is also exposed so the parent can rotate
- * the PIN later.
+ * The parent reaches this dialog only after passing the Settings/Profile
+ * account-password gate, so pin and unpin actions execute directly here.
  */
 @Composable
 private fun PinActionsSection(
@@ -169,7 +165,6 @@ private fun PinActionsSection(
 ) {
     val pinner = rememberAppPinner()
     val scope = rememberCoroutineScope()
-    val tokenStorage = koinInject<TokenStorage>()
     var status by remember { mutableStateOf<PinActionStatus?>(null) }
 
     // Drives the single toggle button: "unlock" when the app is pinned, "lock" otherwise.
@@ -177,56 +172,24 @@ private fun PinActionsSection(
     // Recents pin, OS unpin gesture, consent confirmed after pinAndAwait timed out).
     var isPinned by rememberAppPinState(pinner)
 
-    // Re-read on each composition pass so the "تغییر رمز" label flips after
-    // the user sets a PIN for the first time.
-    var hasPin by remember { mutableStateOf(tokenStorage.hasKidsPin()) }
-
-    // Which action the user wanted to perform; we only trigger it after the
-    // PIN has been verified (or set, for first-time users).
-    var pendingAction by remember { mutableStateOf<PendingPinAction?>(null) }
-    var showPinDialog by remember { mutableStateOf(false) }
-    var pinDialogMode by remember { mutableStateOf<PinCodeMode>(PinCodeMode.Create) }
-
-    fun executePending(action: PendingPinAction) {
-        when (action) {
-            PendingPinAction.Pin ->
-                // startLockTask() doesn't block and there's no "user tapped OK" callback, so
-                // wait for the OS to actually report the pinned state before showing success.
-                scope.launch {
-                    val result = pinner.pinAndAwait()
-                    status = PinActionStatus.fromPin(result)
-                    isPinned = pinner.isPinned()
-                    // Pinning didn't engage (disabled in Settings, consent cancelled, OEM
-                    // quirk) — reveal the step-by-step guide so the parent can enable it.
-                    if (result == AppPinningResult.NotAvailable || result == AppPinningResult.Failed) {
-                        onPinFailed()
-                    }
-                }
-            PendingPinAction.Unpin -> {
-                status = if (pinner.unpin()) PinActionStatus.Unpinned else PinActionStatus.UnpinFailed
-                isPinned = pinner.isPinned()
+    fun pin() {
+        // startLockTask() doesn't block and there's no "user tapped OK" callback, so
+        // wait for the OS to actually report the pinned state before showing success.
+        scope.launch {
+            val result = pinner.pinAndAwait()
+            status = PinActionStatus.fromPin(result)
+            isPinned = pinner.isPinned()
+            // Pinning didn't engage (disabled in Settings, consent cancelled, OEM
+            // quirk) — reveal the step-by-step guide so the parent can enable it.
+            if (result == AppPinningResult.NotAvailable || result == AppPinningResult.Failed) {
+                onPinFailed()
             }
-            PendingPinAction.SetPin, PendingPinAction.ChangePin -> Unit
         }
     }
 
-    /**
-     * Entry point for the pin / unpin / change-pin buttons. Decides whether
-     * the user should be sent through a Create flow (no PIN yet), a Verify
-     * flow (existing PIN), or a Change flow (rotating the PIN).
-     */
-    fun requestAction(action: PendingPinAction) {
-        pendingAction = action
-        val existing = tokenStorage.getKidsPin()
-        pinDialogMode = when {
-            action == PendingPinAction.ChangePin && existing != null ->
-                PinCodeMode.Change(existing)
-            action == PendingPinAction.ChangePin && existing == null ->
-                PinCodeMode.Create
-            existing == null -> PinCodeMode.Create
-            else -> PinCodeMode.Verify(existing)
-        }
-        showPinDialog = true
+    fun unpin() {
+        status = if (pinner.unpin()) PinActionStatus.Unpinned else PinActionStatus.UnpinFailed
+        isPinned = pinner.isPinned()
     }
 
     // On iOS surface the "not supported" hint up-front so the mother knows the
@@ -245,7 +208,7 @@ private fun PinActionsSection(
             // Single toggle: shows "unlock" while pinned, "lock" otherwise.
             Button(
                 onClick = {
-                    requestAction(if (isPinned) PendingPinAction.Unpin else PendingPinAction.Pin)
+                    if (isPinned) unpin() else pin()
                 },
                 modifier = Modifier
                     .fillMaxWidth().padding(horizontal = 20.dp),
@@ -259,60 +222,24 @@ private fun PinActionsSection(
                     ButtonDefaults.buttonColors(containerColor = TealPurple)
                 },
                 border = if (isPinned) BorderStroke(width = 1.5.dp, color = TealPurple) else null
-            ) {
-                Text(
-                    text = if (isPinned) "🔓 خروج از قفل" else "📌 قفل کن",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isPinned) TealPurple else Color.White
-                )
-            }
-
-            Button(
-                onClick = {
-                    requestAction(
-                        if (hasPin) PendingPinAction.ChangePin
-                        else PendingPinAction.SetPin
+                ) {
+                    Text(
+                        text = if (isPinned) "🔓 خروج از قفل" else "📌 قفل کن",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isPinned) TealPurple else Color.White
                     )
-                },
-                modifier = Modifier
-                    .fillMaxWidth().padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = if (isPinned) {
-                    ButtonDefaults.buttonColors(
-                        containerColor = Color.White,
-                        contentColor = TealPurple
-                    )
-                } else {
-                    ButtonDefaults.buttonColors(containerColor = TealPurple)
-                },
-                border = if (isPinned) BorderStroke(width = 1.5.dp, color = TealPurple) else null
-            ) {
-                Text(
-                    text = if (hasPin) "🔑 تغییر رمز" else "🔑 تعیین رمز ۴ رقمی",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    color = if (isPinned) TealPurple else Color.White
-                )
-            }
+                }
         }
 
         // Status banner reflecting the most recent action
         when (status) {
             PinActionStatus.Pinned -> StatusBanner(
-                text = "✅ برنامه پین شد! برای خروج روی «خروج از پین» بزنید و رمز را وارد کنید.",
+                text = "✅ برنامه پین شد! برای خروج روی «خروج از قفل» بزنید.",
                 color = MintGreen
             )
             PinActionStatus.Unpinned -> StatusBanner(
                 text = "🔓 پین برنامه برداشته شد.",
-                color = MintGreen
-            )
-            PinActionStatus.PinSet -> StatusBanner(
-                text = "🔑 رمز ۴ رقمی با موفقیت تنظیم شد.",
-                color = MintGreen
-            )
-            PinActionStatus.PinChanged -> StatusBanner(
-                text = "🔑 رمز با موفقیت تغییر کرد.",
                 color = MintGreen
             )
             PinActionStatus.NotAvailable -> StatusBanner(
@@ -334,62 +261,15 @@ private fun PinActionsSection(
             null -> Unit
         }
     }
-
-    if (showPinDialog) {
-        PinCodeDialog(
-            mode = pinDialogMode,
-            onDismiss = {
-                showPinDialog = false
-                pendingAction = null
-            },
-            onSuccess = { enteredPin ->
-                showPinDialog = false
-                val action = pendingAction
-                pendingAction = null
-
-                when (pinDialogMode) {
-                    is PinCodeMode.Verify -> {
-                        // Existing PIN matched — run the pending action.
-                        action?.let { executePending(it) }
-                    }
-                    PinCodeMode.Create -> {
-                        // First-time setup. Persist the new PIN, then either run
-                        // the action the user was trying to perform, or just
-                        // confirm that the PIN was saved.
-                        tokenStorage.saveKidsPin(enteredPin)
-                        hasPin = true
-                        when (action) {
-                            PendingPinAction.Pin, PendingPinAction.Unpin ->
-                                executePending(action)
-                            PendingPinAction.SetPin, PendingPinAction.ChangePin, null ->
-                                status = PinActionStatus.PinSet
-                        }
-                    }
-                    is PinCodeMode.Change -> {
-                        // The dialog verified the old PIN itself, then walked
-                        // the user through choosing a new one; here it hands
-                        // back the new PIN.
-                        tokenStorage.saveKidsPin(enteredPin)
-                        hasPin = true
-                        status = PinActionStatus.PinChanged
-                    }
-                }
-            }
-        )
-    }
 }
 
-private enum class PendingPinAction { Pin, Unpin, SetPin, ChangePin }
-
 /**
- * Local UI status enum that merges pin / unpin / pin-management outcomes
- * into a single state so the banner only ever shows the most recent action.
+ * Local UI status enum that merges pin / unpin outcomes into a single state so
+ * the banner only ever shows the most recent action.
  */
 private enum class PinActionStatus {
     Pinned,
     Unpinned,
-    PinSet,
-    PinChanged,
     NotAvailable,
     UnsupportedPlatform,
     PinFailed,
@@ -736,7 +616,6 @@ private fun GuideStep(
         )
     }
 }
-
 
 
 

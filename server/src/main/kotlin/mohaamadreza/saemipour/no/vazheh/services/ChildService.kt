@@ -10,12 +10,11 @@ import java.time.format.DateTimeFormatter
 
 /**
  * Child Service - سرویس مدیریت فرزندان
- * مادر می‌تواند ۱ یا ۲ فرزند اضافه کند
+ * مدیریت فرزندان برای حساب والد
  */
 object ChildService {
     
     private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
-    private const val MAX_CHILDREN = 2 // حداکثر ۲ فرزند
     
     /**
      * Get all children of a parent
@@ -71,19 +70,10 @@ object ChildService {
     
     /**
      * Create a new child
-     * ایجاد فرزند جدید (حداکثر ۲ فرزند)
+     * ایجاد فرزند جدید
      */
     fun createChild(parentId: Int, request: CreateChildRequest): ApiResponse<ChildDTO> {
         return transaction {
-            // Check max children limit
-            val currentCount = Children.selectAll()
-                .where { (Children.parentId eq parentId) and (Children.isActive eq true) }
-                .count()
-            
-            if (currentCount >= MAX_CHILDREN) {
-                return@transaction ApiResponse(false, "شما حداکثر $MAX_CHILDREN فرزند می‌توانید اضافه کنید", null)
-            }
-            
             val now = LocalDateTime.now()
             val childId = Children.insertAndGetId {
                 it[Children.parentId] = parentId
@@ -178,8 +168,6 @@ object ChildService {
         }
     }
 }
-
-
 
 
 

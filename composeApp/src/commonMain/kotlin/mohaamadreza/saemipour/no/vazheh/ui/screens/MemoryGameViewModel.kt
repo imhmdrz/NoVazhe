@@ -59,6 +59,10 @@ class MemoryGameViewModel(
     var isWin by mutableStateOf(false)
         private set
 
+    /** True only for a confirmed win whose authoritative response advanced to the next dimension. */
+    var isLevelUpWin by mutableStateOf(false)
+        private set
+
     var moves by mutableStateOf(0)
         private set
 
@@ -74,6 +78,17 @@ class MemoryGameViewModel(
 
     /** Successful games completed at the current dimension. */
     var successfulGames by mutableStateOf(0)
+        private set
+
+    /** Display-only override used to keep ★★★ visible during the advancing-win celebration. */
+    var celebrationStarsOverride by mutableStateOf<Int?>(null)
+        private set
+
+    /** Completed and returned dimensions for the current advancing-win celebration only. */
+    var levelUpFromDimensionIndex by mutableStateOf<Int?>(null)
+        private set
+
+    var levelUpToDimensionIndex by mutableStateOf<Int?>(null)
         private set
 
     /** Child whose progression is tracked; null for guests (no persistence). */
@@ -130,6 +145,10 @@ class MemoryGameViewModel(
         this.childId = childId
         isLoading = true
         errorMessage = null
+        isLevelUpWin = false
+        celebrationStarsOverride = null
+        levelUpFromDimensionIndex = null
+        levelUpToDimensionIndex = null
 
         viewModelScope.launch {
             if (childId != null) {
@@ -155,6 +174,10 @@ class MemoryGameViewModel(
         this.childId = childId
         isLoading = true
         errorMessage = null
+        isLevelUpWin = false
+        celebrationStarsOverride = null
+        levelUpFromDimensionIndex = null
+        levelUpToDimensionIndex = null
 
         viewModelScope.launch {
             if (childId != null) {
@@ -190,6 +213,10 @@ class MemoryGameViewModel(
     private fun useFallbackDimension() {
         dimensionIndex = 0
         successfulGames = 0
+        isLevelUpWin = false
+        celebrationStarsOverride = null
+        levelUpFromDimensionIndex = null
+        levelUpToDimensionIndex = null
     }
 
     /**
@@ -301,6 +328,7 @@ class MemoryGameViewModel(
 
         cards.clear()
         isWin = false
+        isLevelUpWin = false
         moves = 0
         matchedPairs = 0
         totalPairs = words.size
@@ -432,7 +460,10 @@ class MemoryGameViewModel(
         val currentChildId = childId
         if (currentChildId == null) {
             // Guest — unchanged behavior: celebrate each successful game, nothing persisted.
-            if (generation == gameGeneration) isWin = true
+            if (generation == gameGeneration) {
+                isLevelUpWin = false
+                isWin = true
+            }
             return
         }
 
@@ -495,10 +526,10 @@ class MemoryGameViewModel(
      *
      * dimensionIndex/successfulGames are GLOBAL progression state (not per-board state), so
      * they are synced from every confirmed response, even if the board that earned it has
-     * already been replaced. The celebration, however, belongs to the board that earned it:
-     * it is shown only when that board is still current. A confirmed game that did NOT finish
-     * its dimension instead deals the next board right away (same generation gate), so the
-     * player never sits on a fully matched board waiting for a button.
+     * already been replaced. The celebration, however, belongs to the board that earned it,
+     * so it is shown only when that board is still current. Every confirmed successful board
+     * now celebrates; the user dismisses the celebration to deal the next board at whatever
+     * authoritative dimension the server returned.
      */
     private fun applyProgressResponse(
         generation: Int,
@@ -506,31 +537,31 @@ class MemoryGameViewModel(
         gamesBefore: Int,
         progress: MemoryProgressDTO
     ) {
+        val completedFinalDimension = completedDimension == MEMORY_DIMENSION_LADDER.lastIndex
         val returnedDimension = progress.dimensionIndex.coerceIn(0, MEMORY_DIMENSION_LADDER.lastIndex)
+        val returnedSuccessfulGames = progress.successfulGames.coerceIn(0, 3)
+        val didLevelUp = returnedDimension > completedDimension
         dimensionIndex = returnedDimension
-        successfulGames = progress.successfulGames.coerceIn(0, 3)
-        log("response gen=$generation dim=$returnedDimension games=${progress.successfulGames}")
+        successfulGames = returnedSuccessfulGames
+        celebrationStarsOverride = when {
+            didLevelUp -> 3
+            completedFinalDimension &&
+                gamesBefore == 2 &&
+                returnedDimension == completedDimension &&
+                returnedSuccessfulGames == 3 -> 3
+            else -> null
+        }
+        log("response gen=$generation dim=$returnedDimension games=$returnedSuccessfulGames")
 
-        // Dimension completion is detected from the authoritative response — never from local
-        // counters:
-        // - advancement happened (returned index greater than completed one), or
-        // - final dimension: this was exactly its third success (the server caps the counter
-        //   there at 3, so [gamesBefore] == 2 identifies it).
-        val finishedCurrentDimension =
-            returnedDimension > completedDimension ||
-                (completedDimension == MEMORY_DIMENSION_LADDER.lastIndex &&
-                    gamesBefore == 2 && progress.successfulGames >= 3)
-
-        if (finishedCurrentDimension && generation == gameGeneration) {
+        if (generation == gameGeneration) {
+            levelUpFromDimensionIndex = if (didLevelUp) completedDimension else null
+            levelUpToDimensionIndex = if (didLevelUp) returnedDimension else null
+            isLevelUpWin = didLevelUp
             isWin = true
-            log("dimension completed gen=$generation → celebration")
-        } else if (!finishedCurrentDimension && generation == gameGeneration) {
-            // Plain successful game (counter advanced, dimension unchanged): no celebration —
-            // deal the next board immediately so the player never waits on a fully matched
-            // board. resetGame() builds it at the current authoritative dimension and its
-            // generation bump retires any stale async work from this board.
-            log("game completed gen=$generation → next board at dim=$dimensionIndex")
-            resetGame()
+            log(
+                "game confirmed gen=$generation completedDim=$completedDimension " +
+                    "gamesBefore=$gamesBefore returnedDim=$returnedDimension → celebration"
+            )
         }
     }
 
@@ -552,6 +583,10 @@ class MemoryGameViewModel(
 
         // Dismiss any visible celebration now, not only once the new board is ready.
         isWin = false
+        isLevelUpWin = false
+        celebrationStarsOverride = null
+        levelUpFromDimensionIndex = null
+        levelUpToDimensionIndex = null
 
         // Restart at the CURRENT dimension — progression is never reset by a restart.
         val pairCount = MEMORY_DIMENSION_LADDER[dimensionIndex].pairCount

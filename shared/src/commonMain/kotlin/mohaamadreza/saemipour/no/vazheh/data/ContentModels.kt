@@ -110,6 +110,24 @@ data class CompleteMemoryGameRequest(
     val dimensionIndex: Int
 )
 
+/**
+ * Current Color Sorting progression for a child
+ * پیشرفت فعلی بازی رنگ‌ها (سطوح ۳، ۴ و ۵ رنگ)
+ */
+@Serializable
+data class ColorSortingProgressDTO(
+    val levelIndex: Int,
+    val successfulGames: Int
+)
+
+/**
+ * Request to record one successful Color Sorting game at the given level
+ */
+@Serializable
+data class CompleteColorSortingGameRequest(
+    val levelIndex: Int
+)
+
 // ==================== Custom Word DTOs - کلمات سفارشی ====================
 
 @Serializable

@@ -48,11 +48,11 @@ object DatabaseSeeder {
             val vegetablesId = seedCategory("سبزیجات", "Vegetables", 2, content("Vegetables.png"))
             val foodId = seedCategory("غذاها", "Food", 3, content("Foods.png"))
             val animalsId = seedCategory("حیوانات", "Animals", 4, content("Animals.png"))
-            val carsId = seedCategory("ماشیــــن ها", "Cars", 5, content("Cars.png"))
+            val carsId = seedCategory("ماشیــــن‌ها", "Cars", 5, content("Cars.png"))
             val vehiclesId = seedCategory("وسایل نقلیه", "Transportations", 6, content("Transportations.png"))
             val colorsId = seedCategory("رنگ‌ها", "Colors", 7, content("Colors.png"))
             val numbersId = seedCategory("اعداد", "Numbers", 8, content("Numbers.png"))
-            val clothesId = seedCategory("لباس‌ ها", "Clothes", 9, content("Clothes.png"))
+            val clothesId = seedCategory("لباس‌ها", "Clothes", 9, content("Clothes.png"))
             val shapesId = seedCategory("اشکال", "Shapes", 10, content("Shapes.png"))
             
             // Seed fruits - میوه‌ها (with audio and images for quiz)
@@ -212,7 +212,7 @@ object DatabaseSeeder {
                 content("images/travl/copilot_image_1771871119226.jpeg?updatedAt=1772047837954"),
                 content("fooood/novazh/%DA%A9%D8%B4%D8%AA%DB%8C.mp3"))
             seedWord(vehiclesId, "موتور", "Motorcycle", 7,
-                content("images/travl/copilot_image_1771870992116.jpeg?updatedAt=1772047836739"),
+                content("images/travl/motorcycle.png?updatedAt=1772100205000"),
                 content("fooood/novazh/%D9%85%D9%88%D8%AA%D9%88%D8%B1.mp3"))
             seedWord(vehiclesId, "کامیون", "Truck", 8,
                 content("images/travl/copilot_image_1771871838589.jpeg?updatedAt=1772047838215"),

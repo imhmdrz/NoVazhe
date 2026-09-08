@@ -29,6 +29,7 @@ class ProgressRepository(
      */
     private companion object {
         const val PENDING_MEMORY_KEY = "memory_progress_pending"
+        const val PENDING_COLOR_SORTING_KEY = "color_sorting_progress_pending"
     }
 
     /** Overall progress stats for a child (learned words, accuracy, per-category). */
@@ -221,5 +222,121 @@ class ProgressRepository(
 
     private fun clearPendingMemoryCompletion() {
         settings.remove(PENDING_MEMORY_KEY)
+    }
+
+    // ==================== Color Sorting progression ====================
+
+    /**
+     * Current Color Sorting progression for a child - پیشرفت فعلی بازی رنگ‌ها
+     * Retries any earlier failed submission first, then fetches the fresh authoritative state.
+     */
+    suspend fun getColorSortingProgress(childId: Int): Result<ApiResponse<ColorSortingProgressDTO>> {
+        retryPendingColorSortingCompletion()
+        return try {
+            val token = tokenStorage.getToken()
+                ?: return Result.failure(Exception("No token found"))
+
+            val response: ApiResponse<ColorSortingProgressDTO> =
+                httpClient
+                    .get("${ApiConfig.BASE_URL}${ApiConfig.COLOR_SORTING_PROGRESS}/$childId") {
+                        header(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    .body()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Record one successful Color Sorting game at [levelIndex] - ثبت یک برد موفق بازی رنگ‌ها
+     */
+    suspend fun recordColorSortingGameComplete(
+        childId: Int,
+        levelIndex: Int,
+        successfulGamesBefore: Int
+    ): Result<ApiResponse<ColorSortingProgressDTO>> {
+        retryPendingColorSortingCompletion()
+
+        val token = tokenStorage.getToken()
+            ?: return Result.failure(Exception("No token found"))
+
+        return try {
+            val response: ApiResponse<ColorSortingProgressDTO> =
+                httpClient
+                    .post("${ApiConfig.BASE_URL}${ApiConfig.COLOR_SORTING_PROGRESS}/$childId/complete") {
+                        header(HttpHeaders.Authorization, "Bearer $token")
+                        header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                        setBody(CompleteColorSortingGameRequest(levelIndex))
+                    }
+                    .body()
+
+            if (response.success) {
+                clearPendingColorSortingCompletion()
+            }
+            Result.success(response)
+        } catch (e: Exception) {
+            storePendingColorSortingCompletion(childId, levelIndex, successfulGamesBefore)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Retry the single stored Color Sorting completion, if any.
+     */
+    private suspend fun retryPendingColorSortingCompletion() {
+        val pending = readPendingColorSortingCompletion() ?: return
+        val (childId, levelIndex, gamesBefore) = pending
+        val token = tokenStorage.getToken() ?: return
+
+        try {
+            val current: ApiResponse<ColorSortingProgressDTO> =
+                httpClient
+                    .get("${ApiConfig.BASE_URL}${ApiConfig.COLOR_SORTING_PROGRESS}/$childId") {
+                        header(HttpHeaders.Authorization, "Bearer $token")
+                    }
+                    .body()
+            if (!current.success || current.data == null) return
+            val state = current.data!!
+
+            val alreadyApplied = state.levelIndex > levelIndex ||
+                (state.levelIndex == levelIndex && state.successfulGames > gamesBefore)
+            if (alreadyApplied) {
+                clearPendingColorSortingCompletion()
+                return
+            }
+
+            val retry: ApiResponse<ColorSortingProgressDTO> =
+                httpClient
+                    .post("${ApiConfig.BASE_URL}${ApiConfig.COLOR_SORTING_PROGRESS}/$childId/complete") {
+                        header(HttpHeaders.Authorization, "Bearer $token")
+                        header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                        setBody(CompleteColorSortingGameRequest(levelIndex))
+                    }
+                    .body()
+
+            if (retry.success) clearPendingColorSortingCompletion()
+        } catch (_: Exception) {
+            // Network still unavailable — the pending entry stays until a later retry.
+        }
+    }
+
+    private fun readPendingColorSortingCompletion(): Triple<Int, Int, Int>? {
+        val raw = settings.getStringOrNull(PENDING_COLOR_SORTING_KEY) ?: return null
+        val parts = raw.split("|")
+        if (parts.size != 3) return null
+        return try {
+            Triple(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
+        } catch (_: NumberFormatException) {
+            null
+        }
+    }
+
+    private fun storePendingColorSortingCompletion(childId: Int, levelIndex: Int, successfulGamesBefore: Int) {
+        settings.putString(PENDING_COLOR_SORTING_KEY, "$childId|$levelIndex|$successfulGamesBefore")
+    }
+
+    private fun clearPendingColorSortingCompletion() {
+        settings.remove(PENDING_COLOR_SORTING_KEY)
     }
 }

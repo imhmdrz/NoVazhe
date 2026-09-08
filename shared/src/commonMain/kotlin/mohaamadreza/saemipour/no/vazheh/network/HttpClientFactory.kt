@@ -17,9 +17,12 @@ fun HttpClientConfig<*>.configureAuthHandling() {
     HttpResponseValidator {
         validateResponse { response ->
             if (response.status == HttpStatusCode.Unauthorized) {
-                // Notify the app about unauthorized access
-                // اطلاع‌رسانی به برنامه درباره عدم دسترسی
-                AuthStateManager.notifyUnauthorized()
+                // Invalid login credentials are a form error, not an expired session.
+                if (response.call.request.url.encodedPath != ApiConfig.AUTH_LOGIN) {
+                    // Notify the app about unauthorized access
+                    // اطلاع‌رسانی به برنامه درباره عدم دسترسی
+                    AuthStateManager.notifyUnauthorized()
+                }
             }
         }
     }

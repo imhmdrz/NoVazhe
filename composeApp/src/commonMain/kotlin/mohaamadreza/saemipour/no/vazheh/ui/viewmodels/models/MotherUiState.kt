@@ -60,9 +60,6 @@ data class MotherUiState(
     val isCreatingChild: Boolean
         get() = createChildState is CreateChildState.Loading
     
-    val canAddChild: Boolean
-        get() = children.size < 2
-    
     val childrenErrorMessage: String?
         get() = (childrenState as? ChildrenState.Error)?.message
     

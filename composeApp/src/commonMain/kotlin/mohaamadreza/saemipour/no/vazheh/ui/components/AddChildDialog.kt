@@ -54,7 +54,7 @@ fun AddChildDialog(
 ) {
     var childName by remember { mutableStateOf("") }
     var selectedGender by remember { mutableStateOf(Gender.BOY) }
-    var selectedAge by remember { mutableStateOf(5) }
+    var selectedAge by remember { mutableStateOf(3) }
     var showAgePopup by remember { mutableStateOf(false) }
 
     LaunchedEffect(childName, selectedGender, selectedAge) {

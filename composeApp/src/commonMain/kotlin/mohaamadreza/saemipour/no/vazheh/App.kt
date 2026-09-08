@@ -18,7 +18,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +34,7 @@ import coil3.compose.LocalPlatformContext
 import mohaamadreza.saemipour.no.vazheh.data.AuthEvent
 import mohaamadreza.saemipour.no.vazheh.data.AuthStateManager
 import mohaamadreza.saemipour.no.vazheh.image.newImageLoader
+import mohaamadreza.saemipour.no.vazheh.isAndroidPlatform
 import mohaamadreza.saemipour.no.vazheh.ui.animation.LocalNavAnimatedVisibilityScope
 import mohaamadreza.saemipour.no.vazheh.ui.animation.LocalSharedTransitionScope
 import mohaamadreza.saemipour.no.vazheh.ui.components.AppPinToggle
@@ -74,6 +74,7 @@ fun App() {
         }
 
         val navController = rememberNavController()
+        val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
         val authViewModel: AuthViewModel = koinViewModel()
         // The app always opens on the (guest-capable) dashboard; logging in is only
@@ -116,9 +117,6 @@ fun App() {
                 }
             }
         }
-
-        val navEntry by navController.currentBackStackEntryAsState()
-        val currentRoute = navEntry?.destination?.route
 
         // Default screen-to-screen transition: a directional slide + fade that respects the
         // back stack (forward pushes from the end, Back pops toward the start).
@@ -258,7 +256,8 @@ fun App() {
                             OrientationWrapper(Orientation.Vertical) {
                                 ColorSortingScreen(
                                     navController = navController,
-                                    viewModel = viewModel
+                                    viewModel = viewModel,
+                                    childViewModel = childViewModel
                                 )
                             }
                         }
@@ -296,15 +295,17 @@ fun App() {
                         }
                     }
 
-                    // Global lock/unlock padlock — shown everywhere except the auth screen.
-                    if (currentRoute != null && currentRoute != "auth") {
+                    if (currentRoute == "mother" &&
+                        authViewModel.isLoggedIn() &&
+                        isAndroidPlatform()
+                    ) {
                         AppPinToggle(
-                            refreshKey = currentRoute,
                             modifier = Modifier
                                 .align(Alignment.TopStart)
                                 .padding(16.dp)
                         )
                     }
+
                 }
             }
         }

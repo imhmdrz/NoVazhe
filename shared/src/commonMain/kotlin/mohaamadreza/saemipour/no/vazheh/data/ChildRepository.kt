@@ -65,8 +65,8 @@ class ChildRepository(
     }
 
     /**
-     * Create a new child (max 2)
-     * ایجاد فرزند جدید (حداکثر ۲ فرزند)
+     * Create a new child
+     * ایجاد فرزند جدید
      */
     suspend fun createChild(request: CreateChildRequest): Result<ApiResponse<ChildDTO>> {
         return try {
@@ -131,7 +131,6 @@ class ChildRepository(
         }
     }
 }
-
 
 
 

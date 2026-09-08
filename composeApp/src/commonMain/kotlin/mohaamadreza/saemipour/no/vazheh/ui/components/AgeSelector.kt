@@ -38,6 +38,7 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SoftGray
 import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
+import mohaamadreza.saemipour.no.vazheh.ui.util.toPersianDigits
 
 @Composable
 fun AgeSelector(
@@ -56,7 +57,7 @@ fun AgeSelector(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "$selectedAge سال",
+            text = "${selectedAge.toPersianDigits()} سال",
             style = MaterialTheme.typography.bodyLarge,
             color = if (enabled) DarkText else MutedText,
             modifier = Modifier.weight(1f)
@@ -153,7 +154,7 @@ private fun AgeItem(
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = age.toString(),
+            text = age.toPersianDigits(),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
             color = if (isSelected) Color.White else DarkText

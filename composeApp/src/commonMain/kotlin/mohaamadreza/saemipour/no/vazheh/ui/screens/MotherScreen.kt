@@ -31,6 +31,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -41,6 +42,7 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -91,6 +93,7 @@ import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.MotherViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.QuizViewModel
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.ChildrenState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.CustomWordsState
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.DeleteChildState
 import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.models.MotherTab
 
 @Composable
@@ -118,7 +121,9 @@ fun MotherScreen(
 
     // Sync auto-selected child from MotherViewModel to ChildViewModel
     LaunchedEffect(uiState.selectedChild?.id) {
-        uiState.selectedChild?.let { childViewModel.setSelectedChild(it) }
+        uiState.selectedChild?.let {
+            childViewModel.setSelectedChild(it)
+        } ?: childViewModel.clearSelectedChild()
     }
 
     // Auto-prompt to add a child if user has no children yet
@@ -220,8 +225,9 @@ fun MotherScreen(
                                         viewModel.onTabSelected(MotherTab.DASHBOARD)
                                     },
                                     onAddChildClick = { viewModel.showAddChildDialog() },
+                                    onDeleteChild = { childId -> viewModel.deleteChild(childId) },
                                     onRetry = { viewModel.retry() },
-                                    canAddChild = uiState.canAddChild,
+                                    deleteChildState = uiState.deleteChildState,
                                     onAddWordClick = { navController.navigate("add-word") },
                                     currentPlayingAudioUrl =
                                         if (isAudioPlaying) currentPlayingAudioUrl else null,
@@ -261,7 +267,7 @@ fun MotherScreen(
                 }
             }
 
-            if (uiState.showAddChildDialog) {
+                    if (uiState.showAddChildDialog) {
                 AddChildDialog(
                     isLoading = uiState.isCreatingChild,
                     errorMessage = uiState.createChildErrorMessage,
@@ -444,15 +450,68 @@ private fun ProfileContent(
     customWordsState: CustomWordsState,
     onChildClick: (ChildDTO) -> Unit,
     onAddChildClick: () -> Unit,
+    onDeleteChild: (Int) -> Unit,
     onAddWordClick: () -> Unit,
     onRetry: () -> Unit,
-    canAddChild: Boolean,
+    deleteChildState: DeleteChildState,
     currentPlayingAudioUrl: String? = null,
     onPlayAudio: (audioUrl: String) -> Unit = {},
     onStopAudio: () -> Unit = {},
     onDeleteCustomWord: (wordId: Int) -> Unit = {}
 ) {
     var showKidsModeGuide by remember { mutableStateOf(false) }
+    var childPendingDeletion by remember { mutableStateOf<ChildDTO?>(null) }
+
+    LaunchedEffect(deleteChildState) {
+        if (deleteChildState is DeleteChildState.Success) {
+            childPendingDeletion = null
+        }
+    }
+
+    childPendingDeletion?.let { child ->
+        val isDeleting = deleteChildState is DeleteChildState.Loading
+        val deleteError = (deleteChildState as? DeleteChildState.Error)
+            ?.takeIf { it.childId == child.id }
+            ?.message
+
+        AlertDialog(
+            onDismissRequest = { if (!isDeleting) childPendingDeletion = null },
+            title = { Text("حذف کودک") },
+            text = {
+                Column {
+                    Text("آیا مطمئن هستید که می‌خواهید ${child.name} را حذف کنید؟")
+                    deleteError?.let {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(text = it, color = CoralRed)
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { childPendingDeletion = null },
+                    enabled = !isDeleting
+                ) {
+                    Text("انصراف")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { onDeleteChild(child.id) },
+                    enabled = !isDeleting
+                ) {
+                    if (isDeleting) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(20.dp),
+                            strokeWidth = 2.dp,
+                            color = CoralRed
+                        )
+                    } else {
+                        Text("حذف", color = CoralRed)
+                    }
+                }
+            }
+        )
+    }
 
     if (showKidsModeGuide) {
         KidsModeGuideDialog(
@@ -503,13 +562,8 @@ private fun ProfileContent(
                             color = DarkText
                         )
 
-                        if (canAddChild) {
-                            Text(
-                                "+  افزودن فرزند",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = TealPurple,
-                                modifier = Modifier.clickable(onClick = onAddChildClick)
-                            )
+                        TextButton(onClick = onAddChildClick) {
+                            Text("+  افزودن فرزند", color = TealPurple)
                         }
                     }
                 }
@@ -518,8 +572,7 @@ private fun ProfileContent(
                     item {
                         Box(modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp)) {
                             EmptyChildrenContent(
-                                onAddChildClick = onAddChildClick,
-                                canAddChild = canAddChild
+                                onAddChildClick = onAddChildClick
                             )
                         }
                     }
@@ -532,7 +585,9 @@ private fun ProfileContent(
                         ) {
                             ChildContent(
                                 child = childrenState.children[index],
-                                onClick = { onChildClick(childrenState.children[index]) }
+                                onClick = { onChildClick(childrenState.children[index]) },
+                                onDeleteClick = { childPendingDeletion = childrenState.children[index] },
+                                isDeleteEnabled = deleteChildState !is DeleteChildState.Loading
                             )
                         }
                     }
@@ -746,7 +801,7 @@ private fun ProfileContent(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "فعال سازی حالت کودک",
+                            text = "فعالسازی حالت کودک",
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.Bold,
                             color = DarkText

@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,9 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import mohaamadreza.saemipour.no.vazheh.data.ChildDTO
 import mohaamadreza.saemipour.no.vazheh.data.Gender
+import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.DarkText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MutedText
 import mohaamadreza.saemipour.no.vazheh.ui.theme.cardBackground
@@ -36,7 +40,9 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun ChildContent(
     child: ChildDTO,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
+    onDeleteClick: (() -> Unit)? = null,
+    isDeleteEnabled: Boolean = true,
 ) {
     Card(
         modifier = Modifier
@@ -74,8 +80,23 @@ fun ChildContent(
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Medium,
                 color = DarkText,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
+
+            onDeleteClick?.let { onDelete ->
+                IconButton(
+                    onClick = onDelete,
+                    enabled = isDeleteEnabled,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "حذف کودک",
+                        tint = CoralRed,
+                    )
+                }
+            }
             
             // Navigation arrow
             Icon(

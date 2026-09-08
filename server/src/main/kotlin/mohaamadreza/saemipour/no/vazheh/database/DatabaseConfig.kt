@@ -36,7 +36,8 @@ object DatabaseConfig {
                 CustomWords,
                 QuizAttempts,
                 ChildProgress,
-                MemoryProgress
+                MemoryProgress,
+                ColorSortingProgress
             )
         }
         

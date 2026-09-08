@@ -11,8 +11,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
@@ -31,6 +34,19 @@ fun DragbleScreen(
     CompositionLocalProvider(
         LocalDragTargetInfo provides state
     ) {
+        LaunchedEffect(state.isDragging) {
+            if (!state.isDragging && state.dataToDrop != null) {
+                // Let a target consume the final pointer position before cleanup.
+                withFrameNanos { }
+                if (!state.isDragging) {
+                    state.dataToDrop = null
+                    state.dragOffset = Offset.Zero
+                    state.dragPosition = Offset.Zero
+                    state.draggableComposable = null
+                }
+            }
+        }
+
         Box(modifier = modifier.fillMaxSize())
         {
             content()
@@ -80,6 +96,7 @@ fun <T> DragTarget(
                 viewModel.startDragging()
                 currentState.dataToDrop = dataToDrop
                 currentState.isDragging = true
+                currentState.dragOffset = Offset.Zero
                 currentState.dragPosition = currentPosition + it
                 currentState.draggableComposable = content
             }, onDrag = { change, dragAmount ->
@@ -88,11 +105,13 @@ fun <T> DragTarget(
             }, onDragEnd = {
                 viewModel.stopDragging()
                 currentState.isDragging = false
-                currentState.dragOffset = Offset.Zero
             }, onDragCancel = {
                 viewModel.stopDragging()
                 currentState.dragOffset = Offset.Zero
+                currentState.dragPosition = Offset.Zero
                 currentState.isDragging = false
+                currentState.dataToDrop = null
+                currentState.draggableComposable = null
             })
         }) {
         content()
@@ -108,17 +127,16 @@ fun <T> DropItem(
     val dragInfo = LocalDragTargetInfo.current
     val dragPosition = dragInfo.dragPosition
     val dragOffset = dragInfo.dragOffset
-    var isCurrentDropTarget by remember {
-        mutableStateOf(false)
-    }
+    var targetBounds by remember { mutableStateOf<Rect?>(null) }
+    val currentPointer = dragPosition + dragOffset
+    val pointerInTarget = targetBounds?.contains(currentPointer) == true
+    val isCurrentDropTarget = dragInfo.isDragging && pointerInTarget
 
-    Box(modifier = modifier.onGloballyPositioned {
-        it.boundsInWindow().let { rect ->
-            isCurrentDropTarget = rect.contains(dragPosition + dragOffset)
-        }
+    Box(modifier = modifier.onGloballyPositioned { coordinates ->
+        targetBounds = coordinates.boundsInWindow()
     }) {
         val data =
-            if (isCurrentDropTarget && !dragInfo.isDragging) dragInfo.dataToDrop as T? else null
+            if (!dragInfo.isDragging && pointerInTarget) dragInfo.dataToDrop as T? else null
         content(isCurrentDropTarget, data)
     }
 }

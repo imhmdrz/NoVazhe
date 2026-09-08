@@ -47,7 +47,9 @@ fun PasswordPromptDialog(
     isLoading: Boolean,
     errorMessage: String?,
     onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit
+    onConfirm: (String) -> Unit,
+    title: String = "ورود به تنظیمات",
+    description: String = "برای ورود به تنظیمات، رمز عبور حساب خود را وارد کنید."
 ) {
     var password by remember { mutableStateOf("") }
 
@@ -74,7 +76,7 @@ fun PasswordPromptDialog(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "ورود به تنظیمات",
+                    text = title,
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = DarkText
@@ -83,7 +85,7 @@ fun PasswordPromptDialog(
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    text = "برای ورود به تنظیمات، رمز عبور حساب خود را وارد کنید.",
+                    text = description,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MutedText,
                     textAlign = TextAlign.Center

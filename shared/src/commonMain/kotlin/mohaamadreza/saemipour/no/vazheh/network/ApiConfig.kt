@@ -36,4 +36,7 @@ object ApiConfig {
 
     // Memory Game progression endpoints (base: /api/memory/progress/{childId})
     const val MEMORY_PROGRESS = "/api/memory/progress"
+
+    // Color Sorting progression endpoints (base: /api/color-sorting/progress/{childId})
+    const val COLOR_SORTING_PROGRESS = "/api/color-sorting/progress"
 }

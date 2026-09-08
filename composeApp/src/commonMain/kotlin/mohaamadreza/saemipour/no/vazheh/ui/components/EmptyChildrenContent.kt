@@ -25,8 +25,7 @@ import mohaamadreza.saemipour.no.vazheh.ui.theme.TealPurple
 
 @Composable
 fun EmptyChildrenContent(
-    onAddChildClick: () -> Unit,
-    canAddChild: Boolean
+    onAddChildClick: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -63,21 +62,19 @@ fun EmptyChildrenContent(
                 textAlign = TextAlign.Center
             )
             
-            if (canAddChild) {
-                Spacer(modifier = Modifier.height(24.dp))
-                
-                Button(
-                    onClick = onAddChildClick,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = TealPurple
-                    )
-                ) {
-                    Text(
-                        text = "+ افزودن فرزند",
-                        fontWeight = FontWeight.Medium
-                    )
-                }
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = onAddChildClick,
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = TealPurple
+                )
+            ) {
+                Text(
+                    text = "+ افزودن فرزند",
+                    fontWeight = FontWeight.Medium
+                )
             }
         }
     }

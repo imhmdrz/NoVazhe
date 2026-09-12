@@ -56,7 +56,6 @@ private val ALL_GAME_COLORS = listOf(
     GameColor.YELLOW,
     GameColor.PURPLE,
     GameColor.PINK,
-    GameColor.WHITE,
     GameColor.BLACK,
     GameColor.BROWN
 )
@@ -132,7 +131,9 @@ class ColorSortingViewModel(
      * map از GameColor به audioUrl گرفته شده از API
      */
     private var colorAudioMap: Map<GameColor, String> = emptyMap()
-    private var previousBoardColorSet: Set<GameColor>? = null
+    private var activeColors: List<GameColor> = emptyList()
+    private var activeColorsLevelIndex: Int? = null
+    private var previousBasketOrder: List<GameColor>? = null
 
     private var childId: Int? = null
     private var colorCategoryId: Int? = null
@@ -142,6 +143,9 @@ class ColorSortingViewModel(
     fun loadGame(childId: Int? = null) {
         boardGeneration++
         this.childId = childId
+        activeColors = emptyList()
+        activeColorsLevelIndex = null
+        previousBasketOrder = null
         isLevelUpWin = false
         celebrationStarsOverride = null
         levelUpFromLevelIndex = null
@@ -259,18 +263,15 @@ class ColorSortingViewModel(
         levelUpFromLevelIndex = null
         levelUpToLevelIndex = null
 
-        val colorCount = COLOR_SORTING_LEVEL_LADDER[
-            levelIndex.coerceIn(0, COLOR_SORTING_LEVEL_LADDER.lastIndex)
-        ].size
-        var activeColors: List<GameColor>
-        var attempts = 0
-        do {
+        val currentLevelIndex = levelIndex.coerceIn(0, COLOR_SORTING_LEVEL_LADDER.lastIndex)
+        val colorCount = COLOR_SORTING_LEVEL_LADDER[currentLevelIndex].size
+        if (activeColorsLevelIndex != currentLevelIndex || activeColors.isEmpty()) {
             activeColors = ALL_GAME_COLORS.shuffled().take(colorCount)
-            attempts++
-        } while (activeColors.toSet() == previousBoardColorSet && attempts < 20)
-        previousBoardColorSet = activeColors.toSet()
+            activeColorsLevelIndex = currentLevelIndex
+            previousBasketOrder = null
+        }
 
-        val basketColors = activeColors.shuffled()
+        val basketColors = shuffledBasketOrder(activeColors)
         val itemColors = activeColors.shuffled()
 
         basketColors.forEach { color ->
@@ -287,6 +288,17 @@ class ColorSortingViewModel(
 
         items.shuffle()
         totalItems = items.size
+    }
+
+    /** Shuffle basket positions for a stage without changing the level's active colors. */
+    private fun shuffledBasketOrder(colors: List<GameColor>): List<GameColor> {
+        var shuffled = colors.shuffled()
+        val previous = previousBasketOrder
+        if (previous != null && colors.size > 1 && shuffled == previous) {
+            shuffled = previous.drop(1) + previous.first()
+        }
+        previousBasketOrder = shuffled
+        return shuffled
     }
 
     fun startDragging() {

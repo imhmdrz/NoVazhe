@@ -60,7 +60,7 @@ fun Route.contentRoutes() {
                 } catch (e: Exception) {
                     call.respond(
                         HttpStatusCode.InternalServerError,
-                        ApiResponse<CategoryDTO>(false, "خطا: ${e.message}", null)
+                        ApiResponse<CategoryDTO>(false, "خطای داخلی سرور", null)
                     )
                 }
             }
@@ -80,7 +80,7 @@ fun Route.contentRoutes() {
                 val status = if (response.success) HttpStatusCode.OK else HttpStatusCode.NotFound
                 call.respond(status, response)
             } catch (e: Exception) {
-                call.respond(HttpStatusCode.InternalServerError, ApiResponse<CategoryDTO>(false, "خطا: ${e.message}", null))
+                call.respond(HttpStatusCode.InternalServerError, ApiResponse<CategoryDTO>(false, "خطای داخلی سرور", null))
             }
         }
         
@@ -108,7 +108,7 @@ fun Route.contentRoutes() {
          * Get words by category with child progress
          * دریافت کلمات یک دسته‌بندی با پیشرفت فرزند
          */
-        authenticate("auth-jwt", optional = true) {
+        authenticate("auth-jwt") {
             get("/categories/{categoryId}/words/progress") {
                 try {
                     val categoryId = call.parameters["categoryId"]?.toIntOrNull()
@@ -118,13 +118,11 @@ fun Route.contentRoutes() {
                         ?: return@get call.respond(HttpStatusCode.BadRequest, ListResponse<WordWithProgressDTO>(false, emptyList(), 0))
                     
                     // Verify parent owns child
-                    val principal = call.principal<JWTPrincipal>()
-                    if (principal != null) {
-                        val parentId = principal.payload.getClaim("parentId").asInt()
-                        if (!ChildService.verifyChildOwnership(parentId, childId)) {
-                            call.respond(HttpStatusCode.Forbidden, ListResponse<WordWithProgressDTO>(false, emptyList(), 0))
-                            return@get
-                        }
+                    val principal = call.principal<JWTPrincipal>()!!
+                    val parentId = principal.payload.getClaim("parentId").asInt()
+                    if (!ChildService.verifyChildOwnership(parentId, childId)) {
+                        call.respond(HttpStatusCode.Forbidden, ListResponse<WordWithProgressDTO>(false, emptyList(), 0))
+                        return@get
                     }
                     
                     val response = ContentService.getWordsByCategoryWithProgress(categoryId, childId)
@@ -149,7 +147,7 @@ fun Route.contentRoutes() {
                 val status = if (response.success) HttpStatusCode.OK else HttpStatusCode.NotFound
                 call.respond(status, response)
             } catch (e: Exception) {
-                call.respond(HttpStatusCode.InternalServerError, ApiResponse<WordDTO>(false, "خطا: ${e.message}", null))
+                call.respond(HttpStatusCode.InternalServerError, ApiResponse<WordDTO>(false, "خطای داخلی سرور", null))
             }
         }
         
@@ -200,7 +198,7 @@ fun Route.contentRoutes() {
                         val status = if (response.success) HttpStatusCode.Created else HttpStatusCode.BadRequest
                         call.respond(status, response)
                     } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError, ApiResponse<CustomWordDTO>(false, "خطا: ${e.message}", null))
+                        call.respond(HttpStatusCode.InternalServerError, ApiResponse<CustomWordDTO>(false, "خطای داخلی سرور", null))
                     }
                 }
                 
@@ -221,7 +219,7 @@ fun Route.contentRoutes() {
                         val status = if (response.success) HttpStatusCode.OK else HttpStatusCode.NotFound
                         call.respond(status, response)
                     } catch (e: Exception) {
-                        call.respond(HttpStatusCode.InternalServerError, MessageResponse(false, "خطا: ${e.message}"))
+                        call.respond(HttpStatusCode.InternalServerError, MessageResponse(false, "خطای داخلی سرور"))
                     }
                 }
             }

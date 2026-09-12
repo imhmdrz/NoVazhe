@@ -53,7 +53,7 @@ fun Route.childRoutes() {
                     val status = if (response.success) HttpStatusCode.OK else HttpStatusCode.NotFound
                     call.respond(status, response)
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<ChildDTO>(false, "خطا: ${e.message}", null))
+                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<ChildDTO>(false, "خطای داخلی سرور", null))
                 }
             }
             
@@ -83,7 +83,7 @@ fun Route.childRoutes() {
                     val status = if (response.success) HttpStatusCode.Created else HttpStatusCode.BadRequest
                     call.respond(status, response)
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<ChildDTO>(false, "خطا: ${e.message}", null))
+                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<ChildDTO>(false, "خطای داخلی سرور", null))
                 }
             }
             
@@ -106,7 +106,7 @@ fun Route.childRoutes() {
                     val status = if (response.success) HttpStatusCode.OK else HttpStatusCode.NotFound
                     call.respond(status, response)
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<ChildDTO>(false, "خطا: ${e.message}", null))
+                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<ChildDTO>(false, "خطای داخلی سرور", null))
                 }
             }
             
@@ -127,13 +127,12 @@ fun Route.childRoutes() {
                     val status = if (response.success) HttpStatusCode.OK else HttpStatusCode.NotFound
                     call.respond(status, response)
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, MessageResponse(false, "خطا: ${e.message}"))
+                    call.respond(HttpStatusCode.InternalServerError, MessageResponse(false, "خطای داخلی سرور"))
                 }
             }
         }
     }
 }
-
 
 
 

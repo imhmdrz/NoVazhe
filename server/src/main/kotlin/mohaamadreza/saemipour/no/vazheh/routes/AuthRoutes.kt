@@ -55,7 +55,7 @@ fun Route.authRoutes() {
             } catch (e: Exception) {
                 call.respond(
                         HttpStatusCode.InternalServerError,
-                        AuthResponse(false, "خطا در ثبت نام: ${e.message}")
+                        AuthResponse(false, "خطای داخلی سرور")
                 )
             }
         }
@@ -80,7 +80,7 @@ fun Route.authRoutes() {
             } catch (e: Exception) {
                 call.respond(
                         HttpStatusCode.InternalServerError,
-                        AuthResponse(false, "خطا در ورود: ${e.message}")
+                        AuthResponse(false, "خطای داخلی سرور")
                 )
             }
         }
@@ -104,7 +104,7 @@ fun Route.authRoutes() {
                 } catch (e: Exception) {
                     call.respond(
                             HttpStatusCode.InternalServerError,
-                            ApiResponse<ParentDTO>(false, "خطا: ${e.message}", null)
+                            ApiResponse<ParentDTO>(false, "خطای داخلی سرور", null)
                     )
                 }
             }
@@ -136,7 +136,7 @@ fun Route.authRoutes() {
                 } catch (e: Exception) {
                     call.respond(
                             HttpStatusCode.InternalServerError,
-                            ApiResponse<Boolean>(false, "خطا: ${e.message}", null)
+                            ApiResponse<Boolean>(false, "خطای داخلی سرور", null)
                     )
                 }
             }

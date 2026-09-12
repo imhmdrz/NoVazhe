@@ -40,7 +40,7 @@ fun Route.memoryRoutes() {
                     val progress = MemoryProgressService.getProgress(childId)
                     call.respond(HttpStatusCode.OK, ApiResponse(true, "موفق", progress))
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<MemoryProgressDTO>(false, "خطا: ${e.message}", null))
+                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<MemoryProgressDTO>(false, "خطای داخلی سرور", null))
                 }
             }
 
@@ -68,7 +68,7 @@ fun Route.memoryRoutes() {
                     val status = if (response.success) HttpStatusCode.OK else HttpStatusCode.BadRequest
                     call.respond(status, response)
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<MemoryProgressDTO>(false, "خطا: ${e.message}", null))
+                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<MemoryProgressDTO>(false, "خطای داخلی سرور", null))
                 }
             }
         }

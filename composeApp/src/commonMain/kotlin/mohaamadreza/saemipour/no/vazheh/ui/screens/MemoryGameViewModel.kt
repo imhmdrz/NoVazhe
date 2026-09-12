@@ -117,6 +117,9 @@ class MemoryGameViewModel(
 
     private var lastMode: LoadMode = LoadMode.None
 
+    /** IDs used by the immediately previous board, for bounded repeat avoidance. */
+    private var previousSelectedWordIds: Set<Int>? = null
+
     /**
      * Identity of the current board - شناسه‌ی نسخه‌ی فعلی صفحه‌ی بازی
      *
@@ -142,6 +145,7 @@ class MemoryGameViewModel(
     fun loadWords(categoryId: Int, childId: Int? = null) {
         gameGeneration++ // entering the game invalidates anything left over from a previous session
         lastMode = LoadMode.Single(categoryId)
+        previousSelectedWordIds = null
         this.childId = childId
         isLoading = true
         errorMessage = null
@@ -171,6 +175,7 @@ class MemoryGameViewModel(
     fun loadCombinedWords(childId: Int? = null) {
         gameGeneration++ // entering the game invalidates anything left over from a previous session
         lastMode = LoadMode.Combined
+        previousSelectedWordIds = null
         this.childId = childId
         isLoading = true
         errorMessage = null
@@ -264,7 +269,7 @@ class MemoryGameViewModel(
         contentRepository.getWordsByCategory(categoryId).fold(
             onSuccess = { response ->
                 if (response.success && response.data.isNotEmpty()) {
-                    val words = response.data.shuffled().take(pairCount)
+                    val words = selectWordsForBoard(response.data, pairCount)
                     setupGame(words)
                 } else {
                     errorMessage = "کلمه‌ای در این دسته‌بندی یافت نشد"
@@ -302,7 +307,7 @@ class MemoryGameViewModel(
                 if (allWords.isEmpty()) {
                     errorMessage = "کلمه‌ای برای بازی ترکیبی یافت نشد"
                 } else {
-                    val words = allWords.distinctBy { it.id }.shuffled().take(pairCount)
+                    val words = selectWordsForBoard(allWords, pairCount)
                     setupGame(words)
                 }
                 isLoading = false
@@ -319,6 +324,37 @@ class MemoryGameViewModel(
         data class Single(val categoryId: Int) : LoadMode()
         data object Combined : LoadMode()
     }
+
+    /** Selects the next board's unique words without changing the dimension's pair count. */
+    private fun selectWordsForBoard(availableWords: List<WordDTO>, pairCount: Int): List<WordDTO> {
+        val candidates = availableWords.distinctBy { it.id }
+        val selectedCount = pairCount.coerceAtMost(candidates.size)
+        if (selectedCount == 0) return emptyList()
+
+        var selected = candidates.shuffled().take(selectedCount)
+        val previousIds = previousSelectedWordIds
+
+        // A different set is preferable when possible. Retry a bounded number of times,
+        // then deterministically replace one word if randomness still produced the same set.
+        if (previousIds != null && candidates.size > selectedCount && selected.ids() == previousIds) {
+            repeat(8) {
+                val candidate = candidates.shuffled().take(selectedCount)
+                if (candidate.ids() != previousIds) {
+                    selected = candidate
+                    return@repeat
+                }
+            }
+            if (selected.ids() == previousIds) {
+                val replacement = candidates.first { it.id !in previousIds }
+                selected = selected.dropLast(1) + replacement
+            }
+        }
+
+        previousSelectedWordIds = selected.ids()
+        return selected
+    }
+
+    private fun List<WordDTO>.ids(): Set<Int> = mapTo(linkedSetOf()) { it.id }
 
     private fun setupGame(words: List<WordDTO>) {
         // A new board gets a new identity: every coroutine still working for a previous board
@@ -597,10 +633,9 @@ class MemoryGameViewModel(
                     // Dimension advanced after a win — fetch fresh words at the new size.
                     viewModelScope.launch { loadSingleBoard(mode.categoryId, pairCount) }
                 } else {
-                    val currentWords = cards.map { it.word }.distinctBy { it.id }
-                    if (currentWords.isNotEmpty()) {
-                        setupGame(currentWords)
-                    }
+                    // Start a genuinely new round from the category pool, rather than
+                    // reshuffling the words that were used by the previous board.
+                    viewModelScope.launch { loadSingleBoard(mode.categoryId, pairCount) }
                 }
             }
             LoadMode.None -> { /* nothing to reset */ }

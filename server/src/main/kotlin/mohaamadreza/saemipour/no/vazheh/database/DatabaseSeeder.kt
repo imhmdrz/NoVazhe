@@ -8,9 +8,11 @@ import mohaamadreza.saemipour.no.vazheh.database.tables.QuizAttempts
 import mohaamadreza.saemipour.no.vazheh.database.tables.Words
 import mohaamadreza.saemipour.no.vazheh.security.PasswordUtils
 import mohaamadreza.saemipour.no.vazheh.services.StorageService
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteAll
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
 
@@ -31,17 +33,13 @@ private fun content(path: String): String = StorageService.publicUrl(path)
 object DatabaseSeeder {
     
     /**
-     * Seed the database with sample categories and words
-     * Clears existing data and reseeds every time
+     * Synchronize built-in categories and words without deleting user-owned data.
      */
     fun seed() {
         transaction {
-            // Clear existing data first (Words must be deleted before Categories due to foreign key)
-            println("🗑️ Clearing existing data...")
-            Words.deleteAll()
-            Categories.deleteAll()
-            
-            println("🌱 Seeding database with fresh data...")
+            val seedDemoData = Parents.selectAll().limit(1).firstOrNull() == null
+
+            println("🌱 Synchronizing built-in data...")
             
             // Seed categories
             val fruitsId = seedCategory("میوه‌ها", "Fruits", 1, content("Fruits.png"))
@@ -162,34 +160,34 @@ object DatabaseSeeder {
             
             // Seed numbers - اعداد (with audio and images for quiz)
             seedWord(numbersId, "یک", "One", 1,
-                content("images/numbers/Picsart_26-02-21_01-24-32-595.png?updatedAt=1772047554223"),
+                content("images/numbers/1.png?updatedAt=1773000000000"),
                 content("numbers/novazh/%DB%8C%DA%A9.mp3"))
             seedWord(numbersId, "دو", "Two", 2,
-                content("images/numbers/Picsart_26-02-21_01-25-23-111.png?updatedAt=1772047554200"),
+                content("images/numbers/2.png?updatedAt=1773000000000"),
                 content("numbers/novazh/%D8%AF%D9%88.mp3"))
             seedWord(numbersId, "سه", "Three", 3,
-                content("images/numbers/Picsart_26-02-21_01-25-43-173.png?updatedAt=1772047554385"),
+                content("images/numbers/3.png?updatedAt=1773000000000"),
                 content("numbers/novazh/%D8%B3%D9%87.mp3"))
             seedWord(numbersId, "چهار", "Four", 4,
-                content("images/numbers/Picsart_26-02-21_01-29-56-013.png?updatedAt=1772047554090"),
+                content("images/numbers/4.png?updatedAt=1773000000000"),
                 content("numbers/novazh/%DA%86%D9%87%D8%A7%D8%B1.mp3"))
             seedWord(numbersId, "پنج", "Five", 5,
-                content("images/numbers/Picsart_26-02-21_01-28-10-799.png?updatedAt=1772047554558"),
+                content("images/numbers/5.png?updatedAt=1773000000000"),
                 content("numbers/novazh/%D9%BE%D9%86%D8%AC.mp3"))
             seedWord(numbersId, "شش", "Six", 6,
-                content("images/numbers/Picsart_26-02-21_01-28-33-580.png?updatedAt=1772047622611"),
+                content("images/numbers/6.png?updatedAt=1773000000000"),
                 content("numbers/novazh/%D8%B4%D8%B4.mp3"))
             seedWord(numbersId, "هفت", "Seven", 7,
-                content("images/numbers/Picsart_26-02-21_01-28-44-705.png?updatedAt=1772047554373"),
+                content("images/numbers/7.png?updatedAt=1773000000000"),
                 content("numbers/novazh/%D9%87%D9%81%D8%AA.mp3"))
             seedWord(numbersId, "هشت", "Eight", 8,
-                content("images/numbers/Picsart_26-02-21_01-30-07-783.png?updatedAt=1772047554374"),
+                content("images/numbers/8.png?updatedAt=1773000000000"),
                 content("numbers/novazh/%D9%87%D8%B4%D8%AA.mp3"))
             seedWord(numbersId, "نه", "Nine", 9,
-                content("images/numbers/Picsart_26-02-21_01-30-15-851.png?updatedAt=1772047554400"),
+                content("images/numbers/9.png?updatedAt=1773000000000"),
                 content("numbers/novazh/%D9%86%D9%87.mp3"))
             seedWord(numbersId, "ده", "Ten", 10,
-                content("images/numbers/Picsart_26-02-21_01-30-27-106.png?updatedAt=1772047554346"),
+                content("images/numbers/10.png?updatedAt=1773000000000"),
                 content("numbers/novazh/%D8%AF%D9%87.mp3"))
 
             // Seed vehicles - وسایل نقلیه (with audio and images for quiz)
@@ -354,14 +352,14 @@ object DatabaseSeeder {
                 content("images/car/LS20260225163649.png?updatedAt=1772100184650"),
                 content("cars/novazh/%D8%B3%D8%A7%DB%8C%D9%86%D8%A7.mp3"))
             
+            if (seedDemoData) {
             // ==================== Seed Quiz Data ====================
             println("🎯 Seeding quiz data...")
             
-            // Clear quiz-related data
+            // Demo data is created only for a database with no parent accounts.
             QuizAttempts.deleteAll()
             ChildProgress.deleteAll()
             Children.deleteAll()
-            Parents.deleteAll()
             
             // Create test parent
             val testParentId = seedParent("test", "test123", "مادر تست")
@@ -456,10 +454,27 @@ object DatabaseSeeder {
             println("   📊 ${ChildProgress.selectAll().count()} progress records")
             println("")
             println("   🔐 Test login: username='test', password='test123'")
+            }
         }
     }
     
     private fun seedCategory(nameFa: String, nameEn: String, order: Int, imageUrl: String? = null): Int {
+        val existing = Categories.selectAll()
+            .where { Categories.nameEn eq nameEn }
+            .limit(1)
+            .firstOrNull()
+
+        if (existing != null) {
+            val id = existing[Categories.id].value
+            Categories.update({ Categories.id eq id }) {
+                it[Categories.nameFa] = nameFa
+                it[Categories.displayOrder] = order
+                it[Categories.iconUrl] = imageUrl
+                it[Categories.isActive] = true
+            }
+            return id
+        }
+
         return Categories.insert {
             it[Categories.nameFa] = nameFa
             it[Categories.nameEn] = nameEn
@@ -477,6 +492,23 @@ object DatabaseSeeder {
         imageUrl: String? = null,
         audioUrl: String? = null
     ) {
+        val existing = Words.selectAll()
+            .where { (Words.categoryId eq categoryId) and (Words.wordEn eq wordEn) }
+            .limit(1)
+            .firstOrNull()
+
+        if (existing != null) {
+            val id = existing[Words.id].value
+            Words.update({ Words.id eq id }) {
+                it[Words.wordFa] = wordFa
+                it[Words.displayOrder] = order
+                it[Words.isActive] = true
+                imageUrl?.let { url -> it[Words.imageUrl] = url }
+                audioUrl?.let { url -> it[Words.audioUrl] = url }
+            }
+            return
+        }
+
         Words.insert {
             it[Words.categoryId] = categoryId
             it[Words.wordFa] = wordFa

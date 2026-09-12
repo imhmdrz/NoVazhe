@@ -19,7 +19,7 @@ actual fun createHttpClient(): HttpClient {
                     }
             )
         }
-        install(Logging) { level = LogLevel.BODY }
+        install(Logging) { level = LogLevel.HEADERS }
         
         // Add 401 handling - مدیریت خطای 401
         configureAuthHandling()

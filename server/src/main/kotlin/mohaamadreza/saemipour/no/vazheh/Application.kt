@@ -101,12 +101,14 @@ fun Application.configureAuthentication() {
             verifier(verifier)
             
             validate { credential ->
-                val parentId = credential.payload.getClaim("parentId").asInt()
+                val parentId = runCatching {
+                    credential.payload.getClaim("parentId").asInt()
+                }.getOrNull()
                 if (parentId != null) {
                     // Check if parent actually exists in database
                     // بررسی وجود والد در دیتابیس
-                    val parentExists = AuthService.getParentById(parentId) != null
-                    if (parentExists) {
+                    val parent = runCatching { AuthService.getParentById(parentId) }.getOrNull()
+                    if (parent?.isActive == true) {
                         JWTPrincipal(credential.payload)
                     } else {
                         // Parent doesn't exist (database was rebuilt)
@@ -134,7 +136,7 @@ fun Application.configureStatusPages() {
             call.application.log.error("Unhandled exception", cause)
             call.respond(
                 HttpStatusCode.InternalServerError,
-                MessageResponse(false, "خطای سرور: ${cause.localizedMessage}")
+                MessageResponse(false, "خطای داخلی سرور")
             )
         }
         

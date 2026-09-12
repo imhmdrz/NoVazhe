@@ -35,7 +35,7 @@ fun Route.progressRoutes() {
                     val status = if (response.success) HttpStatusCode.OK else HttpStatusCode.NotFound
                     call.respond(status, response)
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<ChildProgressStatsDTO>(false, "خطا: ${e.message}", null))
+                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<ChildProgressStatsDTO>(false, "خطای داخلی سرور", null))
                 }
             }
             
@@ -86,7 +86,7 @@ fun Route.progressRoutes() {
                     val response = ProgressService.getWordProgress(childId, wordId)
                     call.respond(HttpStatusCode.OK, response)
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<WordProgressDTO>(false, "خطا: ${e.message}", null))
+                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<WordProgressDTO>(false, "خطای داخلی سرور", null))
                 }
             }
         }

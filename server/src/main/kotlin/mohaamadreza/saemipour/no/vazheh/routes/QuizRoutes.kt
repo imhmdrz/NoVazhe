@@ -49,7 +49,7 @@ fun Route.quizRoutes() {
                     val status = if (response.success) HttpStatusCode.OK else HttpStatusCode.BadRequest
                     call.respond(status, response)
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<QuizQuestionDTO>(false, "خطا: ${e.message}", null))
+                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<QuizQuestionDTO>(false, "خطای داخلی سرور", null))
                 }
             }
 
@@ -109,13 +109,12 @@ fun Route.quizRoutes() {
                     val response = QuizService.submitQuizAnswer(request)
                     call.respond(HttpStatusCode.OK, response)
                 } catch (e: Exception) {
-                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<QuizResultDTO>(false, "خطا: ${e.message}", null))
+                    call.respond(HttpStatusCode.InternalServerError, ApiResponse<QuizResultDTO>(false, "خطای داخلی سرور", null))
                 }
             }
         }
     }
 }
-
 
 
 

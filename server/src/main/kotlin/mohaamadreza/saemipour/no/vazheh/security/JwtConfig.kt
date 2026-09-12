@@ -6,7 +6,8 @@ import com.auth0.jwt.algorithms.Algorithm
 import java.util.*
 
 object JwtConfig {
-    private val secret = System.getenv("JWT_SECRET") ?: "novazheh-super-secret-key-2024"
+    private val secret = System.getenv("JWT_SECRET")?.trim()?.takeIf { it.isNotEmpty() }
+        ?: error("JWT_SECRET must be set before starting the server")
     private val issuer = System.getenv("JWT_ISSUER") ?: "novazheh-server"
     private val audience = System.getenv("JWT_AUDIENCE") ?: "novazheh-users"
     private const val validityInMs = 30L * 24 * 60 * 60 * 1000 // 30 days

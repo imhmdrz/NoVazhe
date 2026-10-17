@@ -32,6 +32,8 @@
 \newcommand{\secondadvisor}[1]{\def\@secondadvisor{#1}}
 \def\name#1{\gdef\@name{#1}}
 \def\surname#1{\gdef\@surname{#1}}
+\def\secondname#1{\gdef\@secondname{#1}}
+\def\secondsurname#1{\gdef\@secondsurname{#1}}
 \def\keywords#1{\gdef\@keywords{#1}}
 \def\fa-abstract#1{\gdef\@fa-abstract{#1}}
 \def\faculty#1{\gdef\@faculty{#1}}
@@ -40,6 +42,7 @@
 \def\department#1{\gdef\@department{#1}}
 \def\projectLabel#1{\gdef\@projectLabel{#1}}
 \def\studentID#1{\gdef\@studentID{#1}}
+\def\secondstudentID#1{\gdef\@secondstudentID{#1}}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \def\latintitle#1{\gdef\@latintitle{#1}}
 \def\latinauthor#1{\gdef\@latinauthor{#1}}
@@ -54,6 +57,8 @@
 \def\secondlatinadvisor#1{\gdef\@secondlatinadvisor{#1}}
 \def\latinname#1{\gdef\@latinname{#1}}
 \def\latinsurname#1{\gdef\@latinsurname{#1}}
+\def\secondlatinname#1{\gdef\@secondlatinname{#1}}
+\def\secondlatinsurname#1{\gdef\@secondlatinsurname{#1}}
 \def\en-abstract#1{\gdef\@en-abstract{#1}}
 \def\latinkeywords#1{\gdef\@latinkeywords{#1}}
 \def\latinuniversity#1{\gdef\@latinuniversity{#1}}
@@ -119,7 +124,15 @@
 \fi	
 \vskip 1cm
 \par
+\ifx\@secondname\undefined%
 {\Large\bfseries{\large\bfseries   \@name\ \ \@surname}}
+\else
+{\Large\bfseries \@name\ \@surname\par}
+{\normalsize شماره دانشجویی: \@studentID\par}
+\vspace{2mm}
+{\Large\bfseries \@secondname\ \@secondsurname\par}
+{\normalsize شماره دانشجویی: \@secondstudentID}
+\fi
 \par
 \vskip 15mm
 \large
@@ -192,7 +205,11 @@
 
 نام دانشكده: \@faculty
 
+\ifx\@secondname\undefined%
 نام دانشجو: \@name{} \@surname
+\else
+نام دانشجویان: \@name{} \@surname{} و \@secondname{} \@secondsurname
+\fi
 
 عنوان \@projectLabel: \@title
 
@@ -216,23 +233,41 @@
 باسمه تعالی 
 \vspace{.5cm}
 \end{center}
-\doublespacing 
+\doublespacing
 
-اینجانب 
-\@name \ \@surname \ 
-به شماره دانشجویی 
-\@studentID {}
-دانشجوی رشته 
-\@subject {}
-مقطع تحصیلی 
-\@degree {}
+\ifx\@secondname\undefined%
+اینجانب
+\@name \ \@surname
+به شماره دانشجویی
+\@studentID
+دانشجوی رشته
+\@subject
+مقطع تحصیلی
+\@degree
 تأیید می‌نمایم كه كلیه‌ی نتایج این \@projectLabel{} حاصل كار اینجانب و بدون هرگونه دخل و تصرف است و موارد نسخه‌برداری‌شده از آثار دیگران را با ذكر كامل مشخصات منبع ذكر كرده‌ام. درصورت اثبات خلاف مندرجات فوق، به تشخیص دانشگاه مطابق با ضوابط و مقررات حاكم ( قانون حمایت از حقوق مؤلفان و مصنفان و قانون ترجمه و تكثیر كتب و نشریات و آثار صوتی، ضوابط و مقررات آموزشی، پژوهشی و انضباطی ... ) با اینجانب رفتار خواهد شد و حق هرگونه اعتراض درخصوص احقاق حقوق مكتسب و تشخیص و تعیین تخلف و مجازات را از خویش سلب می‌نمایم. در ضمن، مسؤولیت هرگونه پاسخگویی به اشخاص اعم از حقیقی و حقوقی و مراجع ذی‌صلاح (اعم از اداری و قضایی) به عهده‌ی اینجانب خواهد بود و دانشگاه هیچ‌گونه مسؤولیتی در این خصوص نخواهد داشت.
+\else
+اینجانبان
+\@name \ \@surname{} و \@secondname \ \@secondsurname\par
+به شماره‌های دانشجویی
+\@studentID{} و \@secondstudentID\par
+دانشجویان رشته
+\@subject
+مقطع تحصیلی
+\@degree
+تأیید می‌نماییم كه كلیه‌ی نتایج این \@projectLabel{} حاصل كار مشترک اینجانبان و بدون هرگونه دخل و تصرف است و موارد نسخه‌برداری‌شده از آثار دیگران را با ذكر كامل مشخصات منبع ذكر كرده‌ایم. درصورت اثبات خلاف مندرجات فوق، به تشخیص دانشگاه مطابق با ضوابط و مقررات حاكم ( قانون حمایت از حقوق مؤلفان و مصنفان و قانون ترجمه و تكثیر كتب و نشریات و آثار صوتی، ضوابط و مقررات آموزشی، پژوهشی و انضباطی ... ) با اینجانبان رفتار خواهد شد و حق هرگونه اعتراض درخصوص احقاق حقوق مكتسب و تشخیص و تعیین تخلف و مجازات را از خویش سلب می‌نماییم. در ضمن، مسؤولیت هرگونه پاسخگویی به اشخاص اعم از حقیقی و حقوقی و مراجع ذی‌صلاح (اعم از اداری و قضایی) به عهده‌ی اینجانبان خواهد بود و دانشگاه هیچ‌گونه مسؤولیتی در این خصوص نخواهد داشت.
+\fi
 
 \vspace{.5cm}
 \begin{flushleft}
 \begin{tabular}{lr}
-نام و نام خانوادگی:   & 	\@name{} \@surname \\
- تاریخ و امضا: & \\
+\ifx\@secondname\undefined%
+نام و نام خانوادگی:   & \@name{} \@surname \\
+تاریخ و امضا: & \\
+\else
+نام و نام خانوادگی: & \@name{} \@surname \\
+نام و نام خانوادگی: & \@secondname{} \@secondsurname \\
+تاریخ و امضا: & \\
+\fi
 \end{tabular}
 \end{flushleft}
 }
@@ -335,6 +370,9 @@ $\Box$ بهره‌برداری از این پایان‌نامه تا تاریخ
 \begin{flushleft}
 {%\nastaliq \scriptsize 
 \@name\ \@surname \\
+\ifx\@secondname\undefined\else
+\@secondname\ \@secondsurname \\
+\fi
 \@thesisdate}
 \end{flushleft}}
 
@@ -402,7 +440,11 @@ $\Box$ بهره‌برداری از این پایان‌نامه تا تاریخ
 \vskip 15mm
 {\bfseries\latinby}\par
 {\large %\supervisorfont
-\rm\@latinname \; \@latinsurname}\par
+\rm\@latinname \; \@latinsurname
+\ifx\@secondlatinname\undefined\else
+\\[2mm]
+\@secondlatinname \; \@secondlatinsurname
+\fi}\par
 
 \vskip 15mm
 

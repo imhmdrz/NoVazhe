@@ -9,6 +9,7 @@ import platform.AVFAudio.setActive
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerItem
 import platform.AVFoundation.AVPlayerItemDidPlayToEndTimeNotification
+import platform.AVFoundation.AVPlayerItemFailedToPlayToEndTimeNotification
 import platform.AVFoundation.AVPlayerTimeControlStatusPlaying
 import platform.AVFoundation.addPeriodicTimeObserverForInterval
 import platform.AVFoundation.currentItem
@@ -29,6 +30,9 @@ import platform.Foundation.NSURL
 import platform.darwin.NSEC_PER_SEC
 import platform.darwin.NSObject
 import platform.darwin.NSObjectProtocol
+import kotlinx.coroutines.CancellableContinuation
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 @Suppress("EXPECT_ACTUAL_CLASSIFIERS_ARE_IN_BETA_WARNING")
 actual class AudioPlayer actual constructor(
@@ -72,6 +76,8 @@ actual class AudioPlayer actual constructor(
      * Observer token for the playback-end notification.
      */
     private var playbackEndObserver: NSObjectProtocol? = null
+    private var playbackFailureObserver: NSObjectProtocol? = null
+    private var playbackCompletion: CancellableContinuation<Unit>? = null
 
     /**
      * Mutable state flow to track player state updates.
@@ -128,6 +134,13 @@ actual class AudioPlayer actual constructor(
      */
     @OptIn(ExperimentalForeignApi::class)
     actual fun play(url: String) {
+        playbackCompletion?.cancel()
+        playbackCompletion = null
+        startPlayback(url)
+    }
+
+    @OptIn(ExperimentalForeignApi::class)
+    private fun startPlayback(url: String) {
         // Check if we're trying to resume the same resource.
         if (currentPlayingResource == url && avAudioPlayer.currentItem != null &&
             avAudioPlayer.timeControlStatus != AVPlayerTimeControlStatusPlaying
@@ -148,8 +161,7 @@ actual class AudioPlayer actual constructor(
             isBuffering = true,
             currentPlayingResource = url
         )
-        stop()
-        startTimeObserver()
+        stop(cancelPendingPlayback = false)
 
         try {
             // Check if it's a local file path or a URL
@@ -172,6 +184,7 @@ actual class AudioPlayer actual constructor(
             }
 
             avAudioPlayer.replaceCurrentItemWithPlayerItem(playItem)
+            startTimeObserver(playItem)
             avAudioPlayer.play()
             _playerState.value = _playerState.value.copy(
                 isPlaying = true,
@@ -180,8 +193,25 @@ actual class AudioPlayer actual constructor(
             onReadyCallback()
         } catch (e: Exception) {
             onErrorCallback(e)
+            completePlayback()
             if (::timeObserver.isInitialized) {
                 avAudioPlayer.removeTimeObserver(timeObserver)
+            }
+        }
+    }
+
+    actual suspend fun playAndAwait(url: String) {
+        suspendCancellableCoroutine<Unit> { continuation ->
+            playbackCompletion?.cancel()
+            playbackCompletion = continuation
+            continuation.invokeOnCancellation {
+                if (playbackCompletion === continuation) playbackCompletion = null
+            }
+            try {
+                startPlayback(url)
+            } catch (exception: Exception) {
+                onErrorCallback(exception)
+                completePlayback()
             }
         }
     }
@@ -221,13 +251,13 @@ actual class AudioPlayer actual constructor(
      * Also sets up a notification observer to detect when playback finishes.
      */
     @OptIn(ExperimentalForeignApi::class)
-    private fun startTimeObserver() {
+    private fun startTimeObserver(item: AVPlayerItem) {
         val interval = CMTimeMakeWithSeconds(0.1, NSEC_PER_SEC.toInt())
         timeObserver = avAudioPlayer.addPeriodicTimeObserverForInterval(interval, null, observer)
 
         playbackEndObserver = NSNotificationCenter.defaultCenter.addObserverForName(
             name = AVPlayerItemDidPlayToEndTimeNotification,
-            `object` = avAudioPlayer.currentItem,
+            `object` = item,
             queue = NSOperationQueue.mainQueue,
             usingBlock = { _ ->
                 _playerState.value = _playerState.value.copy(
@@ -236,6 +266,17 @@ actual class AudioPlayer actual constructor(
                     currentPlayingResource = currentPlayingResource
                 )
                 onProgressCallback(_playerState.value)
+                completePlayback()
+            }
+        )
+
+        playbackFailureObserver = NSNotificationCenter.defaultCenter.addObserverForName(
+            name = AVPlayerItemFailedToPlayToEndTimeNotification,
+            `object` = item,
+            queue = NSOperationQueue.mainQueue,
+            usingBlock = { _ ->
+                onErrorCallback(IllegalStateException("Audio playback failed"))
+                completePlayback()
             }
         )
     }
@@ -244,7 +285,11 @@ actual class AudioPlayer actual constructor(
      * Stops playback, removes observers, and resets the player state.
      */
     @OptIn(ExperimentalForeignApi::class)
-    private fun stop() {
+    private fun stop(cancelPendingPlayback: Boolean = true) {
+        if (cancelPendingPlayback) {
+            playbackCompletion?.cancel()
+            playbackCompletion = null
+        }
         // Remove the time observer if it was set.
         if (::timeObserver.isInitialized) {
             avAudioPlayer.removeTimeObserver(timeObserver)
@@ -253,6 +298,10 @@ actual class AudioPlayer actual constructor(
         playbackEndObserver?.let {
             NSNotificationCenter.defaultCenter.removeObserver(it)
             playbackEndObserver = null
+        }
+        playbackFailureObserver?.let {
+            NSNotificationCenter.defaultCenter.removeObserver(it)
+            playbackFailureObserver = null
         }
 
         avAudioPlayer.pause()
@@ -284,5 +333,11 @@ actual class AudioPlayer actual constructor(
     actual fun seek(position: Float) {
         val time = CMTimeMakeWithSeconds(position.toDouble(), NSEC_PER_SEC.toInt())
         avAudioPlayer.seekToTime(time)
+    }
+
+    private fun completePlayback() {
+        val continuation = playbackCompletion ?: return
+        playbackCompletion = null
+        if (continuation.isActive) continuation.resume(Unit)
     }
 }

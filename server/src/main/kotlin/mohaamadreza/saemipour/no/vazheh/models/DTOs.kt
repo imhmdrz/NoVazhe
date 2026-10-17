@@ -241,6 +241,34 @@ data class ColorSortingProgressDTO(
 @Serializable
 data class CompleteColorSortingGameRequest(val levelIndex: Int)
 
+@Serializable
+data class ShadowMatchProgressDTO(
+        val levelIndex: Int,
+        val successfulGames: Int
+)
+
+@Serializable
+data class CompleteShadowMatchGameRequest(val levelIndex: Int)
+
+@Serializable
+data class FaceGameProgressDTO(
+    val levelIndex: Int,
+    val successfulGames: Int,
+    val activeCharacterId: String? = null
+)
+
+@Serializable
+data class CompleteFaceGameRequest(val levelIndex: Int, val characterId: String? = null)
+
+@Serializable
+data class StartFaceGameRunRequest(val characterId: String)
+
+@Serializable
+data class FinalizeFaceGameRunRequest(
+    val completedCharacterId: String,
+    val nextCharacterId: String
+)
+
 // ==================== Generic Response DTOs ====================
 
 @Serializable

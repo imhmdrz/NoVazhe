@@ -1,6 +1,6 @@
 package mohaamadreza.saemipour.no.vazheh.ui.components
 
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,7 +47,13 @@ fun DragbleScreen(
             }
         }
 
-        Box(modifier = modifier.fillMaxSize())
+        Box(
+            modifier = modifier
+                .fillMaxSize()
+                .onGloballyPositioned { coordinates ->
+                    state.rootWindowOrigin = coordinates.localToWindow(Offset.Zero)
+                }
+        )
         {
             content()
             if (state.isDragging) {
@@ -56,7 +62,7 @@ fun DragbleScreen(
                 }
                 Box(modifier = Modifier
                     .graphicsLayer {
-                        val offset = (state.dragPosition + state.dragOffset)
+                        val offset = state.dragPosition + state.dragOffset - state.rootWindowOrigin
                         scaleX = 1.3f
                         scaleY = 1.3f
                         alpha = if (targetSize == IntSize.Zero) 0f else .9f
@@ -92,7 +98,7 @@ fun <T> DragTarget(
             )
         }
         .pointerInput(dataToDrop) {
-            detectDragGesturesAfterLongPress(onDragStart = {
+            detectDragGestures(onDragStart = {
                 viewModel.startDragging()
                 currentState.dataToDrop = dataToDrop
                 currentState.isDragging = true
@@ -145,6 +151,7 @@ internal class DragTargetInfo {
     var isDragging: Boolean by mutableStateOf(false)
     var dragPosition by mutableStateOf(Offset.Zero)
     var dragOffset by mutableStateOf(Offset.Zero)
+    var rootWindowOrigin by mutableStateOf(Offset.Zero)
     var draggableComposable by mutableStateOf<(@Composable () -> Unit)?>(null)
     var dataToDrop by mutableStateOf<Any?>(null)
 }

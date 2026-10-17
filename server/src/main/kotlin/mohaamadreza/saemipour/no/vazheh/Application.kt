@@ -33,6 +33,8 @@ import mohaamadreza.saemipour.no.vazheh.routes.childRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.colorSortingRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.contentRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.memoryRoutes
+import mohaamadreza.saemipour.no.vazheh.routes.shadowMatchRoutes
+import mohaamadreza.saemipour.no.vazheh.routes.faceGameRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.progressRoutes
 import mohaamadreza.saemipour.no.vazheh.routes.quizRoutes
 import mohaamadreza.saemipour.no.vazheh.security.JwtConfig
@@ -40,6 +42,13 @@ import mohaamadreza.saemipour.no.vazheh.services.AuthService
 import mohaamadreza.saemipour.no.vazheh.services.StorageService
 import org.slf4j.event.Level
 import java.io.File
+
+private val SERVER_PORT: Int = System.getenv("SERVER_PORT")
+    ?.trim()
+    ?.takeIf { it.isNotEmpty() }
+    ?.toIntOrNull()
+    ?.takeIf { it in 1..65535 }
+    ?: 8080
 
 fun main() {
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = Application::module)
@@ -205,5 +214,7 @@ fun Application.configureRouting() {
         progressRoutes()    // /api/progress/*
         memoryRoutes()      // /api/memory/*
         colorSortingRoutes() // /api/color-sorting/*
+        shadowMatchRoutes() // /api/shadow-match/*
+        faceGameRoutes() // /api/face-game/*
     }
 }

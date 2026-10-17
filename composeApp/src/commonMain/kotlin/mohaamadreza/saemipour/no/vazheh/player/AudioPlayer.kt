@@ -9,6 +9,7 @@ expect class AudioPlayer(
 ) {
     fun pause()
     fun play(url: String)
+    suspend fun playAndAwait(url: String)
     fun cleanUp()
     fun seek(position: Float)
 }

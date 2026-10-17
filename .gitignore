@@ -17,3 +17,21 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+
+# Local credentials and generated deployment/database state
+.env
+/server/data/*.mv.db
+/server/data/*.trace.db*
+/deployment/*-amd64/novazhe-backend-*.tar
+
+# Local artwork review sources (not Compose production resources)
+/body_asset_candidates/
+/face_asset_candidates/
+
+# Superseded Face/Body artwork not referenced by the current character registry
+/composeApp/src/commonMain/composeResources/drawable/character_0[3-7]_left_arm.png
+/composeApp/src/commonMain/composeResources/drawable/character_0[3-7]_right_arm.png
+/composeApp/src/commonMain/composeResources/drawable/character_0[3-7]_left_leg.png
+/composeApp/src/commonMain/composeResources/drawable/character_0[3-7]_right_leg.png
+/composeApp/src/commonMain/composeResources/drawable/character_03_level_[23]_base.png
+/composeApp/src/commonMain/composeResources/drawable/character_0[4-7]_level_[123]_base.png

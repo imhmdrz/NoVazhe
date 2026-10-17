@@ -6,6 +6,7 @@ import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellableContinuation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -14,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import java.io.File
 actual class AudioPlayer actual constructor(
     private val onProgressCallback: (PlayerState) -> Unit,
@@ -36,6 +39,7 @@ actual class AudioPlayer actual constructor(
 
     // A Job that handles continuous progress updates while audio is playing.
     private var progressJob: Job? = null
+    private var playbackCompletion: CancellableContinuation<Unit>? = null
 
     // A scope for launching coroutines related to the player.
     private val coroutineScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -70,9 +74,8 @@ actual class AudioPlayer actual constructor(
                 }
 
                 Player.STATE_ENDED -> {
-                    // Playback has ended for the current item. You could trigger a callback here if needed.
-                    // For now, we’ll simply stop progress updates.
                     stopProgressUpdates()
+                    completePlayback()
                 }
             }
         }
@@ -94,6 +97,7 @@ actual class AudioPlayer actual constructor(
         override fun onPlayerError(error: PlaybackException) {
             // Send the error via callback.
             onErrorCallback(error)
+            completePlayback()
         }
     }
 
@@ -105,6 +109,12 @@ actual class AudioPlayer actual constructor(
     /// Starts playback of an audio resource from a URL or local file path.
     /// @param url The URL or file path of the audio to play.
     actual fun play(url: String) {
+        playbackCompletion?.cancel()
+        playbackCompletion = null
+        startPlayback(url)
+    }
+
+    private fun startPlayback(url: String) {
         currentPlayingResource = url
         val mediaItem = if (isLocalFile(url)) {
             // Local file path must be prefixed with "file://"
@@ -129,6 +139,22 @@ actual class AudioPlayer actual constructor(
         updateMediaStatus()
     }
 
+    actual suspend fun playAndAwait(url: String) {
+        suspendCancellableCoroutine<Unit> { continuation ->
+            playbackCompletion?.cancel()
+            playbackCompletion = continuation
+            continuation.invokeOnCancellation {
+                if (playbackCompletion === continuation) playbackCompletion = null
+            }
+            try {
+                startPlayback(url)
+            } catch (exception: Exception) {
+                onErrorCallback(exception)
+                completePlayback()
+            }
+        }
+    }
+
     /// Pauses playback if something is currently playing.
     actual fun pause() {
         mediaPlayer.pause()
@@ -138,6 +164,8 @@ actual class AudioPlayer actual constructor(
 
     /// Cleans up resources by stopping and releasing the ExoPlayer instance.
     actual fun cleanUp() {
+        playbackCompletion?.cancel()
+        playbackCompletion = null
         mediaPlayer.stop()
         mediaPlayer.release()
         mediaPlayer.removeListener(listener)
@@ -189,6 +217,12 @@ actual class AudioPlayer actual constructor(
     /// @param position The desired position, in seconds.
     actual fun seek(position: Float) {
         mediaPlayer.seekTo((position * 1000).toLong())
+    }
+
+    private fun completePlayback() {
+        val continuation = playbackCompletion ?: return
+        playbackCompletion = null
+        if (continuation.isActive) continuation.resume(Unit)
     }
 
 }

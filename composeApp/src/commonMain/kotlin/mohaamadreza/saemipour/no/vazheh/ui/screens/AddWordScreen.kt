@@ -542,7 +542,7 @@ fun AddWordScreen(
                                     enabled = !uiState.isCreatingCustomWord
                                 )
 
-                                Spacer(modifier = Modifier.height(24.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
 
                                 AudioRecordingSection(
                                     isRecording = isRecording,

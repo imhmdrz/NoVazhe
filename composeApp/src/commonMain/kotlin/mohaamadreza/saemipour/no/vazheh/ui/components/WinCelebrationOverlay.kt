@@ -39,7 +39,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +61,7 @@ import io.github.alexzhirkevich.compottie.rememberLottiePainter
 import kotlinx.coroutines.delay
 import novazheh.composeapp.generated.resources.Res
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 
 /**
@@ -197,9 +201,11 @@ fun WinCelebration(
 fun LevelUpCelebration(
     onTap: () -> Unit,
     timeoutMillis: Long = CELEBRATION_TIMEOUT_MS,
+    title: String = "مرحله بعد!",
+    subtitle: String = "آفرین! رفتی مرحله بعد",
 ) {
     CelebrationDialog(onTap = onTap, timeoutMillis = timeoutMillis) {
-        LevelUpCelebrationScene()
+        LevelUpCelebrationScene(title = title, subtitle = subtitle)
     }
 }
 
@@ -246,6 +252,8 @@ private fun CelebrationDialog(
 
 @Composable
 private fun BoxScope.LevelUpCelebrationScene(
+    title: String,
+    subtitle: String,
 ) {
     val backgroundMotion = rememberInfiniteTransition(label = "levelUpBackground")
     val confettiProgress by backgroundMotion.animateFloat(
@@ -258,86 +266,94 @@ private fun BoxScope.LevelUpCelebrationScene(
         label = "confettiProgress"
     )
     val trophyPulse by backgroundMotion.animateFloat(
-        initialValue = 0.98f,
-        targetValue = 1.04f,
+        initialValue = 0.985f,
+        targetValue = 1.035f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+            animation = tween(durationMillis = 1800, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "trophyPulse"
     )
-    val leftFlagProgress = remember { Animatable(0f) }
-    val rightFlagProgress = remember { Animatable(0f) }
+    val orbitProgress by backgroundMotion.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 5000, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "trophyOrbit"
+    )
+    val ambientProgress = remember { Animatable(0f) }
+    val beamProgress = remember { Animatable(0f) }
     val trophyProgress = remember { Animatable(0f) }
+    val impactProgress = remember { Animatable(0f) }
+    val landingGlow = remember { Animatable(0f) }
     val titleProgress = remember { Animatable(0f) }
     val subtitleProgress = remember { Animatable(0f) }
 
     LaunchedEffect(Unit) {
-        leftFlagProgress.animateTo(
+        // A single sequence keeps the reveal cinematic rather than allowing unrelated
+        // animations to race each other during composition.
+        ambientProgress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 280, delayMillis = 180, easing = FastOutSlowInEasing)
+            animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
         )
-    }
-    LaunchedEffect(Unit) {
-        rightFlagProgress.animateTo(
+        beamProgress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 280, delayMillis = 240, easing = FastOutSlowInEasing)
+            animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing)
         )
-    }
-    LaunchedEffect(Unit) {
+        // The first descent is controlled; the final approach uses spring physics so the
+        // trophy feels heavy and lands rather than simply sliding into place.
+        trophyProgress.animateTo(
+            targetValue = 0.76f,
+            animationSpec = tween(durationMillis = 420, easing = FastOutSlowInEasing)
+        )
         trophyProgress.animateTo(
             targetValue = 1f,
-            animationSpec = spring(dampingRatio = 0.46f, stiffness = 250f)
+            animationSpec = spring(dampingRatio = 0.42f, stiffness = 260f)
         )
-    }
-    LaunchedEffect(Unit) {
+        landingGlow.animateTo(1f, tween(durationMillis = 160, easing = FastOutSlowInEasing))
+        impactProgress.animateTo(1f, tween(durationMillis = 620, easing = FastOutSlowInEasing))
+        landingGlow.animateTo(0.3f, tween(durationMillis = 560, easing = LinearEasing))
         titleProgress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 260, delayMillis = 760, easing = FastOutSlowInEasing)
+            animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing)
         )
-    }
-    LaunchedEffect(Unit) {
         subtitleProgress.animateTo(
             targetValue = 1f,
-            animationSpec = tween(durationMillis = 240, delayMillis = 940, easing = FastOutSlowInEasing)
+            animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing)
         )
     }
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFFE7FBFF),
-                        Color(0xFF73D7F7),
-                        Color(0xFF56DEC9),
-                        Color(0xFFA9F3E3)
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFF102E54),
+                            Color(0xFF245D88),
+                            Color(0xFF397D9B),
+                            Color(0xFF6FCFB8)
+                        )
                     )
                 )
-            )
     ) {
+        MagicLightBeam(
+            ambientProgress = ambientProgress.value,
+            beamProgress = beamProgress.value
+        )
         LevelUpConfetti(confettiProgress = confettiProgress)
+        TrophyImpact(
+            progress = impactProgress.value,
+            orbitProgress = orbitProgress,
+            modifier = Modifier.align(Alignment.Center)
+        )
         TrophyGlow(
             modifier = Modifier
                 .align(Alignment.Center)
                 .offset(y = (-28).dp),
-            pulse = trophyPulse
-        )
-        AnimatedFlag(
-            emoji = "🚩",
-            modifier = Modifier
-                .align(Alignment.Center)
-                .offset(x = (-112).dp, y = (-116).dp),
-            progress = leftFlagProgress.value,
-            direction = -1f
-        )
-        AnimatedFlag(
-            emoji = "🚩",
-            modifier = Modifier
-                .align(Alignment.Center)
-                .offset(x = 112.dp, y = (-116).dp),
-            progress = rightFlagProgress.value,
-            direction = 1f
+            pulse = trophyPulse,
+            landingGlow = landingGlow.value
         )
         Column(
             modifier = Modifier
@@ -345,15 +361,17 @@ private fun BoxScope.LevelUpCelebrationScene(
                 .padding(horizontal = 28.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "🏆",
-                fontSize = 126.sp,
+            TrophyArtwork(
                 modifier = Modifier
-                    .offset(y = ((1f - trophyProgress.value) * 120f).dp)
-                    .scale((0.32f + 0.76f * trophyProgress.value) * trophyPulse)
+                    .offset(y = ((1f - trophyProgress.value) * -350f - 14f).dp)
+                    .rotate((1f - trophyProgress.value) * -18f)
+                    .scale((0.4f + 0.6f * trophyProgress.value) * trophyPulse)
+                    .graphicsLayer {
+                        alpha = trophyProgress.value.coerceIn(0f, 1f)
+                    }
             )
             Text(
-                text = "مرحله بعد!",
+                text = title,
                 modifier = Modifier
                     .padding(top = 14.dp)
                     .scale(0.82f + 0.18f * titleProgress.value),
@@ -363,7 +381,7 @@ private fun BoxScope.LevelUpCelebrationScene(
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "آفرین! رفتی مرحله بعد",
+                text = subtitle,
                 modifier = Modifier
                     .padding(top = 10.dp)
                     .scale(0.9f + 0.1f * subtitleProgress.value),
@@ -374,6 +392,19 @@ private fun BoxScope.LevelUpCelebrationScene(
             )
         }
     }
+}
+
+/**
+ * Kept separate from the reveal choreography so a transparent trophy PNG/vector can replace
+ * the emoji later without changing the level-up timeline or state flow.
+ */
+@Composable
+private fun TrophyArtwork(modifier: Modifier = Modifier) {
+    Text(
+        text = "🏆",
+        fontSize = 132.sp,
+        modifier = modifier
+    )
 }
 
 private const val CELEBRATION_TIMEOUT_MS = 8_000L
@@ -439,7 +470,8 @@ private fun BoxScope.LevelUpConfetti(confettiProgress: Float) {
 @Composable
 private fun TrophyGlow(
     modifier: Modifier = Modifier,
-    pulse: Float
+    pulse: Float,
+    landingGlow: Float
 ) {
     Box(
         modifier = modifier
@@ -449,12 +481,12 @@ private fun TrophyGlow(
     ) {
         Box(
             modifier = Modifier
-                .size(220.dp)
+                .size((220 + 52 * landingGlow).dp)
                 .background(
                     Brush.radialGradient(
                         colors = listOf(
-                            Color(0xFFFFE082).copy(alpha = 0.32f),
-                            Color(0xFFFFC107).copy(alpha = 0.12f),
+                            Color(0xFFFFF3BF).copy(alpha = 0.25f + 0.28f * landingGlow),
+                            Color(0xFFFFC107).copy(alpha = 0.10f + 0.20f * landingGlow),
                             Color.Transparent
                         )
                     ),
@@ -478,37 +510,114 @@ private fun TrophyGlow(
 }
 
 @Composable
-private fun AnimatedFlag(
-    emoji: String,
-    modifier: Modifier = Modifier,
-    progress: Float,
-    direction: Float
+private fun BoxScope.MagicLightBeam(
+    ambientProgress: Float,
+    beamProgress: Float
 ) {
-    val wave = rememberInfiniteTransition(label = "flagWave")
-    val rotation by wave.animateFloat(
-        initialValue = -6f,
-        targetValue = 6f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 1100, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "flagRotation"
-    )
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val center = Offset(size.width / 2f, size.height * 0.05f)
+        drawCircle(
+            color = Color(0xFFFFD75A).copy(alpha = 0.20f * ambientProgress),
+            radius = size.minDimension * (0.26f + 0.16f * ambientProgress),
+            center = center
+        )
+        val beamWidth = size.width * (0.12f + 0.33f * beamProgress)
+        val beam = Path().apply {
+            moveTo(center.x - beamWidth * 0.24f, 0f)
+            lineTo(center.x + beamWidth * 0.24f, 0f)
+            lineTo(center.x + beamWidth, size.height * 0.72f)
+            lineTo(center.x - beamWidth, size.height * 0.72f)
+            close()
+        }
+        drawPath(
+            path = beam,
+            brush = Brush.verticalGradient(
+                colors = listOf(
+                    Color(0xFFFFF3B0).copy(alpha = 0.34f * beamProgress),
+                    Color(0xFFFFCA46).copy(alpha = 0.12f * beamProgress),
+                    Color.Transparent
+                )
+            )
+        )
+        drawRect(Color(0xFF061A32).copy(alpha = 0.16f * (1f - ambientProgress)))
+    }
+}
 
-    Box(
-        modifier = modifier
-            .offset {
-                IntOffset(
-                    x = (direction * (1f - progress) * 160f).toInt(),
-                    y = ((1f - progress) * -36f).toInt()
+@Composable
+private fun BoxScope.TrophyImpact(
+    progress: Float,
+    orbitProgress: Float,
+    modifier: Modifier = Modifier
+) {
+    val burst = remember {
+        List(22) { index ->
+            BurstParticle(
+                angle = (index * 47 % 360).toFloat(),
+                distance = 64f + (index * 19 % 76),
+                radius = 3.5f + (index % 4) * 1.6f,
+                speed = 0.78f + (index % 5) * 0.07f
+            )
+        }
+    }
+    Canvas(modifier = modifier.size(310.dp)) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val impact = progress.coerceIn(0f, 1f)
+        if (impact > 0f && impact < 1f) {
+            drawCircle(
+                color = Color(0xFFFFE58B).copy(alpha = (1f - impact) * 0.64f),
+                radius = size.minDimension * (0.10f + impact * 0.34f),
+                center = center,
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = 5.dp.toPx())
+            )
+            burst.forEach { particle ->
+                val angle = particle.angle * PI / 180.0
+                val distance = particle.distance * impact * particle.speed
+                val point = Offset(
+                    center.x + cos(angle).toFloat() * distance,
+                    center.y + sin(angle).toFloat() * distance
+                )
+                drawGoldenStar(
+                    center = point,
+                    radius = particle.radius * (1.2f - impact * 0.35f),
+                    alpha = (1f - impact) * 0.95f,
+                    rotationDegrees = particle.angle + impact * 180f
                 )
             }
-            .scale(0.55f + 0.45f * progress)
-            .rotate(direction * rotation),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = emoji, fontSize = 42.sp)
+        }
+        repeat(7) { index ->
+            val angle = (orbitProgress * 360f + index * (360f / 7f)) * PI / 180.0
+            val radius = size.minDimension * (0.31f + if (index % 2 == 0) 0.04f else 0f)
+            drawGoldenStar(
+                center = Offset(
+                    center.x + cos(angle).toFloat() * radius,
+                    center.y + sin(angle).toFloat() * radius
+                ),
+                radius = if (index % 2 == 0) 7f else 4.8f,
+                alpha = 0.72f,
+                rotationDegrees = orbitProgress * 180f + index * 32f
+            )
+        }
     }
+}
+
+private fun DrawScope.drawGoldenStar(
+    center: Offset,
+    radius: Float,
+    alpha: Float,
+    rotationDegrees: Float
+) {
+    val path = Path()
+    repeat(10) { pointIndex ->
+        val angle = (rotationDegrees - 90f + pointIndex * 36f) * PI / 180.0
+        val pointRadius = if (pointIndex % 2 == 0) radius else radius * 0.43f
+        val point = Offset(
+            center.x + cos(angle).toFloat() * pointRadius,
+            center.y + sin(angle).toFloat() * pointRadius
+        )
+        if (pointIndex == 0) path.moveTo(point.x, point.y) else path.lineTo(point.x, point.y)
+    }
+    path.close()
+    drawPath(path, Color(0xFFFFE278).copy(alpha = alpha.coerceIn(0f, 1f)))
 }
 
 private data class ConfettiPiece(
@@ -522,6 +631,13 @@ private data class ConfettiPiece(
     val rotationDegrees: Float,
     val rotationSpeed: Float,
     val isCircle: Boolean
+)
+
+private data class BurstParticle(
+    val angle: Float,
+    val distance: Float,
+    val radius: Float,
+    val speed: Float
 )
 
 @Composable

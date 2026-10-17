@@ -30,6 +30,8 @@ class ProgressRepository(
     private companion object {
         const val PENDING_MEMORY_KEY = "memory_progress_pending"
         const val PENDING_COLOR_SORTING_KEY = "color_sorting_progress_pending"
+        const val PENDING_SHADOW_MATCH_KEY = "shadow_match_progress_pending"
+        const val PENDING_FACE_GAME_KEY = "face_game_progress_pending"
     }
 
     /** Overall progress stats for a child (learned words, accuracy, per-category). */
@@ -338,5 +340,218 @@ class ProgressRepository(
 
     private fun clearPendingColorSortingCompletion() {
         settings.remove(PENDING_COLOR_SORTING_KEY)
+    }
+
+    // ==================== Shadow Match progression ====================
+
+    suspend fun getShadowMatchProgress(childId: Int): Result<ApiResponse<ShadowMatchProgressDTO>> {
+        retryPendingShadowMatchCompletion()
+        return try {
+            val token = tokenStorage.getToken()
+                ?: return Result.failure(Exception("No token found"))
+            val response: ApiResponse<ShadowMatchProgressDTO> = httpClient
+                .get("${ApiConfig.BASE_URL}${ApiConfig.SHADOW_MATCH_PROGRESS}/$childId") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
+                .body()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun recordShadowMatchGameComplete(
+        childId: Int,
+        levelIndex: Int,
+        successfulGamesBefore: Int
+    ): Result<ApiResponse<ShadowMatchProgressDTO>> {
+        retryPendingShadowMatchCompletion()
+        val token = tokenStorage.getToken()
+            ?: return Result.failure(Exception("No token found"))
+        return try {
+            val response: ApiResponse<ShadowMatchProgressDTO> = httpClient
+                .post("${ApiConfig.BASE_URL}${ApiConfig.SHADOW_MATCH_PROGRESS}/$childId/complete") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    setBody(CompleteShadowMatchGameRequest(levelIndex))
+                }
+                .body()
+            if (response.success) clearPendingShadowMatchCompletion()
+            Result.success(response)
+        } catch (e: Exception) {
+            storePendingShadowMatchCompletion(childId, levelIndex, successfulGamesBefore)
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun retryPendingShadowMatchCompletion() {
+        val pending = readPendingShadowMatchCompletion() ?: return
+        val (childId, levelIndex, gamesBefore) = pending
+        val token = tokenStorage.getToken() ?: return
+        try {
+            val current: ApiResponse<ShadowMatchProgressDTO> = httpClient
+                .get("${ApiConfig.BASE_URL}${ApiConfig.SHADOW_MATCH_PROGRESS}/$childId") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
+                .body()
+            val state = current.data ?: return
+            val alreadyApplied = state.levelIndex > levelIndex ||
+                (state.levelIndex == levelIndex && state.successfulGames > gamesBefore)
+            if (alreadyApplied) {
+                clearPendingShadowMatchCompletion()
+                return
+            }
+            val retry: ApiResponse<ShadowMatchProgressDTO> = httpClient
+                .post("${ApiConfig.BASE_URL}${ApiConfig.SHADOW_MATCH_PROGRESS}/$childId/complete") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    setBody(CompleteShadowMatchGameRequest(levelIndex))
+                }
+                .body()
+            if (retry.success) clearPendingShadowMatchCompletion()
+        } catch (_: Exception) {
+            // Keep the single pending completion for a later authenticated interaction.
+        }
+    }
+
+    private fun readPendingShadowMatchCompletion(): Triple<Int, Int, Int>? {
+        val parts = settings.getStringOrNull(PENDING_SHADOW_MATCH_KEY)?.split("|") ?: return null
+        if (parts.size != 3) return null
+        return try { Triple(parts[0].toInt(), parts[1].toInt(), parts[2].toInt()) }
+        catch (_: NumberFormatException) { null }
+    }
+
+    private fun storePendingShadowMatchCompletion(childId: Int, levelIndex: Int, successfulGamesBefore: Int) {
+        settings.putString(PENDING_SHADOW_MATCH_KEY, "$childId|$levelIndex|$successfulGamesBefore")
+    }
+
+    private fun clearPendingShadowMatchCompletion() {
+        settings.remove(PENDING_SHADOW_MATCH_KEY)
+    }
+
+    // ==================== Face / Body progression ====================
+
+    suspend fun startFaceGameRun(
+        childId: Int,
+        characterId: String
+    ): Result<ApiResponse<FaceGameProgressDTO>> {
+        retryPendingFaceGameCompletion()
+        return try {
+            val token = tokenStorage.getToken()
+                ?: return Result.failure(Exception("No token found"))
+            val response: ApiResponse<FaceGameProgressDTO> = httpClient
+                .post("${ApiConfig.BASE_URL}${ApiConfig.FACE_GAME_PROGRESS}/$childId/run") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    setBody(StartFaceGameRunRequest(characterId))
+                }
+                .body()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun finalizeFaceGameRun(
+        childId: Int,
+        completedCharacterId: String,
+        nextCharacterId: String
+    ): Result<ApiResponse<FaceGameProgressDTO>> {
+        return try {
+            val token = tokenStorage.getToken()
+                ?: return Result.failure(Exception("No token found"))
+            val response: ApiResponse<FaceGameProgressDTO> = httpClient
+                .post("${ApiConfig.BASE_URL}${ApiConfig.FACE_GAME_PROGRESS}/$childId/finalize") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    setBody(FinalizeFaceGameRunRequest(completedCharacterId, nextCharacterId))
+                }
+                .body()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getFaceGameProgress(childId: Int): Result<ApiResponse<FaceGameProgressDTO>> {
+        retryPendingFaceGameCompletion()
+        return try {
+            val token = tokenStorage.getToken()
+                ?: return Result.failure(Exception("No token found"))
+            val response: ApiResponse<FaceGameProgressDTO> = httpClient
+                .get("${ApiConfig.BASE_URL}${ApiConfig.FACE_GAME_PROGRESS}/$childId") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
+                .body()
+            Result.success(response)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun completeFaceGame(
+        childId: Int,
+        levelIndex: Int,
+        characterId: String
+    ): Result<ApiResponse<FaceGameProgressDTO>> {
+        retryPendingFaceGameCompletion()
+        return try {
+            val token = tokenStorage.getToken()
+                ?: return Result.failure(Exception("No token found"))
+            val response: ApiResponse<FaceGameProgressDTO> = httpClient
+                .post("${ApiConfig.BASE_URL}${ApiConfig.FACE_GAME_PROGRESS}/$childId/complete") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    setBody(CompleteFaceGameRequest(levelIndex, characterId))
+                }
+                .body()
+            if (response.success) clearPendingFaceGameCompletion()
+            Result.success(response)
+        } catch (e: Exception) {
+            storePendingFaceGameCompletion(childId, levelIndex, characterId)
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun retryPendingFaceGameCompletion() {
+        val pending = settings.getStringOrNull(PENDING_FACE_GAME_KEY)?.split("|") ?: return
+        if (pending.size !in 2..3) return
+        val childId = pending[0].toIntOrNull() ?: return
+        val levelIndex = pending[1].toIntOrNull() ?: return
+        val token = tokenStorage.getToken() ?: return
+        try {
+            val current: ApiResponse<FaceGameProgressDTO> = httpClient
+                .get("${ApiConfig.BASE_URL}${ApiConfig.FACE_GAME_PROGRESS}/$childId") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                }
+                .body()
+            if (!current.success) return
+            val state = current.data ?: return
+            if (state.levelIndex > levelIndex ||
+                (state.levelIndex == levelIndex && state.successfulGames > 0)
+            ) {
+                clearPendingFaceGameCompletion()
+                return
+            }
+            val characterId = pending.getOrNull(2) ?: state.activeCharacterId ?: return
+            val retry: ApiResponse<FaceGameProgressDTO> = httpClient
+                .post("${ApiConfig.BASE_URL}${ApiConfig.FACE_GAME_PROGRESS}/$childId/complete") {
+                    header(HttpHeaders.Authorization, "Bearer $token")
+                    header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+                    setBody(CompleteFaceGameRequest(levelIndex, characterId))
+                }
+                .body()
+            if (retry.success) clearPendingFaceGameCompletion()
+        } catch (_: Exception) {
+            // Keep this completion until connectivity returns.
+        }
+    }
+
+    private fun storePendingFaceGameCompletion(childId: Int, levelIndex: Int, characterId: String) {
+        settings.putString(PENDING_FACE_GAME_KEY, "$childId|$levelIndex|$characterId")
+    }
+
+    private fun clearPendingFaceGameCompletion() {
+        settings.remove(PENDING_FACE_GAME_KEY)
     }
 }

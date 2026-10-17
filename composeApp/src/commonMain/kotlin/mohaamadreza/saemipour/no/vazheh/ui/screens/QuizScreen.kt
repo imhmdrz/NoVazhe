@@ -127,14 +127,6 @@ fun QuizScreen(
 
     var isPlaying by remember { mutableStateOf(false) }
 
-    // پس از ثبت پاسخ، بعد از یک مکث کوتاه به‌صورت خودکار به سوال بعدی می‌رویم
-    LaunchedEffect(uiState.isAnswerSubmitted, uiState.currentQuestionIndex) {
-        if (uiState.isAnswerSubmitted) {
-            delay(1600)
-            if (uiState.hasMoreQuestions) viewModel.nextQuestion() else viewModel.finishQuiz()
-        }
-    }
-
     val audioUpdates = remember {
         object : AudioUpdates {
             override fun onProgressUpdate(playerState: PlayerState) {
@@ -150,13 +142,30 @@ fun QuizScreen(
 
     AudioProvider(audioUpdates) { player ->
 
-        // صدای بازخورد پاسخ: درست یا اشتباه
-        LaunchedEffect(uiState.lastAnswerCorrect, uiState.currentQuestionIndex) {
-            when (uiState.lastAnswerCorrect) {
-                true -> player.play(GameSounds.correct)
-                false -> player.play(GameSounds.wrong)
-                null -> {}
+        // Keep the answered question visible until its feedback sequence is complete.
+        LaunchedEffect(
+            uiState.isAnswerSubmitted,
+            uiState.currentQuestionIndex,
+            uiState.lastAnswerCorrect
+        ) {
+            if (!uiState.isAnswerSubmitted) return@LaunchedEffect
+
+            // Capture the answered question before any progression can change the state.
+            val answeredQuestionAudio = uiState.currentQuestion?.audioUrl.orEmpty()
+            val hasMoreQuestions = uiState.hasMoreQuestions
+
+            if (uiState.lastAnswerCorrect == false) {
+                player.playAndAwait(GameSounds.wrong)
+                if (answeredQuestionAudio.isNotBlank()) {
+                    player.playAndAwait(answeredQuestionAudio)
+                }
+            } else if (uiState.lastAnswerCorrect == true) {
+                // Preserve the existing correct-answer behavior.
+                player.play(GameSounds.correct)
+                delay(1600)
             }
+
+            if (hasMoreQuestions) viewModel.nextQuestion() else viewModel.finishQuiz()
         }
 
         // پایان آزمون: برد برای نمره‌ی بالا، وگرنه صدای اشتباه (باخت)
@@ -239,9 +248,11 @@ fun QuizScreen(
                                 correctWordFa = uiState.correctWordFa,
                                 isPlaying = isPlaying,
                                 onPlayAudio = {
-                                    val audioUrl = uiState.currentQuestion?.audioUrl
-                                    if (!audioUrl.isNullOrEmpty()) {
-                                        player.play(audioUrl)
+                                    if (!uiState.isAnswerSubmitted) {
+                                        val audioUrl = uiState.currentQuestion?.audioUrl
+                                        if (!audioUrl.isNullOrEmpty()) {
+                                            player.play(audioUrl)
+                                        }
                                     }
                                 },
                                 onStopAudio = { player.pause() },
@@ -859,6 +870,7 @@ private fun QuizContent(
         // Play audio button
         PlayAudioButton(
             isPlaying = isPlaying,
+            enabled = !isAnswerSubmitted,
             onClick = { if (isPlaying) onStopAudio() else onPlayAudio() }
         )
 
@@ -916,6 +928,7 @@ private fun QuizContent(
 @Composable
 private fun PlayAudioButton(
     isPlaying: Boolean,
+    enabled: Boolean,
     onClick: () -> Unit
 ) {
     val scale by animateFloatAsState(
@@ -938,7 +951,7 @@ private fun PlayAudioButton(
                 shape = CircleShape
             )
             .clip(CircleShape)
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -1099,7 +1112,6 @@ private fun FeedbackMessage(
         )
     }
 }
-
 
 
 

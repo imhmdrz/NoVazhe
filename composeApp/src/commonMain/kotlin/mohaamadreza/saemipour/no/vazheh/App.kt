@@ -163,13 +163,17 @@ fun App() {
                                 tween(slideDuration)
                             )
                         composable(
-                            "face-game",
+                            route = "face-game",
                             enterTransition = { zoomEnter },
                             popExitTransition = { zoomPopExit }
                         ) {
                             val viewModel: FaceGameViewModel = koinViewModel()
                             OrientationWrapper(Orientation.Vertical) {
-                                FaceGameScreen(navController = navController, viewModel = viewModel)
+                                FaceGameScreen(
+                                    navController = navController,
+                                    viewModel = viewModel,
+                                    childViewModel = childViewModel
+                                )
                             }
                         }
                         composable("auth") {
@@ -276,6 +280,7 @@ fun App() {
                                 ShadowMatchScreen(
                                     navController = navController,
                                     viewModel = viewModel,
+                                    childViewModel = childViewModel,
                                     categoryId = categoryId
                                 )
                             }

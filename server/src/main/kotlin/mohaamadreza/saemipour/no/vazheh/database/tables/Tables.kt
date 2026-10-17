@@ -124,3 +124,28 @@ object ColorSortingProgress : IntIdTable("color_sorting_progress") {
         uniqueIndex(childId)
     }
 }
+
+/** One additive Shadow Match progression row per child (three levels, three sublevels each). */
+object ShadowMatchProgress : IntIdTable("shadow_match_progress") {
+    val childId = reference("child_id", Children, onDelete = ReferenceOption.CASCADE)
+    val levelIndex = integer("level_index").default(0)
+    val successfulGames = integer("successful_games").default(0)
+    val updatedAt = datetime("updated_at").default(LocalDateTime.now())
+
+    init {
+        uniqueIndex(childId)
+    }
+}
+
+/** One additive three-level Face / Body progression row per child. */
+object FaceGameProgress : IntIdTable("face_game_progress") {
+    val childId = reference("child_id", Children, onDelete = ReferenceOption.CASCADE)
+    val levelIndex = integer("level_index").default(0)
+    val successfulGames = integer("successful_games").default(0)
+    val activeCharacterId = varchar("active_character_id", 64).nullable()
+    val updatedAt = datetime("updated_at").default(LocalDateTime.now())
+
+    init {
+        uniqueIndex(childId)
+    }
+}

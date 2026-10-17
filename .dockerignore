@@ -1,0 +1,23 @@
+.git
+.gradle
+**/build
+**/bin
+**/data
+data
+server/data
+*.mv.db
+*.trace.db*
+doc
+iosApp
+composeApp/src
+server/scripts
+**/.DS_Store
+
+# The backend distribution is built offline by the host Gradle project.
+!server/build/
+!server/build/install/
+!server/build/install/server/
+!server/build/install/server/bin/
+!server/build/install/server/bin/server
+!server/build/install/server/lib/
+!server/build/install/server/lib/*.jar

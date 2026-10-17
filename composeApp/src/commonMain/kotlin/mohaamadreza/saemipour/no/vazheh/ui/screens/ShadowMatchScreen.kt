@@ -1,12 +1,16 @@
 package mohaamadreza.saemipour.no.vazheh.ui.screens
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -37,11 +41,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
@@ -59,497 +67,271 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.GameSounds
 import mohaamadreza.saemipour.no.vazheh.player.PlayerState
 import mohaamadreza.saemipour.no.vazheh.ui.components.DashboardButton
-import mohaamadreza.saemipour.no.vazheh.ui.components.LoseOverlay
+import mohaamadreza.saemipour.no.vazheh.ui.components.LevelUpCelebration
 import mohaamadreza.saemipour.no.vazheh.ui.components.WinCelebration
 import mohaamadreza.saemipour.no.vazheh.ui.components.backToDashboard
 import mohaamadreza.saemipour.no.vazheh.ui.theme.CoralRed
 import mohaamadreza.saemipour.no.vazheh.ui.theme.MintGreen
 import mohaamadreza.saemipour.no.vazheh.ui.theme.Purple80
 import mohaamadreza.saemipour.no.vazheh.ui.theme.SkyBlue
+import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 
-/** رنگ مخصوص بازی سایه‌ها (شاخص با کارت در ChildScreen هماهنگ است) */
 private val ShadowAccent = Color(0xFF4B3F72)
+private const val UNMATCHED_NUMBER_SHADOW_ALPHA = 0.45f
+private const val LEVEL_UP_NORMAL_CELEBRATION_MS = 2_250L
+private enum class ShadowCelebrationStage { None, Normal, LevelUp, Final }
 
 @Composable
 fun ShadowMatchScreen(
     navController: NavController,
     viewModel: ShadowMatchViewModel,
+    childViewModel: ChildViewModel,
     categoryId: Int
 ) {
-    val audioUpdates = remember {
-        object : AudioUpdates {
-            override fun onProgressUpdate(state: PlayerState) {}
-            override fun onReady() {}
-            override fun onError(exception: Exception) {}
-        }
+    val childUiState by childViewModel.uiState.collectAsState()
+    val audioUpdates = remember { object : AudioUpdates {
+        override fun onProgressUpdate(state: PlayerState) = Unit
+        override fun onReady() = Unit
+        override fun onError(exception: Exception) = Unit
+    } }
+    LaunchedEffect(categoryId, childUiState.selectedChild?.id) {
+        if (categoryId == COMBINED_CATEGORY_ID) viewModel.loadCombinedWords(childUiState.selectedChild?.id)
+        else viewModel.loadWords(categoryId, childUiState.selectedChild?.id)
     }
 
-    LaunchedEffect(categoryId) {
-        if (categoryId == COMBINED_CATEGORY_ID) {
-            viewModel.loadCombinedWords(rounds = 5)
-        } else {
-            viewModel.loadWords(categoryId, rounds = 5)
-        }
-    }
+    AudioProvider(audioUpdates) { audioPlayer ->
+        DisposableEffect(Unit) { onDispose { audioPlayer.cleanUp() } }
 
-    AudioProvider(audioUpdates = audioUpdates) { audioPlayer ->
-        DisposableEffect(Unit) {
-            onDispose { audioPlayer.cleanUp() }
-        }
-
-        // پاسخ اشتباه: صدای اشتباه، سپس بعد از نمایش بازخورد خودکار به دور بعد می‌رویم
         LaunchedEffect(viewModel.showWrongFeedback) {
             if (viewModel.showWrongFeedback) {
-                audioPlayer.play(GameSounds.wrong)
-                delay(1100)
+                audioPlayer.playAndAwait(GameSounds.wrong)
                 viewModel.clearWrongFeedback()
-                if (!viewModel.isGameOver) viewModel.advanceToNextRound()
             }
         }
-
-        // پاسخ صحیح: اول جینگل درست، بعد صدای کلمه، سپس رفتن به دور بعد
-        // نکته: پاک کردن lastCorrectWord باید «بعد» از delay باشد، وگرنه تغییر کلیدِ
-        // LaunchedEffect همین کوروتین را وسط delay لغو می‌کند و هرگز به دور بعد نمی‌رویم.
         LaunchedEffect(viewModel.lastCorrectWord) {
             viewModel.lastCorrectWord?.let { word ->
-                audioPlayer.play(GameSounds.correct)
-                word.audioUrl?.let { url ->
-                    if (url.isNotEmpty()) {
-                        delay(700)
-                        audioPlayer.play(url)
-                    }
-                }
-                delay(1100)
-                viewModel.clearLastCorrectWord()
-                if (!viewModel.isGameOver) viewModel.advanceToNextRound()
+                audioPlayer.playAndAwait(GameSounds.correct)
+                word.audioUrl?.takeIf { it.isNotBlank() }?.let { audioPlayer.playAndAwait(it) }
+                viewModel.finishCorrectFeedback()
             }
         }
 
-        // صدای برد / باخت (برای باخت همان صدای پاسخ اشتباه پخش می‌شود)
+        var showWin by remember { mutableStateOf(false) }
+        var celebrationStage by remember { mutableStateOf(ShadowCelebrationStage.None) }
         LaunchedEffect(viewModel.isWin) {
-            if (viewModel.isWin) audioPlayer.play(GameSounds.win)
-        }
-        LaunchedEffect(viewModel.isLose) {
-            if (viewModel.isLose) audioPlayer.play(GameSounds.wrong)
+            if (!viewModel.isWin) { showWin = false; celebrationStage = ShadowCelebrationStage.None }
+            else { audioPlayer.play(GameSounds.win); showWin = true; celebrationStage = ShadowCelebrationStage.Normal }
         }
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Purple80.copy(alpha = 0.3f),
-                                SkyBlue.copy(alpha = 0.2f),
-                                MintGreen.copy(alpha = 0.2f)
-                            )
-                        )
-                    )
-            ) {
+            Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(
+                Purple80.copy(alpha = .3f), SkyBlue.copy(alpha = .2f), MintGreen.copy(alpha = .2f)
+            )))) {
                 when {
                     viewModel.isLoading -> LoadingContent()
-                    viewModel.errorMessage != null -> ErrorContent(
-                        message = viewModel.errorMessage ?: "",
-                        onRetry = { viewModel.retry() },
-                        onBack = { navController.popBackStack() }
-                    )
-                    viewModel.currentTarget != null -> ShadowMatchContent(
-                        viewModel = viewModel,
-                        onBack = { navController.backToDashboard() },
-                        onResetGame = { viewModel.resetGame() }
-                    )
+                    viewModel.errorMessage != null -> ErrorContent(viewModel.errorMessage.orEmpty(), viewModel::retry) { navController.popBackStack() }
+                    !showWin && viewModel.targets.isNotEmpty() -> ShadowMatchContent(viewModel, { navController.backToDashboard() }, viewModel::resetGame)
                 }
-
-                if (viewModel.isWin) {
-                    // فقط انیمیشن برد؛ لمس صفحه = شروع دوباره بازی
-                    WinCelebration(onTap = { viewModel.resetGame() })
-                }
-
-                if (viewModel.isLose) {
-                    // ستاره‌ی کافی جمع نشد؛ لمس صفحه یا دکمه = تلاش دوباره
-                    LoseOverlay(
-                        stars = viewModel.stars,
-                        totalRounds = viewModel.totalRounds,
-                        onTap = { viewModel.resetGame() }
+                if (showWin) when (celebrationStage) {
+                    ShadowCelebrationStage.Normal -> WinCelebration(
+                        timeoutMillis = if (
+                            viewModel.isLevelUpWin || viewModel.isAllLevelsCompletedWin
+                        ) LEVEL_UP_NORMAL_CELEBRATION_MS else 8_000L,
+                        onTap = {
+                            when {
+                                viewModel.isAllLevelsCompletedWin ->
+                                    celebrationStage = ShadowCelebrationStage.Final
+                                viewModel.isLevelUpWin ->
+                                    celebrationStage = ShadowCelebrationStage.LevelUp
+                                else -> viewModel.resetGame()
+                            }
+                        }
                     )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LoadingContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            CircularProgressIndicator(color = ShadowAccent, modifier = Modifier.size(64.dp))
-            Text(
-                text = "در حال آماده‌سازی بازی سایه‌ها...",
-                style = MaterialTheme.typography.titleMedium,
-                color = ShadowAccent
-            )
-        }
-    }
-}
-
-@Composable
-private fun ErrorContent(
-    message: String,
-    onRetry: () -> Unit,
-    onBack: () -> Unit
-) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            modifier = Modifier.padding(32.dp)
-        ) {
-            Text(text = "😕", fontSize = 64.sp)
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodyLarge,
-                color = CoralRed,
-                textAlign = TextAlign.Center
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                TextButton(onClick = onBack) { Text("بازگشت") }
-                Button(onClick = onRetry) {
-                    Icon(Icons.Default.Refresh, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("تلاش مجدد")
+                    ShadowCelebrationStage.LevelUp -> LevelUpCelebration(onTap = viewModel::resetGame)
+                    ShadowCelebrationStage.Final -> LevelUpCelebration(
+                        title = "همه‌ی مرحله‌ها تموم شد!",
+                        subtitle = "آفرین قهرمان! می‌تونی دوباره بازی کنی",
+                        onTap = viewModel::resetGame
+                    )
+                    ShadowCelebrationStage.None -> Unit
                 }
             }
         }
     }
 }
 
-@Composable
-private fun ShadowMatchContent(
-    viewModel: ShadowMatchViewModel,
-    onBack: () -> Unit,
-    onResetGame: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Header(
-            currentRound = viewModel.currentRound,
-            totalRounds = viewModel.totalRounds,
-            onBack = onBack
-        )
+@Composable private fun LoadingContent() = Box(Modifier.fillMaxSize(), Alignment.Center) {
+    CircularProgressIndicator(color = ShadowAccent, modifier = Modifier.size(64.dp))
+}
 
-        Spacer(Modifier.height(12.dp))
+@Composable private fun ErrorContent(message: String, onRetry: () -> Unit, onBack: () -> Unit) = Box(Modifier.fillMaxSize(), Alignment.Center) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp), modifier = Modifier.padding(32.dp)) {
+        Text("😕", fontSize = 64.sp)
+        Text(message, color = CoralRed, textAlign = TextAlign.Center)
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) { TextButton(onClick = onBack) { Text("بازگشت") }; Button(onClick = onRetry) { Text("تلاش مجدد") } }
+    }
+}
 
-        StarsRow(stars = viewModel.stars, totalRounds = viewModel.totalRounds)
-
-        Spacer(Modifier.height(16.dp))
-
-        Text(
-            text = "این سایه مال کدومه؟",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            color = ShadowAccent
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        viewModel.currentTarget?.let { target ->
-            ShadowCard(target = target)
-        }
-
-        Spacer(Modifier.height(20.dp))
-
-        OptionsGrid(
-            options = viewModel.options,
-            correctOptionId = viewModel.correctOptionId,
-            wrongOptionId = viewModel.wrongOptionId,
-            onOptionClick = { viewModel.onOptionSelected(it) },
-            modifier = Modifier.weight(1f)
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Button(
-            onClick = onResetGame,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = ShadowAccent),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Icon(Icons.Default.Refresh, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text(
-                text = "شروع دوباره",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+@Composable private fun ShadowMatchContent(viewModel: ShadowMatchViewModel, onBack: () -> Unit, onResetGame: () -> Unit) {
+    Column(Modifier.fillMaxSize().padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Header(viewModel.currentLevel, viewModel.currentSublevel, onBack)
+        Spacer(Modifier.height(10.dp)); StarsRow(viewModel.stars); Spacer(Modifier.height(10.dp))
+        Text("سایه‌ها مال کدومن؟", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = ShadowAccent)
+        Spacer(Modifier.height(10.dp))
+        TargetsGrid(viewModel.targets, viewModel.matchedTargetIds, viewModel.numberTargetIds)
+        Spacer(Modifier.height(if (viewModel.currentLevel == 3) 24.dp else 14.dp))
+        OptionsGrid(viewModel.options, viewModel.matchedTargetIds, viewModel.correctOptionId, viewModel.wrongOptionId, viewModel.isInputLocked, viewModel::onOptionSelected, Modifier.weight(1f))
+        Spacer(Modifier.height(10.dp))
+        Button(onClick = onResetGame, modifier = Modifier.fillMaxWidth().height(50.dp), colors = ButtonDefaults.buttonColors(containerColor = ShadowAccent), shape = RoundedCornerShape(16.dp)) {
+            Icon(Icons.Default.Refresh, null); Spacer(Modifier.width(8.dp)); Text("شروع دوباره", fontWeight = FontWeight.Bold)
         }
     }
 }
 
-@Composable
-private fun Header(
-    currentRound: Int,
-    totalRounds: Int,
-    onBack: () -> Unit
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
-            Text(
-                text = "بازی سایه‌ها",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold,
-                color = ShadowAccent
-            )
-            Text(
-                text = "سایه رو با عکس درست تطبیق بده!",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.Gray
-            )
-        }
+@Composable private fun Header(level: Int, sublevel: Int, onBack: () -> Unit) = Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
+    Column { Text("بازی سایه‌ها", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold, color = ShadowAccent); Text("سطح $level • مرحله $sublevel از 3", color = Color.Gray) }
+    DashboardButton(onClick = onBack, tint = ShadowAccent)
+}
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            if (totalRounds > 0) {
-                Card(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = ShadowAccent.copy(alpha = 0.12f)
-                    )
-                ) {
-                    Text(
-                        text = "$currentRound / $totalRounds",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = ShadowAccent
+@Composable private fun StarsRow(stars: Int) = Card(Modifier.fillMaxWidth(), RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFFFFC107).copy(alpha = .08f))) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), Arrangement.Center) {
+        repeat(3) { index -> Text(if (index < stars) "⭐" else "☆", fontSize = 26.sp, modifier = Modifier.padding(horizontal = 3.dp)) }
+    }
+}
+
+@Composable private fun TargetsGrid(
+    targets: List<WordDTO>,
+    matchedIds: Set<Int>,
+    numberTargetIds: Set<Int>
+) {
+    BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        val gap = 8.dp
+        val cardSize = when (targets.size) {
+            1 -> minOf(maxWidth, 180.dp)
+            2 -> minOf((maxWidth - gap) / 2, 180.dp)
+            3 -> minOf((maxWidth - gap * 2) / 3, 120.dp)
+            else -> minOf((maxWidth - gap) / 2, 140.dp)
+        }
+        when (targets.size) {
+            1 -> ShadowCard(
+                targets.first(),
+                targets.first().id in matchedIds,
+                targets.first().id in numberTargetIds,
+                Modifier.size(cardSize)
+            )
+            2, 3 -> Row(
+                horizontalArrangement = Arrangement.spacedBy(gap),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                targets.forEach { target ->
+                    ShadowCard(
+                        target,
+                        target.id in matchedIds,
+                        target.id in numberTargetIds,
+                        Modifier.size(cardSize)
                     )
                 }
-                Spacer(Modifier.width(8.dp))
             }
-            DashboardButton(onClick = onBack, tint = ShadowAccent)
+            else -> Column(
+                verticalArrangement = Arrangement.spacedBy(gap),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                targets.chunked(2).forEach { rowTargets ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(gap),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        rowTargets.forEach { target ->
+                            ShadowCard(
+                                target,
+                                target.id in matchedIds,
+                                target.id in numberTargetIds,
+                                Modifier.size(cardSize)
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
 
-@Composable
-private fun StarsRow(
-    stars: Int,
-    totalRounds: Int
+@Composable private fun ShadowCard(
+    target: WordDTO,
+    matched: Boolean,
+    isNumberTarget: Boolean,
+    modifier: Modifier
 ) {
-    val goldColor = Color(0xFFFFC107)
+    val scale by animateFloatAsState(if (matched) 1.05f else 1f, tween(250), label = "shadowScale")
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = goldColor.copy(alpha = 0.08f))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 10.dp, horizontal = 16.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            repeat(totalRounds) { index ->
-                val isEarned = index < stars
-                val starScale by animateFloatAsState(
-                    targetValue = if (isEarned) 1f else 0.75f,
-                    animationSpec = tween(durationMillis = 350),
-                    label = "starScale$index"
-                )
-                Text(
-                    text = if (isEarned) "⭐" else "☆",
-                    fontSize = 26.sp,
-                    color = if (isEarned) goldColor else Color.Gray.copy(alpha = 0.5f),
-                    modifier = Modifier
-                        .padding(horizontal = 3.dp)
-                        .scale(starScale)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ShadowCard(target: WordDTO) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp),
-        shape = RoundedCornerShape(24.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        modifier.scale(scale),
+        RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (matched) MintGreen.copy(alpha = .12f) else Color.White
+        ),
+        border = BorderStroke(if (matched) 3.dp else 1.5.dp, if (matched) MintGreen else ShadowAccent.copy(alpha = .3f)),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Box(
-            modifier = Modifier
+            Modifier
                 .fillMaxSize()
                 .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            ShadowAccent.copy(alpha = 0.05f),
-                            ShadowAccent.copy(alpha = 0.18f)
-                        )
+                    Brush.verticalGradient(
+                        if (matched) {
+                            listOf(MintGreen.copy(alpha = .04f), MintGreen.copy(alpha = .14f))
+                        } else {
+                            listOf(ShadowAccent.copy(alpha = .05f), ShadowAccent.copy(alpha = .18f))
+                        }
                     )
                 )
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            if (!target.imageUrl.isNullOrEmpty()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalPlatformContext.current)
-                        .data(target.imageUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "سایه",
-                    contentScale = ContentScale.Fit,
-                    colorFilter = ColorFilter.tint(
-                        color = ShadowAccent,
-                        blendMode = BlendMode.SrcIn
-                    ),
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun OptionsGrid(
-    options: List<WordDTO>,
-    correctOptionId: Int?,
-    wrongOptionId: Int?,
-    onOptionClick: (WordDTO) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    LazyVerticalGrid(
-        columns = GridCells.Fixed(2),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-        modifier = modifier.fillMaxWidth()
-    ) {
-        items(options, key = { it.id }) { word ->
-            OptionCard(
-                word = word,
-                isCorrect = correctOptionId == word.id,
-                isWrong = wrongOptionId == word.id,
-                isLocked = correctOptionId != null,
-                onClick = { onOptionClick(word) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun OptionCard(
-    word: WordDTO,
-    isCorrect: Boolean,
-    isWrong: Boolean,
-    isLocked: Boolean,
-    onClick: () -> Unit
-) {
-    val borderColor = when {
-        isCorrect -> MintGreen
-        isWrong -> CoralRed
-        else -> ShadowAccent.copy(alpha = 0.3f)
-    }
-    val borderWidth = if (isCorrect || isWrong) 3.dp else 1.5.dp
-
-    val scale by animateFloatAsState(
-        targetValue = when {
-            isCorrect -> 1.05f
-            isWrong -> 0.95f
-            else -> 1f
-        },
-        animationSpec = tween(250),
-        label = "optionScale"
-    )
-
-    Card(
-        modifier = Modifier
-            .aspectRatio(1f)
-            .scale(scale)
-            .clickable(enabled = !isLocked) { onClick() },
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = when {
-                isCorrect -> MintGreen.copy(alpha = 0.12f)
-                isWrong -> CoralRed.copy(alpha = 0.12f)
-                else -> Color.White
-            }
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        border = androidx.compose.foundation.BorderStroke(borderWidth, borderColor)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
                 .padding(10.dp),
-            contentAlignment = Alignment.Center
+            Alignment.Center
         ) {
-            if (!word.imageUrl.isNullOrEmpty()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalPlatformContext.current)
-                        .data(word.imageUrl)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = word.wordFa,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(12.dp))
-                )
-            }
+        Crossfade(matched, animationSpec = tween(250), label = "shadowReveal") { isMatched ->
+            AsyncImage(ImageRequest.Builder(LocalPlatformContext.current).data(target.imageUrl).crossfade(true).build(), target.wordFa, Modifier.fillMaxSize().alpha(if (!isMatched && isNumberTarget) UNMATCHED_NUMBER_SHADOW_ALPHA else 1f), contentScale = ContentScale.Fit,
+                colorFilter = if (isMatched) null else ColorFilter.tint(ShadowAccent, BlendMode.SrcIn))
+        }
+            if (matched) FeedbackBadge(isCorrect = true)
+        }
+    }
+}
 
-            if (isCorrect) {
-                Box(modifier = Modifier.align(Alignment.BottomEnd)) {
-                    FeedbackBadge(emoji = "✅", background = MintGreen)
-                }
-            } else if (isWrong) {
-                Box(modifier = Modifier.align(Alignment.BottomEnd)) {
-                    FeedbackBadge(emoji = "❌", background = CoralRed)
-                }
-            }
+@Composable private fun OptionsGrid(options: List<WordDTO>, matchedIds: Set<Int>, correctId: Int?, wrongId: Int?, inputLocked: Boolean, onClick: (WordDTO) -> Unit, modifier: Modifier) = LazyVerticalGrid(
+    columns = GridCells.Fixed(if (options.size <= 4) 2 else 3), horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), modifier = modifier.fillMaxWidth()
+) { items(options, key = { it.id }) { word ->
+    OptionCard(word, word.id in matchedIds || correctId == word.id, wrongId == word.id, inputLocked || word.id in matchedIds) { onClick(word) }
+} }
+
+@Composable private fun OptionCard(word: WordDTO, isCorrect: Boolean, isWrong: Boolean, locked: Boolean, onClick: () -> Unit) {
+    val scale by animateFloatAsState(if (isCorrect) 1.05f else if (isWrong) .95f else 1f, tween(250), label = "optionScale")
+    val border = when { isCorrect -> MintGreen; isWrong -> CoralRed; else -> ShadowAccent.copy(alpha = .3f) }
+    Card(Modifier.aspectRatio(1f).scale(scale).clickable(enabled = !locked, onClick = onClick), RoundedCornerShape(20.dp), colors = CardDefaults.cardColors(containerColor = when { isCorrect -> MintGreen.copy(alpha = .12f); isWrong -> CoralRed.copy(alpha = .12f); else -> Color.White }), border = BorderStroke(if (isCorrect || isWrong) 3.dp else 1.5.dp, border)) {
+        Box(Modifier.fillMaxSize().padding(8.dp), Alignment.Center) {
+            AsyncImage(ImageRequest.Builder(LocalPlatformContext.current).data(word.imageUrl).crossfade(true).build(), word.wordFa, Modifier.fillMaxSize().clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Fit)
+            if (isCorrect || isWrong) FeedbackBadge(isCorrect)
         }
     }
 }
 
 @Composable
-private fun FeedbackBadge(emoji: String, background: Color) {
+private fun BoxScope.FeedbackBadge(isCorrect: Boolean) {
     Box(
-        modifier = Modifier
-            .padding(6.dp)
-            .size(36.dp)
-            .background(background.copy(alpha = 0.95f), CircleShape)
+        Modifier
+            .align(Alignment.BottomEnd)
+            .padding(4.dp)
+            .size(32.dp)
+            .background((if (isCorrect) MintGreen else CoralRed).copy(alpha = .95f), CircleShape)
             .border(2.dp, Color.White, CircleShape),
-        contentAlignment = Alignment.Center
+        Alignment.Center
     ) {
-        Text(text = emoji, fontSize = 18.sp)
+        Text(if (isCorrect) "✅" else "❌", fontSize = 16.sp)
     }
 }
 
-/** Re-export accent for ChildScreen card to keep colors in sync */
 internal val ShadowGameAccent: Color = ShadowAccent

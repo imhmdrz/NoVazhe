@@ -39,4 +39,10 @@ object ApiConfig {
 
     // Color Sorting progression endpoints (base: /api/color-sorting/progress/{childId})
     const val COLOR_SORTING_PROGRESS = "/api/color-sorting/progress"
+
+    // Shadow Match progression endpoints (base: /api/shadow-match/progress/{childId})
+    const val SHADOW_MATCH_PROGRESS = "/api/shadow-match/progress"
+
+    // Face / Body completion progression endpoints.
+    const val FACE_GAME_PROGRESS = "/api/face-game/progress"
 }

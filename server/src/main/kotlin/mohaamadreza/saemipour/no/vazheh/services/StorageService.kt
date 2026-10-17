@@ -24,7 +24,11 @@ object StorageService {
 
     /** Public base URL of this server as seen by clients. */
     val baseUrl: String = (System.getenv("CONTENT_BASE_URL")?.takeIf { it.isNotBlank() }
-        ?: "http://10.0.2.2:8080").trimEnd('/')
+        ?: if (System.getenv("USE_POSTGRES")?.toBoolean() == true) {
+            error("CONTENT_BASE_URL must be set when USE_POSTGRES=true")
+        } else {
+            "http://10.0.2.2:8080"
+        }).trimEnd('/')
 
     /**
      * Build the absolute URL for a content file given its path relative to the content root,

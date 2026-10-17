@@ -34,6 +34,8 @@ val MEMORY_DIMENSION_LADDER = listOf(
     MemoryDimension(4, 4, 8, 90)  // index 3 → 4×4
 )
 
+private const val MEMORY_SUBLEVELS_PER_DIMENSION = 3
+
 data class MemoryCard(
     val id: Int,
     val word: WordDTO,
@@ -63,6 +65,9 @@ class MemoryGameViewModel(
     var isLevelUpWin by mutableStateOf(false)
         private set
 
+    var isAllLevelsCompletedWin by mutableStateOf(false)
+        private set
+
     var moves by mutableStateOf(0)
         private set
 
@@ -79,6 +84,11 @@ class MemoryGameViewModel(
     /** Successful games completed at the current dimension. */
     var successfulGames by mutableStateOf(0)
         private set
+
+    private var replaySuccessfulGames by mutableStateOf<Int?>(null)
+
+    val displayedSuccessfulGames: Int
+        get() = replaySuccessfulGames ?: successfulGames
 
     /** Display-only override used to keep ★★★ visible during the advancing-win celebration. */
     var celebrationStarsOverride by mutableStateOf<Int?>(null)
@@ -150,6 +160,8 @@ class MemoryGameViewModel(
         isLoading = true
         errorMessage = null
         isLevelUpWin = false
+        isAllLevelsCompletedWin = false
+        replaySuccessfulGames = null
         celebrationStarsOverride = null
         levelUpFromDimensionIndex = null
         levelUpToDimensionIndex = null
@@ -180,6 +192,8 @@ class MemoryGameViewModel(
         isLoading = true
         errorMessage = null
         isLevelUpWin = false
+        isAllLevelsCompletedWin = false
+        replaySuccessfulGames = null
         celebrationStarsOverride = null
         levelUpFromDimensionIndex = null
         levelUpToDimensionIndex = null
@@ -206,7 +220,15 @@ class MemoryGameViewModel(
                 val progress = response.data
                 if (response.success && progress != null) {
                     dimensionIndex = progress.dimensionIndex.coerceIn(0, MEMORY_DIMENSION_LADDER.lastIndex)
-                    successfulGames = progress.successfulGames.coerceIn(0, 3)
+                    successfulGames = progress.successfulGames.coerceIn(0, MEMORY_SUBLEVELS_PER_DIMENSION)
+                    replaySuccessfulGames = if (
+                        dimensionIndex == MEMORY_DIMENSION_LADDER.lastIndex &&
+                        successfulGames == MEMORY_SUBLEVELS_PER_DIMENSION
+                    ) {
+                        0
+                    } else {
+                        null
+                    }
                 } else {
                     useFallbackDimension()
                 }
@@ -219,6 +241,8 @@ class MemoryGameViewModel(
         dimensionIndex = 0
         successfulGames = 0
         isLevelUpWin = false
+        isAllLevelsCompletedWin = false
+        replaySuccessfulGames = null
         celebrationStarsOverride = null
         levelUpFromDimensionIndex = null
         levelUpToDimensionIndex = null
@@ -365,6 +389,7 @@ class MemoryGameViewModel(
         cards.clear()
         isWin = false
         isLevelUpWin = false
+        isAllLevelsCompletedWin = false
         moves = 0
         matchedPairs = 0
         totalPairs = words.size
@@ -546,14 +571,21 @@ class MemoryGameViewModel(
                             ?.takeIf { it.success }?.data
                         if (fresh != null) {
                             dimensionIndex = fresh.dimensionIndex.coerceIn(0, MEMORY_DIMENSION_LADDER.lastIndex)
-                            successfulGames = fresh.successfulGames.coerceIn(0, 3)
+                            successfulGames = fresh.successfulGames.coerceIn(0, MEMORY_SUBLEVELS_PER_DIMENSION)
                             submitCompletion(childId, generation, dimensionIndex, successfulGames, isResubmission = true)
+                        } else {
+                            showRecoverableWin(generation)
                         }
                     } else {
                         log("resubmission rejected gen=$generation — win left to the next progression sync")
+                        showRecoverableWin(generation)
                     }
                 },
-                onFailure = { /* pending retry is owned by ProgressRepository — no advancement assumed */ }
+                onFailure = {
+                    // The repository retains the pending completion. Keep the completed board
+                    // recoverable instead of requiring a manual Start Again action.
+                    showRecoverableWin(generation)
+                }
             )
     }
 
@@ -573,19 +605,28 @@ class MemoryGameViewModel(
         gamesBefore: Int,
         progress: MemoryProgressDTO
     ) {
-        val completedFinalDimension = completedDimension == MEMORY_DIMENSION_LADDER.lastIndex
         val returnedDimension = progress.dimensionIndex.coerceIn(0, MEMORY_DIMENSION_LADDER.lastIndex)
-        val returnedSuccessfulGames = progress.successfulGames.coerceIn(0, 3)
+        val returnedSuccessfulGames =
+            progress.successfulGames.coerceIn(0, MEMORY_SUBLEVELS_PER_DIMENSION)
         val didLevelUp = returnedDimension > completedDimension
+        val completedAllLevelsNow =
+            completedDimension == MEMORY_DIMENSION_LADDER.lastIndex &&
+                gamesBefore < MEMORY_SUBLEVELS_PER_DIMENSION &&
+                returnedDimension == MEMORY_DIMENSION_LADDER.lastIndex &&
+                returnedSuccessfulGames == MEMORY_SUBLEVELS_PER_DIMENSION
+        val completedMaxLevelReplay =
+            completedDimension == MEMORY_DIMENSION_LADDER.lastIndex &&
+                gamesBefore >= MEMORY_SUBLEVELS_PER_DIMENSION &&
+                returnedDimension == MEMORY_DIMENSION_LADDER.lastIndex &&
+                returnedSuccessfulGames == MEMORY_SUBLEVELS_PER_DIMENSION
         dimensionIndex = returnedDimension
         successfulGames = returnedSuccessfulGames
-        celebrationStarsOverride = when {
-            didLevelUp -> 3
-            completedFinalDimension &&
-                gamesBefore == 2 &&
-                returnedDimension == completedDimension &&
-                returnedSuccessfulGames == 3 -> 3
-            else -> null
+        celebrationStarsOverride = if (didLevelUp) MEMORY_SUBLEVELS_PER_DIMENSION else null
+        if (completedMaxLevelReplay) {
+            replaySuccessfulGames =
+                ((replaySuccessfulGames ?: 0) + 1).coerceAtMost(MEMORY_SUBLEVELS_PER_DIMENSION)
+        } else if (returnedSuccessfulGames < MEMORY_SUBLEVELS_PER_DIMENSION) {
+            replaySuccessfulGames = null
         }
         log("response gen=$generation dim=$returnedDimension games=$returnedSuccessfulGames")
 
@@ -593,6 +634,7 @@ class MemoryGameViewModel(
             levelUpFromDimensionIndex = if (didLevelUp) completedDimension else null
             levelUpToDimensionIndex = if (didLevelUp) returnedDimension else null
             isLevelUpWin = didLevelUp
+            isAllLevelsCompletedWin = completedAllLevelsNow
             isWin = true
             log(
                 "game confirmed gen=$generation completedDim=$completedDimension " +
@@ -601,11 +643,24 @@ class MemoryGameViewModel(
         }
     }
 
+    private fun showRecoverableWin(generation: Int) {
+        if (generation != gameGeneration) return
+        isLevelUpWin = false
+        isAllLevelsCompletedWin = false
+        isWin = true
+    }
+
     fun clearMatchedWord() {
         currentMatchedWord = null
     }
 
     fun resetGame() {
+        if (
+            isAllLevelsCompletedWin ||
+            (replaySuccessfulGames ?: 0) >= MEMORY_SUBLEVELS_PER_DIMENSION
+        ) {
+            replaySuccessfulGames = 0
+        }
         // Abandon the current board immediately: any in-flight pair-resolution or win pipeline
         // becomes stale now (not only once the replacement board is ready), so it can never
         // mutate the next game. A genuinely completed game's submission still finishes — only
@@ -620,6 +675,7 @@ class MemoryGameViewModel(
         // Dismiss any visible celebration now, not only once the new board is ready.
         isWin = false
         isLevelUpWin = false
+        isAllLevelsCompletedWin = false
         celebrationStarsOverride = null
         levelUpFromDimensionIndex = null
         levelUpToDimensionIndex = null

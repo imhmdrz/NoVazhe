@@ -158,7 +158,7 @@ private fun ImageSelectedContent(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(1.5f),
+                .aspectRatio(16f / 9f),
             shape = RoundedCornerShape(12.dp),
             colors = CardDefaults.cardColors(
                 containerColor = SoftGray.copy(alpha = 0.3f)

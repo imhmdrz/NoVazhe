@@ -49,6 +49,8 @@ val COLOR_SORTING_LEVEL_LADDER = listOf(
     listOf(GameColor.RED, GameColor.BLUE, GameColor.YELLOW, GameColor.GREEN, GameColor.PURPLE)
 )
 
+private const val COLOR_SORTING_SUBLEVELS_PER_LEVEL = 3
+
 private val ALL_GAME_COLORS = listOf(
     GameColor.RED,
     GameColor.BLUE,
@@ -90,6 +92,9 @@ class ColorSortingViewModel(
     var isLevelUpWin by mutableStateOf(false)
         private set
 
+    var isAllLevelsCompletedWin by mutableStateOf(false)
+        private set
+
     var sortedCount by mutableStateOf(0)
         private set
 
@@ -101,6 +106,11 @@ class ColorSortingViewModel(
 
     var successfulGames by mutableStateOf(0)
         private set
+
+    private var replaySuccessfulGames by mutableStateOf<Int?>(null)
+
+    val displayedSuccessfulGames: Int
+        get() = replaySuccessfulGames ?: successfulGames
 
     var celebrationStarsOverride by mutableStateOf<Int?>(null)
         private set
@@ -147,6 +157,8 @@ class ColorSortingViewModel(
         activeColorsLevelIndex = null
         previousBasketOrder = null
         isLevelUpWin = false
+        isAllLevelsCompletedWin = false
+        replaySuccessfulGames = null
         celebrationStarsOverride = null
         levelUpFromLevelIndex = null
         levelUpToLevelIndex = null
@@ -231,7 +243,15 @@ class ColorSortingViewModel(
                 val progress = response.data
                 if (response.success && progress != null) {
                     levelIndex = progress.levelIndex.coerceIn(0, COLOR_SORTING_LEVEL_LADDER.lastIndex)
-                    successfulGames = progress.successfulGames.coerceIn(0, 3)
+                    successfulGames = progress.successfulGames.coerceIn(0, COLOR_SORTING_SUBLEVELS_PER_LEVEL)
+                    replaySuccessfulGames = if (
+                        levelIndex == COLOR_SORTING_LEVEL_LADDER.lastIndex &&
+                        successfulGames == COLOR_SORTING_SUBLEVELS_PER_LEVEL
+                    ) {
+                        0
+                    } else {
+                        null
+                    }
                 } else {
                     useFallbackLevel()
                 }
@@ -244,6 +264,8 @@ class ColorSortingViewModel(
         levelIndex = 0
         successfulGames = 0
         isLevelUpWin = false
+        isAllLevelsCompletedWin = false
+        replaySuccessfulGames = null
         celebrationStarsOverride = null
         levelUpFromLevelIndex = null
         levelUpToLevelIndex = null
@@ -255,6 +277,7 @@ class ColorSortingViewModel(
         baskets.clear()
         isWin = false
         isLevelUpWin = false
+        isAllLevelsCompletedWin = false
         sortedCount = 0
         lastSortedItem = null
         showWrongFeedback = false
@@ -313,15 +336,16 @@ class ColorSortingViewModel(
         if (item.color == basket.color) {
             val itemIndex = items.indexOfFirst { it.id == item.id }
             if (itemIndex != -1) {
+                // A stale drop event for an already placed balloon must not add it again.
+                if (items[itemIndex].isSorted) return true
+
                 items[itemIndex] = items[itemIndex].copy(isSorted = true)
                 basket.items.add(item)
                 sortedCount++
                 lastSortedItem = item
 
                 // پخش صدای رنگ
-                colorAudioMap[basket.color]?.let { url ->
-                    currentSoundUrl = url
-                }
+                currentSoundUrl = colorAudioMap[basket.color] ?: ""
 
                 if (sortedCount == totalItems) {
                     val generation = boardGeneration
@@ -381,45 +405,87 @@ class ColorSortingViewModel(
                 onSuccess = { response ->
                     val progress = response.data
                     if (response.success && progress != null) {
-                        applyProgressResponse(generation, completedLevel, progress)
+                        applyProgressResponse(generation, completedLevel, gamesBefore, progress)
                     } else if (!isResubmission) {
                         val fresh = progressRepository.getColorSortingProgress(childId).getOrNull()
                             ?.takeIf { it.success }?.data
                         if (fresh != null) {
                             levelIndex = fresh.levelIndex.coerceIn(0, COLOR_SORTING_LEVEL_LADDER.lastIndex)
-                            successfulGames = fresh.successfulGames.coerceIn(0, 3)
+                            successfulGames = fresh.successfulGames.coerceIn(0, COLOR_SORTING_SUBLEVELS_PER_LEVEL)
                             submitCompletion(childId, generation, levelIndex, successfulGames, isResubmission = true)
+                        } else {
+                            showRecoverableWin(generation)
                         }
+                    } else {
+                        showRecoverableWin(generation)
                     }
                 },
-                onFailure = { /* pending retry is owned by ProgressRepository */ }
+                onFailure = {
+                    // ProgressRepository owns the pending retry. Do not leave a fully sorted
+                    // board with Start Again as its only recovery path while that retry waits.
+                    showRecoverableWin(generation)
+                }
             )
     }
 
     private fun applyProgressResponse(
         generation: Int,
         completedLevel: Int,
+        gamesBefore: Int,
         progress: ColorSortingProgressDTO
     ) {
         val returnedLevel = progress.levelIndex.coerceIn(0, COLOR_SORTING_LEVEL_LADDER.lastIndex)
-        val returnedSuccessfulGames = progress.successfulGames.coerceIn(0, 3)
+        val returnedSuccessfulGames =
+            progress.successfulGames.coerceIn(0, COLOR_SORTING_SUBLEVELS_PER_LEVEL)
         val didLevelUp = returnedLevel > completedLevel
+        val completedAllLevelsNow =
+            completedLevel == COLOR_SORTING_LEVEL_LADDER.lastIndex &&
+                gamesBefore < COLOR_SORTING_SUBLEVELS_PER_LEVEL &&
+                returnedLevel == COLOR_SORTING_LEVEL_LADDER.lastIndex &&
+                returnedSuccessfulGames == COLOR_SORTING_SUBLEVELS_PER_LEVEL
+        val completedMaxLevelReplay =
+            completedLevel == COLOR_SORTING_LEVEL_LADDER.lastIndex &&
+                gamesBefore >= COLOR_SORTING_SUBLEVELS_PER_LEVEL &&
+                returnedLevel == COLOR_SORTING_LEVEL_LADDER.lastIndex &&
+                returnedSuccessfulGames == COLOR_SORTING_SUBLEVELS_PER_LEVEL
+
         levelIndex = returnedLevel
         successfulGames = returnedSuccessfulGames
         celebrationStarsOverride = if (didLevelUp) 3 else null
+        if (completedMaxLevelReplay) {
+            replaySuccessfulGames =
+                ((replaySuccessfulGames ?: 0) + 1).coerceAtMost(COLOR_SORTING_SUBLEVELS_PER_LEVEL)
+        } else if (returnedSuccessfulGames < COLOR_SORTING_SUBLEVELS_PER_LEVEL) {
+            replaySuccessfulGames = null
+        }
 
         if (generation == boardGeneration) {
             levelUpFromLevelIndex = if (didLevelUp) completedLevel else null
             levelUpToLevelIndex = if (didLevelUp) returnedLevel else null
             isLevelUpWin = didLevelUp
+            isAllLevelsCompletedWin = completedAllLevelsNow
             isWin = true
         }
     }
 
+    private fun showRecoverableWin(generation: Int) {
+        if (generation != boardGeneration) return
+        isLevelUpWin = false
+        isAllLevelsCompletedWin = false
+        isWin = true
+    }
+
     fun resetGame() {
+        if (
+            isAllLevelsCompletedWin ||
+            (replaySuccessfulGames ?: 0) >= COLOR_SORTING_SUBLEVELS_PER_LEVEL
+        ) {
+            replaySuccessfulGames = 0
+        }
         boardGeneration++
         isWin = false
         isLevelUpWin = false
+        isAllLevelsCompletedWin = false
         celebrationStarsOverride = null
         levelUpFromLevelIndex = null
         levelUpToLevelIndex = null

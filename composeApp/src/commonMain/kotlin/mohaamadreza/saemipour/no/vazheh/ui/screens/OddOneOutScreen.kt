@@ -60,7 +60,6 @@ import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
-import kotlinx.coroutines.delay
 import mohaamadreza.saemipour.no.vazheh.data.WordDTO
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
@@ -102,29 +101,22 @@ fun OddOneOutScreen(
             onDispose { audioPlayer.cleanUp() }
         }
 
-        // پاسخ اشتباه: صدای اشتباه، سپس بعد از نمایش بازخورد خودکار به دور بعد می‌رویم
+        // پاسخ اشتباه: تا پایان صدای بازخورد روی همین دور می‌مانیم و سپس فقط
+        // وضعیت موقت بازخورد را پاک می‌کنیم تا کودک دوباره تلاش کند.
         LaunchedEffect(viewModel.showWrongFeedback) {
             if (viewModel.showWrongFeedback) {
-                audioPlayer.play(GameSounds.wrong)
-                delay(1100)
+                audioPlayer.playAndAwait(GameSounds.wrong)
                 viewModel.clearWrongFeedback()
-                if (!viewModel.isGameOver) viewModel.advanceToNextRound()
             }
         }
 
-        // پاسخ صحیح: اول جینگل درست، بعد صدای کلمه‌ی متفاوت، سپس رفتن به دور بعد
-        // نکته: پاک کردن lastCorrectWord باید «بعد» از delay باشد، وگرنه تغییر کلیدِ
-        // LaunchedEffect همین کوروتین را وسط delay لغو می‌کند و هرگز به دور بعد نمی‌رویم.
+        // پاسخ صحیح: تا پایان واقعی هر دو صدای بازخورد و کلمه روی همین صفحه می‌مانیم.
         LaunchedEffect(viewModel.lastCorrectWord) {
             viewModel.lastCorrectWord?.let { word ->
-                audioPlayer.play(GameSounds.correct)
-                word.audioUrl?.let { url ->
-                    if (url.isNotEmpty()) {
-                        delay(700)
-                        audioPlayer.play(url)
-                    }
+                audioPlayer.playAndAwait(GameSounds.correct)
+                word.audioUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    audioPlayer.playAndAwait(url)
                 }
-                delay(1100)
                 viewModel.clearLastCorrectWord()
                 if (!viewModel.isGameOver) viewModel.advanceToNextRound()
             }
@@ -415,7 +407,7 @@ private fun OptionsGrid(
                 word = word,
                 isCorrect = correctOptionId == word.id,
                 isWrong = wrongOptionId == word.id,
-                isLocked = correctOptionId != null,
+                isLocked = correctOptionId != null || wrongOptionId != null,
                 onClick = { onOptionClick(word) }
             )
         }

@@ -18,7 +18,7 @@ import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -81,7 +81,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeoutOrNull
 import androidx.compose.runtime.withFrameNanos
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -102,21 +101,14 @@ import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 
 private val LocalColorDragInfo = compositionLocalOf { ColorDragInfo() }
 
-/** فاصله‌ی بین جینگل «درست» و پخش صدای نام رنگ */
-private const val COLOR_SOUND_DELAY_MS = 700L
-
-/** حداکثر انتظار برای شروع پخش صدای رنگ (اگر رنگ صدا نداشته باشد) */
-private const val WAIT_FOR_SOUND_START_MS = 2_000L
-
-/** حداکثر انتظار برای پایان صدای رنگ، تا در صورت خطای پخش گیر نکنیم */
-private const val WAIT_FOR_SOUND_END_MS = 8_000L
-
 private const val LEVEL_UP_NORMAL_CELEBRATION_MS = 2_250L
+private const val NORMAL_CELEBRATION_DURATION_MS = 8_000L
 
 private enum class ColorCelebrationStage {
     None,
     Normal,
     LevelUp,
+    Final,
 }
 
 private data class BalloonPopEvent(
@@ -132,6 +124,7 @@ private class ColorDragInfo {
     var isDragging: Boolean by mutableStateOf(false)
     var dragPosition by mutableStateOf(Offset.Zero)
     var dragOffset by mutableStateOf(Offset.Zero)
+    var rootWindowOrigin by mutableStateOf(Offset.Zero)
     var draggedSize by mutableStateOf(IntSize.Zero)
     var draggableComposable by mutableStateOf<(@Composable () -> Unit)?>(null)
     var dataToDrop by mutableStateOf<ColorItem?>(null)
@@ -165,7 +158,7 @@ fun ColorSortingScreen(
     val dragState = remember { ColorDragInfo() }
     val childUiState by childViewModel.uiState.collectAsState()
 
-    var isPlaying by remember { mutableStateOf(false) }
+    var finalActionAudioFinished by remember { mutableStateOf(false) }
 
     LaunchedEffect(childUiState.selectedChild?.id) {
         viewModel.loadGame(childUiState.selectedChild?.id)
@@ -175,11 +168,9 @@ fun ColorSortingScreen(
     val audioUpdates = remember {
         object : AudioUpdates {
             override fun onProgressUpdate(state: PlayerState) {
-                isPlaying = state.isPlaying
             }
             override fun onReady() {}
             override fun onError(exception: Exception) {
-                isPlaying = false
             }
         }
     }
@@ -211,29 +202,29 @@ fun ColorSortingScreen(
         // جای‌گذاری درست: اول جینگل درست، بعد صدای رنگ
         LaunchedEffect(viewModel.currentSoundUrl) {
             viewModel.currentSoundUrl?.let { url ->
-                audioPlayer.play(GameSounds.correct)
+                finalActionAudioFinished = false
+                audioPlayer.playAndAwait(GameSounds.correct)
                 if (url.isNotEmpty()) {
-                    delay(COLOR_SOUND_DELAY_MS)
-                    audioPlayer.play(url)
+                    audioPlayer.playAndAwait(url)
                 }
+                finalActionAudioFinished = true
                 viewModel.clearCurrentSound()
             }
         }
 
-        // تشویق پایان بازی: اول صدای آخرین رنگ تا آخر پخش می‌شود و تنها بعد از آن
-        // صدای برد و انیمیشن تشویق می‌آید، تا روی صدای رنگ نیفتد.
         var showWin by remember { mutableStateOf(false) }
         var celebrationStage by remember { mutableStateOf(ColorCelebrationStage.None) }
         LaunchedEffect(viewModel.isWin) {
             if (!viewModel.isWin) {
+                finalActionAudioFinished = false
                 showWin = false
                 celebrationStage = ColorCelebrationStage.None
-                return@LaunchedEffect
             }
-            delay(COLOR_SOUND_DELAY_MS + 200)
-            withTimeoutOrNull(WAIT_FOR_SOUND_START_MS) { while (!isPlaying) delay(50) }
-            withTimeoutOrNull(WAIT_FOR_SOUND_END_MS) { while (isPlaying) delay(50) }
-            delay(400)
+        }
+        LaunchedEffect(viewModel.isWin, finalActionAudioFinished) {
+            if (!viewModel.isWin) return@LaunchedEffect
+            if (!finalActionAudioFinished) return@LaunchedEffect
+            if (viewModel.currentSoundUrl != null) return@LaunchedEffect
             audioPlayer.play(GameSounds.win)
             celebrationStage = ColorCelebrationStage.Normal
             showWin = true
@@ -241,7 +232,7 @@ fun ColorSortingScreen(
 
         CompositionLocalProvider(LocalColorDragInfo provides dragState) {
         val celebrationActive =
-            viewModel.isWin || showWin || celebrationStage != ColorCelebrationStage.None
+            showWin || celebrationStage != ColorCelebrationStage.None
         var rootOriginInWindow by remember { mutableStateOf(Offset.Zero) }
         LaunchedEffect(dragState.isDragging) {
             if (!dragState.isDragging && dragState.dataToDrop != null) {
@@ -250,6 +241,9 @@ fun ColorSortingScreen(
                 if (!dragState.isDragging) {
                     dragState.dataToDrop = null
                     dragState.dragOffset = Offset.Zero
+                    dragState.dragPosition = Offset.Zero
+                    dragState.draggedSize = IntSize.Zero
+                    dragState.draggableComposable = null
                 }
             }
         }
@@ -257,7 +251,9 @@ fun ColorSortingScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .onGloballyPositioned {
-                    rootOriginInWindow = it.localToWindow(Offset.Zero)
+                    val origin = it.localToWindow(Offset.Zero)
+                    rootOriginInWindow = origin
+                    dragState.rootWindowOrigin = origin
                 }
                 .background(
                     brush = Brush.verticalGradient(
@@ -304,7 +300,10 @@ fun ColorSortingScreen(
                 Spacer(Modifier.height(16.dp))
 
                 if (childUiState.selectedChild != null) {
-                    StarsRow(earnedStars = viewModel.celebrationStarsOverride ?: viewModel.successfulGames)
+                    StarsRow(
+                        earnedStars = viewModel.celebrationStarsOverride
+                            ?: viewModel.displayedSuccessfulGames
+                    )
                     Spacer(Modifier.height(16.dp))
                 }
 
@@ -378,7 +377,8 @@ fun ColorSortingScreen(
                 Box(
                     modifier = Modifier
                         .graphicsLayer {
-                            val offset = dragState.dragPosition + dragState.dragOffset
+                            val offset = dragState.dragPosition + dragState.dragOffset -
+                                dragState.rootWindowOrigin
                             scaleX = 1.3f
                             scaleY = 1.3f
                             alpha = if (targetSize == IntSize.Zero) 0f else 0.9f
@@ -411,19 +411,29 @@ fun ColorSortingScreen(
                     ColorCelebrationStage.Normal -> WinCelebration(
                         timeoutMillis = if (viewModel.isLevelUpWin) {
                             LEVEL_UP_NORMAL_CELEBRATION_MS
+                        } else if (viewModel.isAllLevelsCompletedWin) {
+                            LEVEL_UP_NORMAL_CELEBRATION_MS
                         } else {
-                            WAIT_FOR_SOUND_END_MS
+                            NORMAL_CELEBRATION_DURATION_MS
                         },
                         onTap = {
-                            if (viewModel.isLevelUpWin) {
-                                celebrationStage = ColorCelebrationStage.LevelUp
-                            } else {
-                                viewModel.resetGame()
+                            when {
+                                viewModel.isAllLevelsCompletedWin ->
+                                    celebrationStage = ColorCelebrationStage.Final
+                                viewModel.isLevelUpWin ->
+                                    celebrationStage = ColorCelebrationStage.LevelUp
+                                else -> viewModel.resetGame()
                             }
                         }
                     )
 
                     ColorCelebrationStage.LevelUp -> LevelUpCelebration(
+                        onTap = { viewModel.resetGame() }
+                    )
+
+                    ColorCelebrationStage.Final -> LevelUpCelebration(
+                        title = "همه‌ی مرحله‌ها تموم شد!",
+                        subtitle = "آفرین قهرمان! می‌تونی دوباره بازی کنی",
                         onTap = { viewModel.resetGame() }
                     )
 
@@ -484,11 +494,8 @@ private fun ProgressCard(
     sortedCount: Int,
     totalItems: Int
 ) {
-    val filledTicks = when {
-        totalItems <= 0 -> 0
-        sortedCount >= totalItems -> 3
-        else -> (sortedCount.coerceAtLeast(0) * 3 / totalItems).coerceIn(0, 3)
-    }
+    val totalSlots = totalItems.coerceAtLeast(0)
+    val filledTicks = sortedCount.coerceIn(0, totalSlots)
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -504,7 +511,7 @@ private fun ProgressCard(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            repeat(3) { index ->
+            repeat(totalSlots) { index ->
                 val isFilled = index < filledTicks
                 val scale by animateFloatAsState(
                     targetValue = if (isFilled) 1f else 0.9f,
@@ -566,17 +573,7 @@ private fun ItemsArea(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         if (items.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "🎉 آفرین! همه رو مرتب کردی",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MintGreen
-                )
-            }
+            Box(modifier = Modifier.fillMaxSize())
         } else {
             BoxWithConstraints(
                 modifier = Modifier
@@ -799,7 +796,7 @@ private fun ColorDragTarget(
         Modifier
     } else {
         Modifier.pointerInput(item.id) {
-            detectDragGesturesAfterLongPress(
+            detectDragGestures(
                 onDragStart = { offset ->
                     viewModel.startDragging()
                     dragState.dataToDrop = item
@@ -822,6 +819,9 @@ private fun ColorDragTarget(
                     dragState.isDragging = false
                     dragState.dataToDrop = null
                     dragState.dragOffset = Offset.Zero
+                    dragState.dragPosition = Offset.Zero
+                    dragState.draggedSize = IntSize.Zero
+                    dragState.draggableComposable = null
                 }
             )
         }

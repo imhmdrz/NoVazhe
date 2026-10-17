@@ -3,6 +3,7 @@ package mohaamadreza.saemipour.no.vazheh.database
 import mohaamadreza.saemipour.no.vazheh.database.tables.Categories
 import mohaamadreza.saemipour.no.vazheh.database.tables.ChildProgress
 import mohaamadreza.saemipour.no.vazheh.database.tables.Children
+import mohaamadreza.saemipour.no.vazheh.database.tables.CustomWords
 import mohaamadreza.saemipour.no.vazheh.database.tables.Parents
 import mohaamadreza.saemipour.no.vazheh.database.tables.QuizAttempts
 import mohaamadreza.saemipour.no.vazheh.database.tables.Words
@@ -10,8 +11,11 @@ import mohaamadreza.saemipour.no.vazheh.security.PasswordUtils
 import mohaamadreza.saemipour.no.vazheh.services.StorageService
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteAll
+import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.update
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDateTime
@@ -40,13 +44,13 @@ object DatabaseSeeder {
             val seedDemoData = Parents.selectAll().limit(1).firstOrNull() == null
 
             println("🌱 Synchronizing built-in data...")
+            removeCarsCategories()
             
             // Seed categories
             val fruitsId = seedCategory("میوه‌ها", "Fruits", 1, content("Fruits.png"))
             val vegetablesId = seedCategory("سبزیجات", "Vegetables", 2, content("Vegetables.png"))
             val foodId = seedCategory("غذاها", "Food", 3, content("Foods.png"))
             val animalsId = seedCategory("حیوانات", "Animals", 4, content("Animals.png"))
-            val carsId = seedCategory("ماشیــــن‌ها", "Cars", 5, content("Cars.png"))
             val vehiclesId = seedCategory("وسایل نقلیه", "Transportations", 6, content("Transportations.png"))
             val colorsId = seedCategory("رنگ‌ها", "Colors", 7, content("Colors.png"))
             val numbersId = seedCategory("اعداد", "Numbers", 8, content("Numbers.png"))
@@ -317,41 +321,6 @@ object DatabaseSeeder {
                 content("images/foods/copilot_image_1772021584124.jpeg?updatedAt=1772100134775"),
                 content("some/novazh/%D8%A7%D8%B3%D9%81%D9%86%D8%A7%D8%AC.mp3?updatedAt=1771347061136"))
             
-            // Seed Iranian cars - ماشین‌های ایرانی (with audio and images for quiz)
-            seedWord(carsId, "پراید", "Pride", 1,
-                content("images/car/pngpraid.parspng.com-5.png?updatedAt=1772100186388"),
-                content("cars/novazh/%D9%BE%D8%B1%D8%A7%DB%8C%D8%AF.mp3"))
-            seedWord(carsId, "پژو ۴۰۵", "Peugeot 405", 2,
-                content("images/car/LS20260225163620.png?updatedAt=1772100187070"),
-                content("cars/novazh/%D9%BE%DA%98%D9%88%20%DB%B4%DB%B0%DB%B5.mp3"))
-            seedWord(carsId, "پژو ۲۰۶", "Peugeot 206", 3,
-                content("images/car/LS20260225163509.png?updatedAt=1772100185601"),
-                content("cars/novazh/%D9%BE%DA%98%D9%88%20%DB%B2%DB%B0%DB%B6.mp3"))
-            seedWord(carsId, "سمند", "Samand", 4,
-                content("images/car/copilot_image_1772022513889.jpeg?updatedAt=1772100200808"),
-                content("cars/novazh/%D8%B3%D9%85%D9%86%D8%AF.mp3"))
-            seedWord(carsId, "تیبا", "Tiba", 5,
-                content("images/car/copilot_image_1772022606609.jpeg?updatedAt=1772100201097"),
-                content("cars/novazh/%D9%BE%DA%98%D9%88%20%DB%B4%DB%B0%DB%B5.mp3"))
-            seedWord(carsId, "پیکان", "Paykan", 6,
-                content("images/car/copilot_image_1772023778338.jpeg?updatedAt=1772100203141"),
-                content("cars/novazh/%D9%BE%DB%8C%DA%A9%D8%A7%D9%86.mp3"))
-            seedWord(carsId, "دنا", "Dena", 7,
-                content("images/car/copilot_image_1772023913259.jpeg?updatedAt=1772100200427"),
-                content("cars/novazh/%D8%AF%D9%86%D8%A7.mp3"))
-            seedWord(carsId, "رانا", "Runna", 8,
-                content("images/car/copilot_image_1772024165371.jpeg?updatedAt=1772100201741"),
-                content("cars/novazh/%D8%B1%D8%A7%D9%86%D8%A7.mp3"))
-            seedWord(carsId, "کوییک", "Quick", 9,
-                content("images/car/copilot_image_1772024263658.jpeg?updatedAt=1772100201621"),
-                content("cars/novazh/%DA%A9%D9%88%DB%8C%DB%8C%DA%A9.mp3"))
-            seedWord(carsId, "شاهین", "Shahin", 10,
-                content("images/car/LS20260225163417.png?updatedAt=1772100183120"),
-                content("cars/novazh/%D8%B4%D8%A7%D9%87%DB%8C%D9%86.mp3"))
-            seedWord(carsId, "ساینا", "Saina", 11,
-                content("images/car/LS20260225163649.png?updatedAt=1772100184650"),
-                content("cars/novazh/%D8%B3%D8%A7%DB%8C%D9%86%D8%A7.mp3"))
-            
             if (seedDemoData) {
             // ==================== Seed Quiz Data ====================
             println("🎯 Seeding quiz data...")
@@ -454,6 +423,37 @@ object DatabaseSeeder {
             println("   📊 ${ChildProgress.selectAll().count()} progress records")
             println("")
             println("   🔐 Test login: username='test', password='test123'")
+            }
+        }
+    }
+
+    /** Hide the retired Iranian Cars category without deleting its history. */
+    private fun removeCarsCategories() {
+        val carsCategories = Categories.selectAll()
+            .where { Categories.nameEn eq "Cars" }
+            .toList()
+
+        carsCategories.forEach { category ->
+            val categoryId = category[Categories.id].value
+            val wordIds = Words.selectAll()
+                .where { Words.categoryId eq categoryId }
+                .map { it[Words.id] }
+
+            println(
+                "⏸️ Hiding retired Cars category: id=$categoryId, " +
+                    "nameFa=${category[Categories.nameFa]}, words=${wordIds.size}"
+            )
+
+            // Keep the rows and their foreign-key history intact. ContentService only
+            // returns active categories/words, so this removes Cars from the catalog
+            // without deleting user progress or quiz attempts.
+            Categories.update({ Categories.id eq categoryId }) {
+                it[Categories.isActive] = false
+            }
+            if (wordIds.isNotEmpty()) {
+                Words.update({ Words.id inList wordIds }) {
+                    it[Words.isActive] = false
+                }
             }
         }
     }

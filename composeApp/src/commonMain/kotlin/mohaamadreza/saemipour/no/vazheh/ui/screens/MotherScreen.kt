@@ -577,18 +577,57 @@ private fun ProfileContent(
                         }
                     }
                 } else {
-                    items(childrenState.children.size) { index ->
+                    item {
+                        val childrenListState = rememberLazyListState()
+                        val hintAlpha by animateFloatAsState(
+                            if (childrenListState.canScrollForward) 1f else 0f
+                        )
+
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 24.dp, vertical = 6.dp)
+                                .heightIn(max = 180.dp)
                         ) {
-                            ChildContent(
-                                child = childrenState.children[index],
-                                onClick = { onChildClick(childrenState.children[index]) },
-                                onDeleteClick = { childPendingDeletion = childrenState.children[index] },
-                                isDeleteEnabled = deleteChildState !is DeleteChildState.Loading
-                            )
+                            LazyColumn(
+                                state = childrenListState,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                items(childrenState.children.size) { index ->
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 24.dp, vertical = 6.dp)
+                                    ) {
+                                        ChildContent(
+                                            child = childrenState.children[index],
+                                            onClick = { onChildClick(childrenState.children[index]) },
+                                            onDeleteClick = { childPendingDeletion = childrenState.children[index] },
+                                            isDeleteEnabled = deleteChildState !is DeleteChildState.Loading
+                                        )
+                                    }
+                                }
+                            }
+
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .alpha(hintAlpha)
+                                    .background(
+                                        Brush.verticalGradient(
+                                            colors = listOf(Color.Transparent, SoftGray)
+                                        )
+                                    ),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Spacer(modifier = Modifier.height(20.dp))
+                                Icon(
+                                    imageVector = Icons.Filled.KeyboardArrowDown,
+                                    contentDescription = "فرزندان بیشتر",
+                                    tint = MutedText,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }

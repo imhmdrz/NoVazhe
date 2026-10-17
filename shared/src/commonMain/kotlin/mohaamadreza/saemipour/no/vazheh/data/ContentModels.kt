@@ -128,6 +128,39 @@ data class CompleteColorSortingGameRequest(
     val levelIndex: Int
 )
 
+/** Current Shadow Match progression for a child (three-level ladder). */
+@Serializable
+data class ShadowMatchProgressDTO(
+    val levelIndex: Int,
+    val successfulGames: Int
+)
+
+/** Request to record one completed Shadow Match sublevel. */
+@Serializable
+data class CompleteShadowMatchGameRequest(
+    val levelIndex: Int
+)
+
+/** Three-level Face / Body completion progress for one child. */
+@Serializable
+data class FaceGameProgressDTO(
+    val levelIndex: Int,
+    val successfulGames: Int,
+    val activeCharacterId: String? = null
+)
+
+@Serializable
+data class CompleteFaceGameRequest(val levelIndex: Int, val characterId: String? = null)
+
+@Serializable
+data class StartFaceGameRunRequest(val characterId: String)
+
+@Serializable
+data class FinalizeFaceGameRunRequest(
+    val completedCharacterId: String,
+    val nextCharacterId: String
+)
+
 // ==================== Custom Word DTOs - کلمات سفارشی ====================
 
 @Serializable

@@ -63,7 +63,6 @@ import coil3.compose.LocalPlatformContext
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.withTimeoutOrNull
 import mohaamadreza.saemipour.no.vazheh.player.AudioProvider
 import mohaamadreza.saemipour.no.vazheh.player.AudioUpdates
 import mohaamadreza.saemipour.no.vazheh.player.GameSounds
@@ -82,21 +81,13 @@ import mohaamadreza.saemipour.no.vazheh.ui.viewmodels.ChildViewModel
 /** Sentinel categoryId indicating a combined (cross-category) memory game */
 const val COMBINED_CATEGORY_ID: Int = -1
 
-/** فاصله‌ی بین جینگل «درست» و پخش صدای کلمه */
-private const val MEMORY_SOUND_DELAY_MS = 700L
-
-/** حداکثر انتظار برای شروع پخش صدای کلمه‌ی نهایی */
-private const val WAIT_FOR_SOUND_START_MS = 2_000L
-
-/** حداکثر انتظار برای پایان صدای کلمه‌ی نهایی */
-private const val WAIT_FOR_SOUND_END_MS = 8_000L
-
 private const val LEVEL_UP_NORMAL_CELEBRATION_MS = 2_250L
 
 private enum class MemoryCelebrationStage {
     None,
     Normal,
     LevelUp,
+    Final,
 }
 
 @Composable
@@ -106,16 +97,14 @@ fun MemoryGameScreen(
     childViewModel: ChildViewModel,
     categoryId: Int
 ) {
-    var isPlaying by remember { mutableStateOf(false) }
+    var finalActionAudioFinished by remember { mutableStateOf(false) }
 
     val audioUpdates = remember {
         object : AudioUpdates {
             override fun onProgressUpdate(state: PlayerState) {
-                isPlaying = state.isPlaying
             }
             override fun onReady() {}
             override fun onError(exception: Exception) {
-                isPlaying = false
             }
         }
     }
@@ -141,31 +130,31 @@ fun MemoryGameScreen(
         // جفت درست: اول جینگل درست، بعد صدای کلمه
         LaunchedEffect(viewModel.currentMatchedWord) {
             viewModel.currentMatchedWord?.let { word ->
-                audioPlayer.play(GameSounds.correct)
+                finalActionAudioFinished = false
+                audioPlayer.playAndAwait(GameSounds.correct)
                 word.audioUrl?.let { url ->
                     if (url.isNotEmpty()) {
-                        delay(MEMORY_SOUND_DELAY_MS)
-                        audioPlayer.play(url)
+                        audioPlayer.playAndAwait(url)
                     }
                 }
+                finalActionAudioFinished = true
                 viewModel.clearMatchedWord()
             }
         }
 
-        // تشویق پایان بازی: مثل بازی رنگ، اول اجازه می‌دهیم زنجیره‌ی «درست → صدای کلمه»
-        // واقعاً اجرا و تمام شود، بعد صدای برد و خود جشن را نشان می‌دهیم.
         var showWin by remember { mutableStateOf(false) }
         var celebrationStage by remember { mutableStateOf(MemoryCelebrationStage.None) }
         LaunchedEffect(viewModel.isWin) {
             if (!viewModel.isWin) {
+                finalActionAudioFinished = false
                 showWin = false
                 celebrationStage = MemoryCelebrationStage.None
-                return@LaunchedEffect
             }
-            delay(MEMORY_SOUND_DELAY_MS + 200)
-            withTimeoutOrNull(WAIT_FOR_SOUND_START_MS) { while (!isPlaying) delay(50) }
-            withTimeoutOrNull(WAIT_FOR_SOUND_END_MS) { while (isPlaying) delay(50) }
-            delay(400)
+        }
+        LaunchedEffect(viewModel.isWin, finalActionAudioFinished) {
+            if (!viewModel.isWin) return@LaunchedEffect
+            if (!finalActionAudioFinished) return@LaunchedEffect
+            if (viewModel.currentMatchedWord != null) return@LaunchedEffect
             audioPlayer.play(GameSounds.win)
             celebrationStage = MemoryCelebrationStage.Normal
             showWin = true
@@ -173,7 +162,7 @@ fun MemoryGameScreen(
 
         CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
             val celebrationActive =
-                viewModel.isWin || showWin || celebrationStage != MemoryCelebrationStage.None
+                showWin || celebrationStage != MemoryCelebrationStage.None
 
             Box(
                 modifier = Modifier
@@ -211,7 +200,8 @@ fun MemoryGameScreen(
                             cards = viewModel.cards,
                             moves = viewModel.moves,
                             showProgressStars = childUiState.selectedChild != null,
-                            earnedStars = viewModel.celebrationStarsOverride ?: viewModel.successfulGames,
+                            earnedStars = viewModel.celebrationStarsOverride
+                                ?: viewModel.displayedSuccessfulGames,
                             timeRemainingSeconds = viewModel.timeRemainingSeconds,
                             gridColumns = MEMORY_DIMENSION_LADDER[viewModel.dimensionIndex].columns,
                             onCardClick = { viewModel.onCardClick(it) },
@@ -227,20 +217,31 @@ fun MemoryGameScreen(
                             WinCelebration(
                                 timeoutMillis = if (viewModel.isLevelUpWin) {
                                     LEVEL_UP_NORMAL_CELEBRATION_MS
+                                } else if (viewModel.isAllLevelsCompletedWin) {
+                                    LEVEL_UP_NORMAL_CELEBRATION_MS
                                 } else {
                                     8_000L
                                 },
                                 onTap = {
-                                    if (viewModel.isLevelUpWin) {
-                                        celebrationStage = MemoryCelebrationStage.LevelUp
-                                    } else {
-                                        viewModel.resetGame()
+                                    when {
+                                        viewModel.isAllLevelsCompletedWin ->
+                                            celebrationStage = MemoryCelebrationStage.Final
+                                        viewModel.isLevelUpWin ->
+                                            celebrationStage = MemoryCelebrationStage.LevelUp
+                                        else -> viewModel.resetGame()
                                     }
                                 }
                             )
                         }
                         MemoryCelebrationStage.LevelUp -> {
                             LevelUpCelebration(
+                                onTap = { viewModel.resetGame() }
+                            )
+                        }
+                        MemoryCelebrationStage.Final -> {
+                            LevelUpCelebration(
+                                title = "همه‌ی مرحله‌ها تموم شد!",
+                                subtitle = "آفرین قهرمان! می‌تونی دوباره بازی کنی",
                                 onTap = { viewModel.resetGame() }
                             )
                         }

@@ -20,6 +20,7 @@ node_modules/
 
 # Local credentials and generated deployment/database state
 .env
+/doc/main.pdf
 /data/*.mv.db
 /data/*.trace.db*
 /server/data/*.mv.db

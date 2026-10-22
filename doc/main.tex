@@ -2,7 +2,7 @@
 % Commands for running this example:
 % 	 xelatex main
 % 	 bibtex8 -W -c cp1256fa main
-%      xindy -L persian -C utf8 -M texindy main
+%      xindy -L persian-variant1 -C utf8 -M texindy -M page-ranges -t main.ilg -o main.ind main.idx
 % 	 xelatex main
 % 	 xelatex main
 % End of Commands
@@ -68,7 +68,7 @@
 \onehalfspacing
 %\include{dicfa2en}
 %\include{dicen2fa}
-\printindex
+% Empty indexes are not printed; retain index configuration for future entries.
 \input{enTitle}
 \label{LastPage}
 
